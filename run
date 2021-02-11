@@ -1,0 +1,4 @@
+#!/bin/bash
+export WX_APP_ICON="priv/icon.png"
+export WX_APP_TITLE="Todo"
+exec iex -S mix
