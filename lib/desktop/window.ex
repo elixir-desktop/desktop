@@ -65,13 +65,10 @@ defmodule Desktop.Window do
     webview = Fallback.webview_new(frame)
 
     if menubar do
-      bar =
-        if OS.type() == MacOS do
-          :wxMenuBar.oSXGetAppleMenu(:wxMenuBar.new())
-        else
-          :wxMenuBar.new()
-        end
-
+      bar = :wxMenuBar.new()
+      # if OS.type() == MacOS do
+      #   :wxMenuBar.oSXGetAppleMenu(:wxMenuBar.new())
+      # else
       {:ok, _pid} = Menu.start_link(menubar, :wx.get_env(), bar)
       :wxFrame.setMenuBar(frame, Menu.create_menu_bar(menubar, bar))
     else
