@@ -48,6 +48,7 @@ defmodule Desktop.Fallback do
   defp configure_webview(webview) do
     :wxWebView.connect(webview, :webview_newwindow)
     :wxWebView.enableContextMenu(webview, enable: false)
+    webview
   end
 
   def webview_show(%Desktop.Window{webview: webview, frame: frame}, url, default) do
