@@ -5,9 +5,36 @@ defmodule Desktop.Fallback do
   def webview_new(frame) do
     if is_module?(:wxWebView) do
       sizer = :wxBoxSizer.new(Wx.wxHORIZONTAL())
-      webview = :wxWebView.new(frame, -1)
-      :wxWebView.connect(webview, :webview_newwindow)
-      :wxWebView.enableContextMenu(webview, enable: false)
+
+      webview =
+        if OS.type() == Windows do
+          if not :wxWebView.isBackendAvailable('wxWebViewEdge') do
+            win = :wxHtmlWindow.new(frame, [])
+
+            :wxHtmlWindow.setPage(win, """
+              <html>
+                <body>
+                  <h1>Missing Edge Runtime</h1>
+                  <p>This demo requires the edge runtime to be installed</p>
+                  <p>Please download it <a href="https://go.microsoft.com/fwlink/p/?LinkId=2124703">here</a> and try again</p>
+                  <p>
+                    <a href="https://go.microsoft.com/fwlink/p/?LinkId=2124703">https://go.microsoft.com/fwlink/p/?LinkId=2124703</a>
+                  </p>
+                </body>
+              </html>
+            """)
+
+            :wxHtmlWindow.connect(win, :command_html_link_clicked, skip: true)
+            win
+          else
+            :wxWebView.new(frame, -1, backend: 'wxWebViewEdge')
+            |> configure_webview()
+          end
+        else
+          :wxWebView.new(frame, -1)
+          |> configure_webview()
+        end
+
       :wxBoxSizer.add(sizer, webview, proportion: 1, flag: Wx.wxEXPAND())
       :wxFrame.setSizer(frame, sizer)
       webview
@@ -16,6 +43,11 @@ defmodule Desktop.Fallback do
         "Missing support for wxWebView - upgrade to OTP/24. Will show OS browser instead"
       )
     end
+  end
+
+  defp configure_webview(webview) do
+    :wxWebView.connect(webview, :webview_newwindow)
+    :wxWebView.enableContextMenu(webview, enable: false)
   end
 
   def webview_show(%Desktop.Window{webview: webview, frame: frame}, url, default) do
