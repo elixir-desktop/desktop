@@ -37,7 +37,6 @@ defmodule Desktop.Fallback do
       flag =
         case type do
           :info -> Wx.wxICON_INFORMATION()
-          :warn -> Wx.wxICON_WARNING()
           :warning -> Wx.wxICON_WARNING()
           :error -> Wx.wxICON_ERROR()
         end
@@ -66,10 +65,10 @@ defmodule Desktop.Fallback do
     end
   end
 
-  def notification_show(notification, message) do
+  def notification_show(notification, message, timeout) do
     if is_module?(:wxNotificationMessage) do
       :wxNotificationMessage.setMessage(notification, to_charlist(message))
-      :wxNotificationMessage.show(notification)
+      :wxNotificationMessage.show(notification, timeout: timeout)
     else
       Logger.notice("NOTIFICATION: #{message}")
     end

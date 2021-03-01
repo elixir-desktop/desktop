@@ -8,9 +8,10 @@ defmodule Desktop.Window do
     :module,
     :bar,
     :frame,
-    :notification,
+    :notifications,
     :webview,
-    :home_url
+    :home_url,
+    :title
   ]
 
   # options: module, title
@@ -86,13 +87,12 @@ defmodule Desktop.Window do
       true = :wxTaskBarIcon.setIcon(bar, icon)
     end
 
-    notification = Fallback.notification_new(window_title, :info)
-
     ui = %Window{
       frame: frame,
       webview: webview,
-      notification: notification,
-      home_url: url
+      notifications: %{},
+      home_url: url,
+      title: window_title
     }
 
     if not hidden do
@@ -106,8 +106,28 @@ defmodule Desktop.Window do
     GenServer.cast(pid, {:show, url})
   end
 
-  def show_notification(pid, text) do
-    GenServer.cast(pid, {:show_notification, text})
+  def show_notification(pid, text, opts \\ []) do
+    id = Keyword.get(opts, :id, :default)
+
+    type =
+      case Keyword.get(opts, :type, :info) do
+        :info -> :info
+        :error -> :error
+        :warn -> :warning
+        :warning -> :warning
+      end
+
+    title = Keyword.get(opts, :title, nil)
+
+    timeout =
+      case Keyword.get(opts, :timeout, :auto) do
+        :auto -> -1
+        :never -> 0
+        ms when is_integer(ms) -> ms
+      end
+
+    callback = Keyword.get(opts, :callback, nil)
+    GenServer.cast(pid, {:show_notification, text, id, type, title, callback, timeout})
   end
 
   def quit() do
@@ -133,9 +153,55 @@ defmodule Desktop.Window do
     {:noreply, ui}
   end
 
-  def handle_cast({:show_notification, message}, ui = %Window{notification: notification}) do
-    Fallback.notification_show(notification, message)
+  def handle_event(wx(obj: obj, event: wxCommand(type: :notification_message_click)), ui) do
+    notification(ui, obj, :click)
     {:noreply, ui}
+  end
+
+  def handle_event(wx(obj: obj, event: wxCommand(type: :notification_message_dismissed)), ui) do
+    notification(ui, obj, :dismiss)
+    {:noreply, ui}
+  end
+
+  def handle_event(
+        wx(obj: obj, event: wxCommand(commandInt: action, type: :notification_message_action)),
+        ui
+      ) do
+    notification(ui, obj, {:action, action})
+    {:noreply, ui}
+  end
+
+  defp notification(%Window{notifications: noties}, obj, action) do
+    case Enum.find(noties, fn {_, {wx_ref, _callback}} -> wx_ref == obj end) do
+      nil ->
+        Logger.error(
+          "Received unhandled notification event #{inspect(obj)}: #{inspect(action)} (#{
+            inspect(noties)
+          })"
+        )
+
+      {_, {_ref, nil}} ->
+        :ok
+
+      {_, {_ref, callback}} ->
+        spawn(fn -> callback.(action) end)
+    end
+  end
+
+  def handle_cast(
+        {:show_notification, message, id, type, title, callback, timeout},
+        ui = %Window{notifications: noties, title: window_title}
+      ) do
+    {n, _} =
+      note =
+      case Map.get(noties, id, nil) do
+        nil -> {Fallback.notification_new(title || window_title, type), callback}
+        {note, _} -> {note, callback}
+      end
+
+    Fallback.notification_show(n, message, timeout)
+    noties = Map.put(noties, id, note)
+    {:noreply, %Window{ui | notifications: noties}}
   end
 
   def handle_cast({:show, url}, ui = %Window{home_url: home}) do
