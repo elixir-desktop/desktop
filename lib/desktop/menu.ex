@@ -3,12 +3,15 @@ defmodule Desktop.Menu do
   require Record
   require Logger
   use GenServer
-  defstruct [:assigns, :dom, :mod, :bindings, :menubar, :taskbar, :pid, :loaded]
+  defstruct [:assigns, :dom, :mod, :bindings, :old_bindings, :menubar, :taskbar, :pid, :loaded]
 
   @type t() :: %__MODULE__{
           assigns: %{},
           mod: Atom.t(),
           bindings: %{},
+          # We're keeping one generation of bindings because the menubaricon will usually have
+          # two (2) active generations. The currently displayed one and the newly generated one.
+          old_bindings: %{},
           pid: pid()
         }
 
@@ -45,7 +48,7 @@ defmodule Desktop.Menu do
   def init([mod, wx_env, bar]) do
     :wx.set_env(wx_env)
 
-    menu = %Menu{mod: mod, assigns: %{}, bindings: %{}, pid: self()}
+    menu = %Menu{mod: mod, assigns: %{}, bindings: %{}, old_bindings: %{}, pid: self()}
 
     menu =
       case :wx.getObjectType(bar) do
@@ -87,37 +90,40 @@ defmodule Desktop.Menu do
 
   @impl true
   def handle_call({:update_callbacks, callbacks}, _from, menu) do
-    bindings =
+    menu =
       :wx.batch(fn ->
-        update_callbacks(callbacks)
+        update_callbacks(menu, callbacks)
       end)
 
-    {:reply, :ok, %Menu{menu | bindings: bindings}}
+    {:reply, :ok, menu}
   end
 
-  defp update_callbacks(callbacks) do
-    List.wrap(callbacks)
-    |> List.flatten()
-    |> Enum.reduce(%{}, fn callback, bind ->
-      case callback do
-        {:connect, {event_src, id, onclick}} ->
-          :wxMenu.connect(event_src, :command_menu_selected, id: id)
-          Map.put(bind, id, onclick)
+  defp update_callbacks(menu = %Menu{bindings: old}, callbacks) do
+    bindings =
+      List.wrap(callbacks)
+      |> List.flatten()
+      |> Enum.reduce(%{}, fn callback, bind ->
+        case callback do
+          {:connect, {event_src, id, onclick}} ->
+            :wxMenu.connect(event_src, :command_menu_selected, id: id)
+            Map.put(bind, id, onclick)
 
-        _ ->
-          bind
-      end
-    end)
+          _ ->
+            bind
+        end
+      end)
+
+    %Menu{menu | bindings: bindings, old_bindings: old}
   end
 
   @impl true
   def handle_cast({:update_callbacks, callbacks}, menu) do
-    bindings =
+    menu =
       :wx.batch(fn ->
-        update_callbacks(callbacks)
+        update_callbacks(menu, callbacks)
       end)
 
-    {:noreply, %Menu{menu | bindings: bindings}}
+    {:noreply, menu}
   end
 
   @impl true
@@ -148,12 +154,17 @@ defmodule Desktop.Menu do
   @impl true
   def handle_info(
         wx(id: id, event: wxCommand(type: :command_menu_selected)),
-        menu = %Menu{bindings: bindings, mod: mod}
+        menu = %Menu{bindings: bindings, old_bindings: old, mod: mod}
       ) do
     menu =
-      case Map.get(bindings, id) do
+      Map.merge(bindings, old)
+      |> Map.get(id)
+      |> case do
         nil ->
-          Logger.warning("Desktop.Menu unbound message id #{inspect(id)}")
+          Logger.warning(
+            "Desktop.Menu unbound message id #{inspect(id)} #{inspect({bindings, old})}"
+          )
+
           menu
 
         name ->
@@ -238,11 +249,8 @@ defmodule Desktop.Menu do
       for pos <- length(menues)..(size - 1), do: :wxMenuBar.remove(menubar, pos)
     end
 
-    bindings =
-      Enum.map(menues, fn {_label, _menu, callback} -> callback end)
-      |> update_callbacks()
-
-    %Menu{menu | bindings: bindings}
+    callbacks = Enum.map(menues, fn {_label, _menu, callback} -> callback end)
+    update_callbacks(menu, callbacks)
   end
 
   defp do_create_menu(pid, menues, dom) when is_list(dom) do
