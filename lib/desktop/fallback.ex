@@ -9,6 +9,12 @@ defmodule Desktop.Fallback do
       webview =
         if OS.type() == Windows do
           if not :wxWebView.isBackendAvailable('wxWebViewEdge') do
+            Logger.warning("""
+            Missing support for wxWebViewEdge.
+            Check your OTP install for edge support and download it here:
+            https://go.microsoft.com/fwlink/p/?LinkId=2124703
+            """)
+
             win = :wxHtmlWindow.new(frame, [])
 
             :wxHtmlWindow.setPage(win, """
@@ -52,7 +58,8 @@ defmodule Desktop.Fallback do
   end
 
   def webview_show(%Desktop.Window{webview: webview, frame: frame}, url, default) do
-    if is_module?(:wxWebView) do
+    if is_module?(:wxWebView) and
+         (OS.type() != Windows or :wxWebView.isBackendAvailable('wxWebViewEdge')) do
       if url != nil do
         :wxWebView.loadURL(webview, url)
       end
