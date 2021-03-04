@@ -3,7 +3,7 @@ defmodule Desktop.Menu do
   require Record
   require Logger
   use GenServer
-  defstruct [:assigns, :dom, :mod, :bindings, :menubar, :taskbar, :pid, :last_dom]
+  defstruct [:assigns, :dom, :mod, :bindings, :menubar, :taskbar, :pid, :loaded]
 
   @type t() :: %__MODULE__{
           assigns: %{},
@@ -58,14 +58,14 @@ defmodule Desktop.Menu do
   end
 
   defp update_dom(menu = %Menu{mod: mod, assigns: assigns, menubar: menubar, pid: pid}) do
-    spawn(fn ->
+    spawn_link(fn ->
       new_dom = mod.render(assigns) |> parse()
       dom = Desktop.Env.put({:dom, pid}, new_dom)
 
       if dom != new_dom do
         if menubar != nil do
           :wx.set_env(Desktop.Env.wx_env())
-          menues = :wx.batch(fn -> do_create_menubar_menues(pid, dom) end)
+          menues = :wx.batch(fn -> do_create_menubar_menues(pid, new_dom) end)
           GenServer.cast(pid, {:update_menubar, menues})
         else
           create_menu(pid)
@@ -77,8 +77,12 @@ defmodule Desktop.Menu do
   end
 
   @impl true
-  def handle_call(:menubar, _from, menu = %Menu{menubar: menubar}) do
-    {:reply, menubar, menu}
+  def handle_call(:menubar, from, menu = %Menu{menubar: menubar, loaded: loaded}) do
+    if loaded == true do
+      {:reply, menubar, menu}
+    else
+      {:noreply, %Menu{menu | loaded: {:from, from}}}
+    end
   end
 
   @impl true
@@ -117,13 +121,18 @@ defmodule Desktop.Menu do
   end
 
   @impl true
-  def handle_cast({:update_menubar, menues}, menu) do
+  def handle_cast({:update_menubar, menues}, menu = %Menu{menubar: bar, loaded: loaded}) do
     menu =
       :wx.batch(fn ->
         do_update_menubar(menu, menues)
       end)
 
-    {:noreply, menu}
+    case loaded do
+      {:from, from} -> GenServer.reply(from, bar)
+      _ -> :ok
+    end
+
+    {:noreply, %Menu{menu | loaded: true}}
   end
 
   @impl true
@@ -144,7 +153,7 @@ defmodule Desktop.Menu do
     menu =
       case Map.get(bindings, id) do
         nil ->
-          Logger.warning("Desktop.Menu unbound message id #{inspect(id)}", [menu])
+          Logger.warning("Desktop.Menu unbound message id #{inspect(id)}")
           menu
 
         name ->
@@ -168,7 +177,7 @@ defmodule Desktop.Menu do
   end
 
   def menubar(pid) do
-    GenServer.call(pid, :menubar)
+    GenServer.call(pid, :menubar, :infinity)
   end
 
   def menu(pid) when is_atom(pid) do
@@ -193,7 +202,7 @@ defmodule Desktop.Menu do
         {menu, callbacks}
       end)
 
-    # Would like to to this synchronously, but this is running in the context of
+    # Would like to do this synchronously, but this is running in the context of
     # :wxe_server and so :wxe_server is blocked to accept :connect() calls
     GenServer.cast(pid, {:update_callbacks, callbacks})
 
