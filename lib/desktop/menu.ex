@@ -98,8 +98,8 @@ defmodule Desktop.Menu do
     {:reply, :ok, menu}
   end
 
-  defp update_callbacks(menu = %Menu{bindings: old}, callbacks) do
-    bindings =
+  defp update_callbacks(menu = %Menu{bindings: bindings, old_bindings: old}, callbacks) do
+    new_bindings =
       List.wrap(callbacks)
       |> List.flatten()
       |> Enum.reduce(%{}, fn callback, bind ->
@@ -112,6 +112,13 @@ defmodule Desktop.Menu do
             bind
         end
       end)
+
+    {bindings, old} =
+      if map_size(bindings) > 1000 do
+        {new_bindings, bindings}
+      else
+        {Map.merge(bindings, new_bindings), old}
+      end
 
     %Menu{menu | bindings: bindings, old_bindings: old}
   end
