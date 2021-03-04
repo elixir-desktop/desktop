@@ -41,10 +41,11 @@ defmodule Desktop.Window do
     hidden = options[:hidden] || false
     url = options[:url]
 
-    :wx.set_env(Desktop.wx_env())
+    env = Desktop.Env.wx_env()
+    :wx.set_env(env)
 
     frame =
-      :wxFrame.new(Desktop.wx(), Wx.wxID_ANY(), window_title, [
+      :wxFrame.new(Desktop.Env.wx(), Wx.wxID_ANY(), window_title, [
         {:size, size},
         {:style, Wx.wxDEFAULT_FRAME_STYLE()}
       ])
@@ -65,12 +66,11 @@ defmodule Desktop.Window do
     webview = Fallback.webview_new(frame)
 
     if menubar do
-      bar = :wxMenuBar.new()
       # if OS.type() == MacOS do
       #   :wxMenuBar.oSXGetAppleMenu(:wxMenuBar.new())
       # else
-      {:ok, _pid} = Menu.start_link(menubar, :wx.get_env(), bar)
-      :wxFrame.setMenuBar(frame, Menu.create_menu_bar(menubar, bar))
+      {:ok, pid} = Menu.start_link(menubar, env, :wxMenuBar.new())
+      :wxFrame.setMenuBar(frame, Menu.menubar(pid))
     else
       # MacOS osMenu
       if OS.type() == MacOS do
@@ -79,9 +79,32 @@ defmodule Desktop.Window do
     end
 
     if icon_menu do
-      bar = :wxTaskBarIcon.new(createPopupMenu: fn -> Menu.create_menu(icon_menu) end)
-      {:ok, _pid} = Menu.start_link(icon_menu, :wx.get_env(), bar)
+      bar =
+        :wxTaskBarIcon.new(
+          createPopupMenu: fn ->
+            {time, value} =
+              :timer.tc(fn ->
+                Menu.create_menu(icon_menu)
+              end)
+
+            ms = div(time, 1000)
+
+            if ms > 100 do
+              Logger.warning("createPopup took #{ms}ms")
+            end
+
+            value
+          end
+        )
+
+      {:ok, pid} = Menu.start_link(icon_menu, env, bar)
       true = :wxTaskBarIcon.setIcon(bar, icon)
+
+      OnCrash.call(pid, fn ->
+        :wx.set_env(env)
+        :wxTaskBarIcon.removeIcon(bar)
+        :wxTaskBarIcon.destroy(bar)
+      end)
     end
 
     ui = %Window{

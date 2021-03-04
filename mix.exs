@@ -43,6 +43,7 @@ defmodule Desktop.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      {:oncrash, "~> 0.1"},
       {:sqlitex, github: "diodechain/sqlitex"},
 
       # phoenix stuff

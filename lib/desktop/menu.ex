@@ -3,13 +3,13 @@ defmodule Desktop.Menu do
   require Record
   require Logger
   use GenServer
-  defstruct [:assigns, :dom, :mod, :bindings, :menubar, :taskbar]
+  defstruct [:assigns, :dom, :mod, :bindings, :menubar, :taskbar, :pid, :last_dom]
 
   @type t() :: %__MODULE__{
           assigns: %{},
-          dom: [],
           mod: Atom.t(),
-          bindings: %{}
+          bindings: %{},
+          pid: pid()
         }
 
   @callback mount(Menu.t()) :: {:ok, Menu.t()}
@@ -41,42 +41,98 @@ defmodule Desktop.Menu do
     GenServer.start_link(__MODULE__, [mod, wx_env, bar], name: mod)
   end
 
+  @impl true
   def init([mod, wx_env, bar]) do
     :wx.set_env(wx_env)
 
+    menu = %Menu{mod: mod, assigns: %{}, bindings: %{}, pid: self()}
+
     menu =
       case :wx.getObjectType(bar) do
-        :wxTaskBarIcon -> %Menu{mod: mod, assigns: %{}, bindings: %{}, taskbar: bar}
-        :wxMenuBar -> %Menu{mod: mod, assigns: %{}, bindings: %{}, menubar: bar}
+        :wxTaskBarIcon -> %Menu{menu | taskbar: bar}
+        :wxMenuBar -> %Menu{menu | menubar: bar}
       end
 
     {:ok, menu} = mod.mount(menu)
     {:ok, update_dom(menu)}
   end
 
-  defp update_dom(menu = %Menu{mod: mod, assigns: assigns, menubar: menubar, dom: dom}) do
-    new_dom = mod.render(assigns) |> parse()
+  defp update_dom(menu = %Menu{mod: mod, assigns: assigns, menubar: menubar, pid: pid}) do
+    spawn(fn ->
+      new_dom = mod.render(assigns) |> parse()
+      dom = Desktop.Env.put({:dom, pid}, new_dom)
 
-    if menubar != nil and dom != new_dom do
-      create_menu_bar(self(), menubar, new_dom)
-    end
+      if menubar != nil and dom != new_dom do
+        :wx.set_env(Desktop.Env.wx_env())
 
-    %Menu{menu | dom: new_dom}
+        menues =
+          :wx.batch(fn ->
+            do_create_menubar_menues(pid, dom)
+          end)
+
+        GenServer.cast(pid, {:update_menubar, menues})
+      end
+    end)
+
+    menu
   end
 
-  def handle_call(:dom, _from, menu = %Menu{dom: dom}) do
-    {:reply, dom, menu}
+  @impl true
+  def handle_call(:menubar, _from, menu = %Menu{menubar: menubar}) do
+    {:reply, menubar, menu}
   end
 
-  def handle_cast({:connect, event_src, id, onclick}, menu = %Menu{bindings: bindings}) do
-    :wxMenu.connect(event_src, :command_menu_selected, id: id)
-    {:noreply, %Menu{menu | bindings: Map.put(bindings, id, onclick)}}
+  @impl true
+  def handle_call({:update_callbacks, callbacks}, _from, menu) do
+    bindings =
+      :wx.batch(fn ->
+        update_callbacks(callbacks)
+      end)
+
+    {:reply, :ok, %Menu{menu | bindings: bindings}}
+  end
+
+  defp update_callbacks(callbacks) do
+    List.wrap(callbacks)
+    |> List.flatten()
+    |> Enum.reduce(%{}, fn callback, bind ->
+      case callback do
+        {:connect, {event_src, id, onclick}} ->
+          IO.puts("connect: #{inspect({event_src, id, onclick})}")
+          :wxMenu.connect(event_src, :command_menu_selected, id: id)
+          Map.put(bind, id, onclick)
+
+        _ ->
+          bind
+      end
+    end)
+  end
+
+  @impl true
+  def handle_cast({:update_callbacks, callbacks}, menu) do
+    bindings =
+      :wx.batch(fn ->
+        update_callbacks(callbacks)
+      end)
+
+    {:noreply, %Menu{menu | bindings: bindings}}
+  end
+
+  @impl true
+  def handle_cast({:update_menubar, menues}, menu) do
+    menu =
+      :wx.batch(fn ->
+        do_update_menubar(menu, menues)
+      end)
+
+    {:noreply, menu}
   end
 
   for tag <- [:wx, :wxCommand] do
     Record.defrecordp(tag, Record.extract(tag, from_lib: "wx/include/wx.hrl"))
   end
 
+  @impl true
   def handle_info(
         wx(id: id, event: wxCommand(type: :command_menu_selected)),
         menu = %Menu{bindings: bindings, mod: mod}
@@ -95,44 +151,57 @@ defmodule Desktop.Menu do
     {:noreply, menu}
   end
 
+  @impl true
   def handle_info(event = wx(), menu) do
     Logger.warning("Desktop.Menu received unexpected wx message", [event, menu])
     {:noreply, menu}
   end
 
+  @impl true
   def handle_info(other, menu = %Menu{mod: mod}) do
     {:noreply, menu} = mod.handle_info(other, menu)
     {:noreply, update_dom(menu)}
   end
 
-  def create_menu_bar(pid, menubar, dom \\ nil) do
-    dom = dom || GenServer.call(pid, :dom)
+  def menubar(pid) do
+    GenServer.call(pid, :menubar)
+  end
 
-    :wx.batch(fn ->
-      do_create_menu_bar(pid, menubar, dom)
-    end)
+  def create_menu(pid) when is_atom(pid) do
+    create_menu(Process.whereis(pid))
   end
 
   def create_menu(pid) do
-    dom = GenServer.call(pid, :dom)
+    dom = Desktop.Env.await({:dom, pid})
 
-    :wx.batch(fn ->
+    {menu, callbacks} =
+      :wx.batch(fn ->
+        menu = :wxMenu.new()
+        callbacks = do_create_menu(pid, [menu], dom)
+        {menu, callbacks}
+      end)
+
+    # Would like to to this synchronously, but this is running in the context of
+    # :wxe_server and so :wxe_server is blocked to accept :connect() calls
+    GenServer.cast(pid, {:update_callbacks, callbacks})
+    menu
+  end
+
+  defp do_create_menubar_menues(pid, dom) when is_list(dom) do
+    Enum.filter(dom, fn {tag, _attr, _content} -> tag == :menu end)
+    |> Enum.map(fn {:menu, attr, content} ->
       menu = :wxMenu.new()
-      do_create_menu(pid, [menu], dom)
-      menu
+      callbacks = do_create_menu(pid, [menu], content)
+      label = String.to_charlist(attr[:label] || "")
+      {label, menu, callbacks}
     end)
   end
 
-  defp do_create_menu_bar(pid, menubar, dom) when is_list(dom) do
+  defp do_update_menubar(menu = %Menu{menubar: menubar}, menues) do
     size = :wxMenuBar.getMenuCount(menubar)
-    dom = Enum.filter(dom, fn {tag, _attr, _content} -> tag == :menu end)
 
-    Enum.with_index(dom)
-    |> Enum.each(fn {{:menu, attr, content}, pos} ->
-      menu = :wxMenu.new()
-      do_create_menu(pid, [menu], content)
-      label = String.to_charlist(attr[:label] || "")
-
+    Enum.with_index(menues)
+    |> Enum.map(fn {{label, menu, _callbacks}, pos} ->
       if pos < size do
         :wxMenuBar.replace(menubar, pos, menu, label)
       else
@@ -140,19 +209,21 @@ defmodule Desktop.Menu do
       end
     end)
 
-    if length(dom) < size do
-      for pos <- length(dom)..(size - 1), do: :wxMenuBar.remove(menubar, pos)
+    if length(menues) < size do
+      for pos <- length(menues)..(size - 1), do: :wxMenuBar.remove(menubar, pos)
     end
 
-    menubar
+    bindings =
+      Enum.map(menues, fn {_label, _menu, callback} -> callback end)
+      |> update_callbacks()
+
+    %Menu{menu | bindings: bindings}
   end
 
   defp do_create_menu(pid, menues, dom) when is_list(dom) do
     dom = OS.invert_menu(dom)
 
-    Enum.each(dom, fn e ->
-      do_create_menu(pid, menues, e)
-    end)
+    Enum.map(dom, fn e -> do_create_menu(pid, menues, e) end)
   end
 
   defp do_create_menu(pid, menues, dom) when is_tuple(dom) do
@@ -177,22 +248,23 @@ defmodule Desktop.Menu do
           :wxMenuItem.check(item, check: is_true(attr[:checked]))
         end
 
-        if attr[:onclick] != nil do
-          event_src = if OS.windows?(), do: List.last(menues), else: hd(menues)
-
-          # Wx keeps track of the calling process ot the connect call, so we ensure
-          # all connect's are called from the GenServer itself.
-          GenServer.cast(pid, {:connect, event_src, id, attr[:onclick]})
-        end
-
         if is_true(attr[:disabled]) do
           :wxMenu.enable(hd(menues), id, false)
         end
 
+        if attr[:onclick] != nil do
+          event_src = if OS.windows?(), do: List.last(menues), else: hd(menues)
+
+          # Wx keeps track of the calling process ot the connect call, so we collect
+          # all connect's and call them from the GenServer itself.
+          {:connect, {event_src, id, attr[:onclick]}}
+        end
+
       {:menu, attr, content} ->
         menu = :wxMenu.new()
-        do_create_menu(pid, [menu | menues], content)
+        ret = do_create_menu(pid, [menu | menues], content)
         :wxMenu.append(hd(menues), Wx.wxID_ANY(), String.to_charlist(attr[:label] || ""), menu)
+        ret
     end
   end
 
