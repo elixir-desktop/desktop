@@ -62,15 +62,14 @@ defmodule Desktop.Menu do
       new_dom = mod.render(assigns) |> parse()
       dom = Desktop.Env.put({:dom, pid}, new_dom)
 
-      if menubar != nil and dom != new_dom do
-        :wx.set_env(Desktop.Env.wx_env())
-
-        menues =
-          :wx.batch(fn ->
-            do_create_menubar_menues(pid, dom)
-          end)
-
-        GenServer.cast(pid, {:update_menubar, menues})
+      if dom != new_dom do
+        if menubar != nil do
+          :wx.set_env(Desktop.Env.wx_env())
+          menues = :wx.batch(fn -> do_create_menubar_menues(pid, dom) end)
+          GenServer.cast(pid, {:update_menubar, menues})
+        else
+          create_menu(pid)
+        end
       end
     end)
 
@@ -98,7 +97,6 @@ defmodule Desktop.Menu do
     |> Enum.reduce(%{}, fn callback, bind ->
       case callback do
         {:connect, {event_src, id, onclick}} ->
-          IO.puts("connect: #{inspect({event_src, id, onclick})}")
           :wxMenu.connect(event_src, :command_menu_selected, id: id)
           Map.put(bind, id, onclick)
 
@@ -125,6 +123,12 @@ defmodule Desktop.Menu do
         do_update_menubar(menu, menues)
       end)
 
+    {:noreply, menu}
+  end
+
+  @impl true
+  def handle_cast({:destroy, wx}, menu) do
+    :wxMenu.destroy(wx)
     {:noreply, menu}
   end
 
@@ -167,12 +171,20 @@ defmodule Desktop.Menu do
     GenServer.call(pid, :menubar)
   end
 
-  def create_menu(pid) when is_atom(pid) do
-    create_menu(Process.whereis(pid))
+  def menu(pid) when is_atom(pid) do
+    menu(Process.whereis(pid))
   end
 
-  def create_menu(pid) do
+  def menu(pid) do
+    # This will create the menu for next round
+    spawn(fn -> create_menu(pid) end)
+    # This should return the current menu
+    Desktop.Env.pop({:menu, pid}) || raise "No menu"
+  end
+
+  defp create_menu(pid) do
     dom = Desktop.Env.await({:dom, pid})
+    :wx.set_env(Desktop.Env.wx_env())
 
     {menu, callbacks} =
       :wx.batch(fn ->
@@ -184,7 +196,11 @@ defmodule Desktop.Menu do
     # Would like to to this synchronously, but this is running in the context of
     # :wxe_server and so :wxe_server is blocked to accept :connect() calls
     GenServer.cast(pid, {:update_callbacks, callbacks})
-    menu
+
+    case Desktop.Env.put({:menu, pid}, menu) do
+      nil -> :ok
+      menu -> GenServer.cast(pid, {:destroy, menu})
+    end
   end
 
   defp do_create_menubar_menues(pid, dom) when is_list(dom) do

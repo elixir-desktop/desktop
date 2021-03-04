@@ -84,7 +84,7 @@ defmodule Desktop.Window do
           createPopupMenu: fn ->
             {time, value} =
               :timer.tc(fn ->
-                Menu.create_menu(icon_menu)
+                Menu.menu(icon_menu)
               end)
 
             ms = div(time, 1000)

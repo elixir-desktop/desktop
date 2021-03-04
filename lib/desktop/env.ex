@@ -28,6 +28,11 @@ defmodule Desktop.Env do
     {:reply, Map.get(map, key, default), d}
   end
 
+  def handle_call({:pop, key, default}, _from, d = %Env{map: map}) do
+    {value, map} = Map.pop(map, key, default)
+    {:reply, value, %Env{d | map: map}}
+  end
+
   def handle_call({:put, key, value}, _from, d = %Env{map: map, waiters: waiters}) do
     {froms, waiters} = Map.pop(waiters, key, [])
     Enum.each(froms, fn from -> GenServer.reply(from, value) end)
@@ -68,6 +73,10 @@ defmodule Desktop.Env do
 
   def get(key, default \\ nil) do
     GenServer.call(__MODULE__, {:get, key, default})
+  end
+
+  def pop(key, default \\ nil) do
+    GenServer.call(__MODULE__, {:pop, key, default})
   end
 
   def await(key) do
