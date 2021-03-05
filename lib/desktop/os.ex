@@ -68,14 +68,4 @@ defmodule Desktop.OS do
       Path.expand(path)
     end
   end
-
-  def invert_menu(menulist) do
-    # Windows has the menu at the bottom
-    if windows?() do
-      Enum.reverse(menulist)
-      # Linux and macOS have the menu at the top by default
-    else
-      menulist
-    end
-  end
 end

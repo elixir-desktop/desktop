@@ -216,7 +216,7 @@ defmodule Desktop.Menu do
     {menu, callbacks} =
       :wx.batch(fn ->
         menu = :wxMenu.new()
-        callbacks = do_create_menu(pid, [menu], dom)
+        callbacks = do_create_menu(pid, [menu], dom, OS.windows?())
         {menu, callbacks}
       end)
 
@@ -234,7 +234,7 @@ defmodule Desktop.Menu do
     Enum.filter(dom, fn {tag, _attr, _content} -> tag == :menu end)
     |> Enum.map(fn {:menu, attr, content} ->
       menu = :wxMenu.new()
-      callbacks = do_create_menu(pid, [menu], content)
+      callbacks = do_create_menu(pid, [menu], content, false)
       label = String.to_charlist(attr[:label] || "")
       {label, menu, callbacks}
     end)
@@ -260,13 +260,12 @@ defmodule Desktop.Menu do
     update_callbacks(menu, callbacks)
   end
 
-  defp do_create_menu(pid, menues, dom) when is_list(dom) do
-    dom = OS.invert_menu(dom)
-
-    Enum.map(dom, fn e -> do_create_menu(pid, menues, e) end)
+  defp do_create_menu(pid, menues, dom, invert) when is_list(dom) do
+    if(invert, do: Enum.reverse(dom), else: dom)
+    |> Enum.map(fn e -> do_create_menu(pid, menues, e, invert) end)
   end
 
-  defp do_create_menu(pid, menues, dom) when is_tuple(dom) do
+  defp do_create_menu(pid, menues, dom, invert) when is_tuple(dom) do
     case dom do
       {:hr, _attr, _content} ->
         :wxMenu.appendSeparator(hd(menues))
@@ -302,7 +301,7 @@ defmodule Desktop.Menu do
 
       {:menu, attr, content} ->
         menu = :wxMenu.new()
-        ret = do_create_menu(pid, [menu | menues], content)
+        ret = do_create_menu(pid, [menu | menues], content, invert)
         :wxMenu.append(hd(menues), Wx.wxID_ANY(), String.to_charlist(attr[:label] || ""), menu)
         ret
     end
