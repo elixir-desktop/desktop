@@ -83,7 +83,7 @@ defmodule Desktop.Fallback do
 
       notification = :wxNotificationMessage.new(title, flags: flag)
 
-      if :desktop_fallback.notification_events_available() do
+      if notification_events_available?() do
         for event <- [
               :notification_message_click,
               :notification_message_dismissed,
@@ -114,7 +114,15 @@ defmodule Desktop.Fallback do
     end
   end
 
-  def is_module?(module) do
+  defp is_module?(module) do
     Code.ensure_compiled(module) == {:module, module}
+  end
+
+  defp notification_events_available?() do
+    {Wx.wxMAJOR_VERSION(), Wx.wxMINOR_VERSION(), Wx.wxRELEASE_NUMBER()}
+    |> case do
+      {major, minor, _} when major >= 3 and minor >= 1 -> true
+      _ -> false
+    end
   end
 end
