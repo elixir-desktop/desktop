@@ -2,6 +2,17 @@ defmodule Desktop.Fallback do
   require Logger
   alias Desktop.{Wx, OS}
 
+  def taskbaricon_new(popup) do
+    cond do
+      # Proper OTP24 release
+      is_module?(:wxWebView) -> :wxTaskBarIcon.new(createPopupMenu: popup)
+      # Pre-OTP24 temporary version for backwards compat.
+      Kernel.function_exported?(:wxTaskBarIcon, :new, 1) -> :wxTaskBarIcon.new(popup)
+      # Older no popup
+      true -> :wxTaskBarIcon.new()
+    end
+  end
+
   def webview_new(frame) do
     if is_module?(:wxWebView) do
       sizer = :wxFrame.getSizer(frame)

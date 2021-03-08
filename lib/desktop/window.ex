@@ -83,23 +83,17 @@ defmodule Desktop.Window do
     end
 
     if icon_menu do
-      bar =
-        :wxTaskBarIcon.new(
-          createPopupMenu: fn ->
-            {time, value} =
-              :timer.tc(fn ->
-                Menu.menu(icon_menu)
-              end)
+      create_popup = fn ->
+        {time, value} =
+          :timer.tc(fn ->
+            Menu.menu(icon_menu)
+          end)
 
-            ms = div(time, 1000)
+        if time > 100_000, do: Logger.warning("create_popup took #{div(time, 1000)}ms")
+        value
+      end
 
-            if ms > 100 do
-              Logger.warning("createPopup took #{ms}ms")
-            end
-
-            value
-          end
-        )
+      bar = Fallback.taskbaricon_new(create_popup)
 
       {:ok, pid} = Menu.start_link(icon_menu, env, bar)
       true = :wxTaskBarIcon.setIcon(bar, icon)
