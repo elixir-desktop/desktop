@@ -11,7 +11,10 @@ defmodule Desktop.Window do
     :notifications,
     :webview,
     :home_url,
-    :title
+    :last_url,
+    :title,
+    :rebuild,
+    :rebuild_timer
   ]
 
   # options: module, title
@@ -31,6 +34,7 @@ defmodule Desktop.Window do
     {:ok, pid}
   end
 
+  @impl true
   def init(options) do
     window_title = options[:title] || Atom.to_string(options[:id])
     size = options[:size] || {600, 500}
@@ -51,6 +55,7 @@ defmodule Desktop.Window do
       ])
 
     :wxFrame.connect(frame, :close_window)
+    :wxFrame.setSizer(frame, :wxBoxSizer.new(Wx.wxHORIZONTAL()))
 
     # This one-line version will not show right on MacOS:
     # icon = :wxIcon.new(Path.join(:code.priv_dir(app), icon))
@@ -63,7 +68,6 @@ defmodule Desktop.Window do
     :wxBitmap.destroy(bitmap)
 
     :wxTopLevelWindow.setIcon(frame, icon)
-    webview = Fallback.webview_new(frame)
 
     if menubar do
       # if OS.type() == MacOS do
@@ -107,12 +111,20 @@ defmodule Desktop.Window do
       end)
     end
 
+    timer =
+      if OS.type() == Windows do
+        {:ok, timer} = :timer.send_interval(500, :rebuild)
+        timer
+      end
+
     ui = %Window{
       frame: frame,
-      webview: webview,
+      webview: Fallback.webview_new(frame),
       notifications: %{},
       home_url: url,
-      title: window_title
+      title: window_title,
+      rebuild: 0,
+      rebuild_timer: timer
     }
 
     if not hidden do
@@ -124,6 +136,10 @@ defmodule Desktop.Window do
 
   def show(pid, url \\ nil) do
     GenServer.cast(pid, {:show, url})
+  end
+
+  def webview(pid) do
+    GenServer.call(pid, :webview)
   end
 
   def show_notification(pid, text, opts \\ []) do
@@ -208,6 +224,33 @@ defmodule Desktop.Window do
     end
   end
 
+  @impl true
+  def handle_info(:rebuild, ui = %Window{rebuild: rebuild, rebuild_timer: t, webview: webview}) do
+    ui =
+      if Fallback.webview_can_fix(webview) do
+        case rebuild do
+          0 ->
+            %Window{ui | rebuild: 1}
+
+          1 ->
+            :timer.cancel(t)
+            %Window{ui | rebuild: :done, webview: Fallback.webview_rebuild(ui)}
+
+          :done ->
+            ui
+        end
+      else
+        if rebuild == :done do
+          ui
+        else
+          %Window{ui | rebuild: 0}
+        end
+      end
+
+    {:noreply, ui}
+  end
+
+  @impl true
   def handle_cast(
         {:show_notification, message, id, type, title, callback, timeout},
         ui = %Window{notifications: noties, title: window_title}
@@ -224,10 +267,17 @@ defmodule Desktop.Window do
     {:noreply, %Window{ui | notifications: noties}}
   end
 
+  @impl true
   def handle_cast({:show, url}, ui = %Window{home_url: home}) do
-    Logger.info("Showing #{prepare_url(url)}")
-    Fallback.webview_show(ui, prepare_url(url), prepare_url(home))
-    {:noreply, ui}
+    url = prepare_url(url)
+    Logger.info("Showing #{url || prepare_url(home)}")
+    Fallback.webview_show(ui, url, prepare_url(home))
+    {:noreply, %Window{ui | last_url: url}}
+  end
+
+  @impl true
+  def handle_call(:webview, _from, ui = %Window{webview: webview}) do
+    {:reply, webview, ui}
   end
 
   defp prepare_url(url) do

@@ -4,7 +4,8 @@ defmodule Desktop.Fallback do
 
   def webview_new(frame) do
     if is_module?(:wxWebView) do
-      sizer = :wxBoxSizer.new(Wx.wxHORIZONTAL())
+      sizer = :wxFrame.getSizer(frame)
+      :wxSizer.clear(sizer, delete_windows: true)
 
       webview =
         if OS.type() == Windows do
@@ -42,7 +43,9 @@ defmodule Desktop.Fallback do
         end
 
       :wxBoxSizer.add(sizer, webview, proportion: 1, flag: Wx.wxEXPAND())
-      :wxFrame.setSizer(frame, sizer)
+      :wxSizer.layout(sizer)
+      :wxSizer.show(sizer, true)
+      :wxFrame.refresh(frame)
       webview
     else
       Logger.warning(
@@ -57,6 +60,11 @@ defmodule Desktop.Fallback do
     webview
   end
 
+  def webview_can_fix(webview) do
+    is_module?(:wxWebView) and OS.type() == Windows and
+      :wxWebView.isBackendAvailable('wxWebViewEdge') and :wxWebView.isShownOnScreen(webview)
+  end
+
   def webview_show(%Desktop.Window{webview: webview, frame: frame}, url, default) do
     if is_module?(:wxWebView) and
          (OS.type() != Windows or :wxWebView.isBackendAvailable('wxWebViewEdge')) do
@@ -69,6 +77,23 @@ defmodule Desktop.Fallback do
       OS.raise_frame(frame)
     else
       :wx_misc.launchDefaultBrowser(url || default)
+    end
+  end
+
+  def webview_rebuild(%Desktop.Window{webview: webview, frame: frame, last_url: url}) do
+    if is_module?(:wxWebView) and
+         (OS.type() != Windows or :wxWebView.isBackendAvailable('wxWebViewEdge')) do
+      # url = :wxWebView.getCurrentURL(webview)
+      webview = webview_new(frame)
+      Logger.info("Rebuilding WebView on Windows with url: #{inspect(url)}")
+
+      if url != nil do
+        :wxWebView.loadURL(webview, url)
+      end
+
+      webview
+    else
+      webview
     end
   end
 
