@@ -52,12 +52,13 @@ defmodule Desktop.Menu do
   def init([mod, wx_env, bar]) do
     :wx.set_env(wx_env)
 
-    menu = %Menu{mod: mod, assigns: %{}, bindings: %{}, old_bindings: %{}, pid: self()}
+    pid = self()
+    menu = %Menu{mod: mod, assigns: %{}, bindings: %{}, old_bindings: %{}, pid: pid}
 
     menu =
       case bar do
         {:taskbar, icon} ->
-          create_popup = fn -> create_popup_menu(self()) end
+          create_popup = fn -> create_popup_menu(pid) end
           %Menu{menu | taskbar: Fallback.taskbaricon_new(create_popup, icon)}
 
         wx_ref ->
@@ -392,7 +393,7 @@ defmodule Desktop.Menu do
 
   defp simple_form(xmlText(value: value)) do
     List.to_string(value)
-    |> String.trim()
+    |> String.trim_trailing()
     |> case do
       "" -> :skip
       other -> other
