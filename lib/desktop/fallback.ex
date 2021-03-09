@@ -35,6 +35,11 @@ defmodule Desktop.Fallback do
 
     true = :wxTaskBarIcon.setIcon(bar, icon)
 
+    if OS.type() == Windows and
+         Kernel.function_exported?(:wxNotificationMessage, :useTaskBarIcon, 1) do
+      :wxNotificationMessage.useTaskBarIcon(bar)
+    end
+
     OnCrash.call(fn ->
       :wx.set_env(Desktop.Env.wx_env())
       :wxTaskBarIcon.removeIcon(bar)
