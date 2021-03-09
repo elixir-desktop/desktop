@@ -13,7 +13,10 @@ defmodule Desktop.Fallback do
           try do
             :wxTaskBarIcon.new(popup)
           catch
-            :error, :function_clause -> nil
+            :error, :function_clause ->
+              Logger.error("No MacOS compatible :wxTaskBarIcon found! Please use at least OTP24")
+
+              nil
           end
         end
       end
