@@ -6,7 +6,7 @@ defmodule Desktop.Window do
   @enforce_keys [:frame]
   defstruct [
     :module,
-    :bar,
+    :taskbar,
     :frame,
     :notifications,
     :webview,
@@ -82,28 +82,15 @@ defmodule Desktop.Window do
       end
     end
 
-    if icon_menu do
-      create_popup = fn ->
-        {time, value} =
-          :timer.tc(fn ->
-            Menu.menu(icon_menu)
-          end)
+    taskbar =
+      if icon_menu do
+        {:ok, pid} = Menu.start_link(icon_menu, env, {:taskbar, icon})
 
-        if time > 100_000, do: Logger.warning("create_popup took #{div(time, 1000)}ms")
-        value
+        :wxTaskBarIcon.connect(Menu.taskbar(pid), :taskbar_left_down, skip: true)
+        :wxTaskBarIcon.connect(Menu.taskbar(pid), :taskbar_right_down, skip: true)
+
+        pid
       end
-
-      bar = Fallback.taskbaricon_new(create_popup)
-
-      {:ok, pid} = Menu.start_link(icon_menu, env, bar)
-      true = :wxTaskBarIcon.setIcon(bar, icon)
-
-      OnCrash.call(pid, fn ->
-        :wx.set_env(env)
-        :wxTaskBarIcon.removeIcon(bar)
-        :wxTaskBarIcon.destroy(bar)
-      end)
-    end
 
     timer =
       if OS.type() == Windows do
@@ -117,6 +104,7 @@ defmodule Desktop.Window do
       notifications: %{},
       home_url: url,
       title: window_title,
+      taskbar: taskbar,
       rebuild: 0,
       rebuild_timer: timer
     }
@@ -171,11 +159,32 @@ defmodule Desktop.Window do
   end
 
   def handle_event(
-        wx(event: wxClose(type: :close_window)),
-        ui = %Window{frame: frame}
+        wx(event: {:wxTaskBarIcon, :taskbar_left_down}),
+        menu = %Window{taskbar: taskbar}
       ) do
-    :wxFrame.hide(frame)
-    {:noreply, ui}
+    Menu.popup_menu(taskbar)
+    {:noreply, menu}
+  end
+
+  def handle_event(
+        wx(event: {:wxTaskBarIcon, :taskbar_right_down}),
+        menu = %Window{taskbar: taskbar}
+      ) do
+    Menu.popup_menu(taskbar)
+    {:noreply, menu}
+  end
+
+  def handle_event(
+        wx(event: wxClose(type: :close_window)),
+        ui = %Window{frame: frame, taskbar: taskbar}
+      ) do
+    if taskbar == nil do
+      :wxFrame.hide(frame)
+      {:stop, :normal, ui}
+    else
+      :wxFrame.hide(frame)
+      {:noreply, ui}
+    end
   end
 
   def handle_event(wx(event: {:wxWebView, :webview_newwindow, _, _, _target, url}), ui) do
@@ -275,12 +284,20 @@ defmodule Desktop.Window do
   end
 
   defp prepare_url(url) do
-    key = "?k=" <> Desktop.Auth.login_key()
+    query = "k=" <> Desktop.Auth.login_key()
 
     case url do
       nil -> nil
-      fun when is_function(fun) -> fun.() <> key
-      string when is_binary(string) -> string <> key
+      fun when is_function(fun) -> append_query(fun.(), query)
+      string when is_binary(string) -> append_query(string, query)
     end
+  end
+
+  defp append_query(url, query) do
+    case URI.parse(url) do
+      url = %URI{query: nil} -> %URI{url | query: query}
+      url = %URI{query: other} -> %URI{url | query: other <> "&" <> query}
+    end
+    |> URI.to_string()
   end
 end

@@ -1,5 +1,5 @@
 defmodule Desktop.Menu do
-  alias Desktop.{Menu, Wx, OS}
+  alias Desktop.{Menu, Wx, OS, Fallback}
   require Record
   require Logger
   use GenServer
@@ -35,6 +35,10 @@ defmodule Desktop.Menu do
     end
   end
 
+  for tag <- [:wx, :wxCommand] do
+    Record.defrecordp(tag, Record.extract(tag, from_lib: "wx/include/wx.hrl"))
+  end
+
   def assign(menu = %Menu{assigns: assigns}, keywords \\ []) do
     assigns = Map.merge(assigns, Map.new(keywords))
     %Menu{menu | assigns: assigns}
@@ -51,13 +55,24 @@ defmodule Desktop.Menu do
     menu = %Menu{mod: mod, assigns: %{}, bindings: %{}, old_bindings: %{}, pid: self()}
 
     menu =
-      case :wx.getObjectType(bar) do
-        :wxTaskBarIcon -> %Menu{menu | taskbar: bar}
-        :wxMenuBar -> %Menu{menu | menubar: bar}
+      case bar do
+        {:taskbar, icon} ->
+          create_popup = fn -> create_popup_menu(self()) end
+          %Menu{menu | taskbar: Fallback.taskbaricon_new(create_popup, icon)}
+
+        wx_ref ->
+          :wxMenuBar = :wx.getObjectType(wx_ref)
+          %Menu{menu | menubar: bar}
       end
 
     {:ok, menu} = mod.mount(menu)
     {:ok, update_dom(menu)}
+  end
+
+  defp create_popup_menu(pid) do
+    {time, value} = :timer.tc(fn -> menu(pid) end)
+    if time > 100_000, do: Logger.warning("create_popup took #{div(time, 1000)}ms")
+    value
   end
 
   defp update_dom(menu = %Menu{mod: mod, assigns: assigns, menubar: menubar, pid: pid}) do
@@ -86,6 +101,11 @@ defmodule Desktop.Menu do
     else
       {:noreply, %Menu{menu | loaded: {:from, from}}}
     end
+  end
+
+  @impl true
+  def handle_call(:taskbar, _from, menu = %Menu{taskbar: taskbar}) do
+    {:reply, taskbar, menu}
   end
 
   @impl true
@@ -124,6 +144,12 @@ defmodule Desktop.Menu do
   end
 
   @impl true
+  def handle_cast(:popup_menu, menu = %Menu{taskbar: bar}) do
+    :wxTaskBarIcon.popupMenu(bar, create_popup_menu(self()))
+    {:noreply, menu}
+  end
+
+  @impl true
   def handle_cast({:update_callbacks, callbacks}, menu) do
     menu =
       :wx.batch(fn ->
@@ -154,24 +180,17 @@ defmodule Desktop.Menu do
     {:noreply, menu}
   end
 
-  for tag <- [:wx, :wxCommand] do
-    Record.defrecordp(tag, Record.extract(tag, from_lib: "wx/include/wx.hrl"))
-  end
-
   @impl true
   def handle_info(
         wx(id: id, event: wxCommand(type: :command_menu_selected)),
         menu = %Menu{bindings: bindings, old_bindings: old, mod: mod}
       ) do
     menu =
-      Map.merge(bindings, old)
+      Map.merge(old, bindings)
       |> Map.get(id)
       |> case do
         nil ->
-          Logger.warning(
-            "Desktop.Menu unbound message id #{inspect(id)} #{inspect({bindings, old})}"
-          )
-
+          Logger.warning("Desktop.Menu unbound message id #{inspect(id)}")
           menu
 
         name ->
@@ -184,7 +203,7 @@ defmodule Desktop.Menu do
 
   @impl true
   def handle_info(event = wx(), menu) do
-    Logger.warning("Desktop.Menu received unexpected wx message", [event, menu])
+    Logger.warning("Desktop.Menu received unexpected wx message #{inspect({event, menu})}")
     {:noreply, menu}
   end
 
@@ -194,8 +213,16 @@ defmodule Desktop.Menu do
     {:noreply, update_dom(menu)}
   end
 
+  def popup_menu(pid) do
+    GenServer.cast(pid, :popup_menu)
+  end
+
   def menubar(pid) do
     GenServer.call(pid, :menubar, :infinity)
+  end
+
+  def taskbar(pid) do
+    GenServer.call(pid, :taskbar, :infinity)
   end
 
   def menu(pid) when is_atom(pid) do
