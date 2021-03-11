@@ -120,6 +120,10 @@ defmodule Desktop.Window do
     GenServer.cast(pid, {:show, url})
   end
 
+  def rebuild_webview(pid) do
+    GenServer.cast(pid, :rebuild_webview)
+  end
+
   def webview(pid) do
     GenServer.call(pid, :webview)
   end
@@ -251,6 +255,11 @@ defmodule Desktop.Window do
       end
 
     {:noreply, ui}
+  end
+
+  @impl true
+  def handle_cast(:rebuild_webview, ui) do
+    {:noreply, %Window{ui | webview: Fallback.webview_rebuild(ui)}}
   end
 
   @impl true
