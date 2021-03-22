@@ -6,6 +6,7 @@ Building native-like Elixir apps is the goal of this library. It combines Phoeni
 
 ## Example
 
-Checkout the Todo sample application for reference. https://github.com/diodechain/sample_app/
+Checkout the Todo sample application for reference. https://github.com/dominicletz/desktop-example-app
 
+![MacOS build](https://raw.githubusercontent.com/dominicletz/desktop-example-app/main/nodeploy/macos_todo.png "MacOS build")
 
