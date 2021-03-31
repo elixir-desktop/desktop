@@ -119,8 +119,11 @@ defmodule Desktop.Fallback do
         :wxWebView.loadURL(webview, url)
       end
 
-      :wxWindow.show(frame, show: true)
-      :wxTopLevelWindow.centerOnScreen(frame)
+      if not :wxWindow.isShown(frame) do
+        :wxWindow.show(frame, show: true)
+        :wxTopLevelWindow.centerOnScreen(frame)
+      end
+
       OS.raise_frame(frame)
     else
       :wx_misc.launchDefaultBrowser(url || default)
