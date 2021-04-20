@@ -44,7 +44,6 @@ defmodule Desktop.MixProject do
   defp deps do
     [
       {:oncrash, "~> 0.1"},
-      {:sqlitex, github: "diodechain/sqlitex"},
 
       # phoenix stuff
       {:phoenix, "~> 1.5.7"},
@@ -53,7 +52,6 @@ defmodule Desktop.MixProject do
       {:phoenix_live_reload, "~> 1.2"},
       {:gettext, "~> 0.11"},
       {:plug_cowboy, "~> 2.0"},
-      {:plug_crypto, github: "elixir-plug/plug_crypto", override: true},
       {:jason, "~> 1.0"}
     ]
   end
