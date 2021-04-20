@@ -120,6 +120,10 @@ defmodule Desktop.Window do
     GenServer.cast(pid, {:show, url})
   end
 
+  def set_title(pid, title) do
+    GenServer.cast(pid, {:set_title, title})
+  end
+
   def rebuild_webview(pid) do
     GenServer.cast(pid, :rebuild_webview)
   end
@@ -255,6 +259,15 @@ defmodule Desktop.Window do
       end
 
     {:noreply, ui}
+  end
+
+  @impl true
+  def handle_cast({:set_title, title}, ui = %Window{title: old, frame: frame}) do
+    if title != old and frame != nil do
+      :wxFrame.setTitle(frame, String.to_charlist(title))
+    end
+
+    {:noreply, %Window{ui | title: title}}
   end
 
   @impl true
