@@ -7,7 +7,7 @@ defmodule Desktop.Menu do
 
   @type t() :: %__MODULE__{
           assigns: %{},
-          mod: Atom.t(),
+          mod: atom(),
           bindings: %{},
           # We're keeping one generation of bindings because the menubaricon will usually have
           # two (2) active generations. The currently displayed one and the newly generated one.

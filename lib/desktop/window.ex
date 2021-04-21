@@ -1,4 +1,68 @@
 defmodule Desktop.Window do
+  @moduledoc ~S"""
+  Defines a Desktop Window.
+
+  The window hosts a Phoenix Endpoint and displays its content.
+  It should be part of a supervision tree and is the main interface
+  to interact with your application.
+
+  In total the window is doing:
+
+    * Displaying the endpoint content
+
+    * Hosting and starting an optional menu bar
+
+    * Controlling a taskbar icon if present
+
+  ## The Window
+
+  You can add the Window to your own Supervision tree:
+
+      children = [{
+        Desktop.Window,
+        [
+          app: :your_app,
+          id: YourAppWindow,
+          title: "Your App Title",
+          size: {600, 500},
+          icon: "icon.png",
+          menubar: YourApp.MenuBar,
+          icon_menu: YourApp.Menu,
+          url: fn -> YourAppWeb.Router.Helpers.live_url(YourAppWeb.Endpoint, YourAppWeb.YourAppLive) end
+        ]
+      }]
+
+
+  ### Window configuration
+
+  Phoenix allows you to choose which webserver adapter to use. The default
+  is `Phoenix.Endpoint.Cowboy2Adapter` which can be configured via the
+  following options.
+
+    * `:app` - your app name within which the Window is running.
+
+    * `:id` - an atom identifying the window. Can later be used to control the
+      window using the functions of this module.
+
+    * `:title` - the window title that will be show initially. The window
+      title can be set later using `set_title/2`.
+
+    * `:size` - the initial windows size in pixels {width, height}.
+
+    * `:icon` - an icon file name that will be used as taskbar and
+      window icon. Supported formats are png files
+
+    * `:menubar` - an optional MenuBar module that will be rendered
+      as the windows menu bar when given.
+
+    * `:icon_menu` - an optional MenuBar module that will be rendered
+      as menu onclick on the taskbar icon.
+
+    * `:url` - a callback to the initial (default) url to show in the
+      window.
+
+  """
+
   alias Desktop.{OS, Window, Wx, Menu, Fallback}
   require Logger
   use GenServer
@@ -17,7 +81,7 @@ defmodule Desktop.Window do
     :rebuild_timer
   ]
 
-  # options: module, title
+  @doc false
   def child_spec(opts) do
     app = Keyword.fetch!(opts, :app)
     id = Keyword.fetch!(opts, :id)
@@ -28,6 +92,7 @@ defmodule Desktop.Window do
     }
   end
 
+  @doc false
   def start_link(opts) do
     id = Keyword.fetch!(opts, :id)
     {_ref, _num, _type, pid} = :wx_object.start_link({:local, id}, __MODULE__, opts, [])
@@ -35,6 +100,7 @@ defmodule Desktop.Window do
   end
 
   @impl true
+  @doc false
   def init(options) do
     window_title = options[:title] || Atom.to_string(options[:id])
     size = options[:size] || {600, 500}
@@ -116,22 +182,118 @@ defmodule Desktop.Window do
     {frame, ui}
   end
 
+  @doc """
+  Show the Window if not visible with the given url.
+
+    * `pid` - The pid or atom of the Window
+    * `url` - The endpoint url to show. If non is provided
+      the url callback will be used to get one.
+
+  ## Examples
+
+      iex> Desktop.Window.show(pid, "/")
+      :ok
+
+  """
   def show(pid, url \\ nil) do
     GenServer.cast(pid, {:show, url})
   end
 
+  @doc """
+  Set the windows title
+
+    * `pid` - The pid or atom of the Window
+    * `title` - The new windows title
+
+  ## Examples
+
+      iex> Desktop.Window.set_title(pid, "New Window Title")
+      :ok
+
+  """
   def set_title(pid, title) do
     GenServer.cast(pid, {:set_title, title})
   end
 
+  @doc """
+  Rebuild the webview. This function is a troubleshooting
+  function at this time. On Windows it's sometimes neccesary
+  to rebuild the WebView2 frame.
+
+    * `pid` - The pid or atom of the Window
+
+  ## Examples
+
+      iex> Desktop.Window.rebuild_webview(pid)
+      :ok
+
+  """
   def rebuild_webview(pid) do
     GenServer.cast(pid, :rebuild_webview)
   end
 
+  @doc """
+  Fetch the underlying :wxWebView instance object. Call
+  this if you have to use more advanced :wxWebView functions
+  directly on the object.
+
+    * `pid` - The pid or atom of the Window
+
+  ## Examples
+
+      iex> :wx.set_env(Desktop.Env.wx_env())
+      iex> :wxWebView.isContextMenuEnabled(Desktop.Window.webview(pid))
+      false
+
+  """
   def webview(pid) do
     GenServer.call(pid, :webview)
   end
 
+  @doc """
+  Show a desktop notification
+
+    * `pid` - The pid or atom of the Window
+
+    * `text` - The text content to show in the notification
+
+    * `opts` - Additional notification options
+
+      Valid keys are:
+
+        * `:id` - An id for the notification, this is important if you
+          want control, the visibility of the notification. The default
+          value when none is provided is `:default`
+
+        * `:type` - One of `:info` `:error` `:warn` these will change
+          how the notification will be displayed. The default is `:info`
+
+        * `:title` - An alternative title for the notificaion,
+          when none is provided the current window title is used.
+
+        * `:timeout` - A timeout hint specifying how long the notification
+          should be displayed.
+
+          Possible values are:
+
+            * `:auto` - This is the default and let's the OS decide
+
+            * `:never` - Indiciates that notification should not be hidden
+              automatically
+
+            * ms - A time value in milliseconds, how long the notification
+              should be shown
+
+        * `:callback` - A function to be executed when the user clicks on the
+          notification.
+
+  ## Examples
+
+      iex> :wx.set_env(Desktop.Env.wx_env())
+      iex> :wxWebView.isContextMenuEnabled(Desktop.Window.webview(pid))
+      false
+
+  """
   def show_notification(pid, text, opts \\ []) do
     id = Keyword.get(opts, :id, :default)
 
@@ -156,6 +318,11 @@ defmodule Desktop.Window do
     GenServer.cast(pid, {:show_notification, text, id, type, title, callback, timeout})
   end
 
+  @doc """
+  Quit the application. This forces a quick termination which can
+  be helpfull on MacOS/Windows as sometimes the destruction is
+  crashing.
+  """
   def quit() do
     OS.shutdown()
   end
@@ -166,6 +333,7 @@ defmodule Desktop.Window do
     Record.defrecordp(tag, Record.extract(tag, from_lib: "wx/include/wx.hrl"))
   end
 
+  @doc false
   def handle_event(
         wx(event: {:wxTaskBarIcon, :taskbar_left_down}),
         menu = %Window{taskbar: taskbar}
@@ -236,6 +404,7 @@ defmodule Desktop.Window do
   end
 
   @impl true
+  @doc false
   def handle_info(:rebuild, ui = %Window{rebuild: rebuild, rebuild_timer: t, webview: webview}) do
     ui =
       if Fallback.webview_can_fix(webview) do
@@ -262,6 +431,7 @@ defmodule Desktop.Window do
   end
 
   @impl true
+  @doc false
   def handle_cast({:set_title, title}, ui = %Window{title: old, frame: frame}) do
     if title != old and frame != nil do
       :wxFrame.setTitle(frame, String.to_charlist(title))
@@ -301,6 +471,7 @@ defmodule Desktop.Window do
   end
 
   @impl true
+  @doc false
   def handle_call(:webview, _from, ui = %Window{webview: webview}) do
     {:reply, webview, ui}
   end
