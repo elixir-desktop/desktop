@@ -119,6 +119,10 @@ defmodule Desktop.Fallback do
         :wxWebView.loadURL(webview, url)
       end
 
+      if :wxTopLevelWindow.isIconized(frame) do
+        :wxTopLevelWindow.iconize(frame, iconize: false)
+      end
+
       if not :wxWindow.isShown(frame) do
         :wxWindow.show(frame, show: true)
         :wxTopLevelWindow.centerOnScreen(frame)
