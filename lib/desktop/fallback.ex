@@ -35,9 +35,9 @@ defmodule Desktop.Fallback do
 
     true = :wxTaskBarIcon.setIcon(bar, icon)
 
-    if OS.type() == Windows and
-         Kernel.function_exported?(:wxNotificationMessage, :useTaskBarIcon, 1) do
-      :wxNotificationMessage.useTaskBarIcon(bar)
+    if OS.type() == Windows do
+      # This links the taskbar icon and the application itself on Windows
+      call(:wxNotificationMessage, :useTaskBarIcon, [bar])
     end
 
     OnCrash.call(fn ->
@@ -56,7 +56,7 @@ defmodule Desktop.Fallback do
 
       webview =
         if OS.type() == Windows do
-          if not :wxWebView.isBackendAvailable('wxWebViewEdge') do
+          if not call(:wxWebView, :isBackendAvailable, ['wxWebViewEdge']) do
             Logger.warning("""
             Missing support for wxWebViewEdge.
             Check your OTP install for edge support and download it here:
@@ -81,11 +81,11 @@ defmodule Desktop.Fallback do
             :wxHtmlWindow.connect(win, :command_html_link_clicked, skip: true)
             win
           else
-            :wxWebView.new(frame, -1, backend: 'wxWebViewEdge')
+            call(:wxWebView, :new, [frame, -1, [backend: 'wxWebViewEdge']])
             |> configure_webview()
           end
         else
-          :wxWebView.new(frame, -1)
+          call(:wxWebView, :new, [frame, -1])
           |> configure_webview()
         end
 
@@ -102,21 +102,21 @@ defmodule Desktop.Fallback do
   end
 
   defp configure_webview(webview) do
-    :wxWebView.connect(webview, :webview_newwindow)
-    :wxWebView.enableContextMenu(webview, enable: false)
+    call(:wxWebView, :connect, [webview, :webview_newwindow])
+    call(:wxWebView, :enableContextMenu, [webview, [enable: false]])
     webview
   end
 
   def webview_can_fix(webview) do
     is_module?(:wxWebView) and OS.type() == Windows and
-      :wxWebView.isBackendAvailable('wxWebViewEdge') and :wxWebView.isShownOnScreen(webview)
+      call(:wxWebView, :isBackendAvailable, ['wxWebViewEdge']) and
+      call(:wxWebView, :isShownOnScreen, [webview])
   end
 
-  def webview_show(%Desktop.Window{webview: webview, frame: frame}, url, default) do
-    if is_module?(:wxWebView) and
-         (OS.type() != Windows or :wxWebView.isBackendAvailable('wxWebViewEdge')) do
-      if url != nil do
-        :wxWebView.loadURL(webview, url)
+  def webview_show(%Desktop.Window{webview: webview, frame: frame, last_url: last}, url) do
+    if webview?() do
+      if last == nil or last != url do
+        call(:wxWebView, :loadURL, [webview, url])
       end
 
       if :wxTopLevelWindow.isIconized(frame) do
@@ -130,19 +130,18 @@ defmodule Desktop.Fallback do
 
       OS.raise_frame(frame)
     else
-      :wx_misc.launchDefaultBrowser(url || default)
+      :wx_misc.launchDefaultBrowser(url)
     end
   end
 
   def webview_rebuild(%Desktop.Window{webview: webview, frame: frame, last_url: url}) do
-    if is_module?(:wxWebView) and
-         (OS.type() != Windows or :wxWebView.isBackendAvailable('wxWebViewEdge')) do
-      # url = :wxWebView.getCurrentURL(webview)
+    if webview?() do
+      # url = call(:wxWebView, :getCurrentURL, [webview])
       webview = webview_new(frame)
       Logger.info("Rebuilding WebView on Windows with url: #{inspect(url)}")
 
       if url != nil do
-        :wxWebView.loadURL(webview, url)
+        call(:wxWebView, :loadURL, [webview, url])
       end
 
       webview
@@ -160,7 +159,7 @@ defmodule Desktop.Fallback do
           :error -> Wx.wxICON_ERROR()
         end
 
-      notification = :wxNotificationMessage.new(title, flags: flag)
+      notification = call(:wxNotificationMessage, :new, [title, [flags: flag]])
 
       if notification_events_available?() do
         for event <- [
@@ -168,7 +167,7 @@ defmodule Desktop.Fallback do
               :notification_message_dismissed,
               :notification_message_action
             ] do
-          :wxNotificationMessage.connect(notification, event)
+          call(:wxNotificationMessage, :connect, [notification, event])
         end
       else
         Logger.warning(
@@ -186,11 +185,15 @@ defmodule Desktop.Fallback do
 
   def notification_show(notification, message, timeout) do
     if is_module?(:wxNotificationMessage) do
-      :wxNotificationMessage.setMessage(notification, to_charlist(message))
-      :wxNotificationMessage.show(notification, timeout: timeout)
+      call(:wxNotificationMessage, :setMessage, [notification, to_charlist(message)])
+      call(:wxNotificationMessage, :show, [notification, [timeout: timeout]])
     else
       Logger.notice("NOTIFICATION: #{message}")
     end
+  end
+
+  def wx_subscribe() do
+    call(:wx, :subscribe_events)
   end
 
   defp is_module?(module) do
@@ -203,5 +206,16 @@ defmodule Desktop.Fallback do
       {major, minor, _} when major >= 3 and minor >= 1 -> true
       _ -> false
     end
+  end
+
+  defp call(module, method, args \\ []) do
+    if Kernel.function_exported?(module, method, length(args)) do
+      apply(module, method, args)
+    end
+  end
+
+  defp webview?() do
+    is_module?(:wxWebView) and
+      (OS.type() != Windows or call(:wxWebView, :isBackendAvailable, ['wxWebViewEdge']))
   end
 end
