@@ -50,6 +50,7 @@ defmodule Desktop.MixProject do
     [
       {:ex_doc, "~> 0.22", only: :dev, runtime: false},
       {:oncrash, "~> 0.1"},
+      {:debouncer, "~> 0.1"},
 
       # phoenix stuff
       {:phoenix, "~> 1.5.7"},

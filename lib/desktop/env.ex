@@ -2,7 +2,7 @@ defmodule Desktop.Env do
   alias Desktop.Env
   use GenServer
 
-  defstruct [:wx_env, :wx, :map, :waiters]
+  defstruct [:wx_env, :wx, :map, :waiters, :windows]
 
   @doc false
   @spec start_link() :: :ignore | {:error, any} | {:ok, pid}
@@ -11,34 +11,42 @@ defmodule Desktop.Env do
   end
 
   @doc false
+  @impl true
   def init(_arg) do
     wx = :wx.new([])
-    {:ok, %Env{wx_env: :wx.get_env(), wx: wx, map: %{}, waiters: %{}}}
+    Desktop.Fallback.wx_subscribe()
+    {:ok, %Env{wx_env: :wx.get_env(), wx: wx, map: %{}, waiters: %{}, windows: []}}
   end
 
+  @impl true
   def handle_call(:wx_env, _from, d = %Env{wx_env: env}) do
     {:reply, env, d}
   end
 
+  @impl true
   def handle_call(:wx, _from, d = %Env{wx: wx}) do
     {:reply, wx, d}
   end
 
+  @impl true
   def handle_call({:get, key, default}, _from, d = %Env{map: map}) do
     {:reply, Map.get(map, key, default), d}
   end
 
+  @impl true
   def handle_call({:pop, key, default}, _from, d = %Env{map: map}) do
     {value, map} = Map.pop(map, key, default)
     {:reply, value, %Env{d | map: map}}
   end
 
+  @impl true
   def handle_call({:put, key, value}, _from, d = %Env{map: map, waiters: waiters}) do
     {froms, waiters} = Map.pop(waiters, key, [])
     Enum.each(froms, fn from -> GenServer.reply(from, value) end)
     {:reply, Map.get(map, key), %Env{d | map: Map.put(map, key, value), waiters: waiters}}
   end
 
+  @impl true
   def handle_call({:await, key}, from, d = %Env{map: map, waiters: waiters}) do
     if Map.has_key?(map, key) do
       {:reply, Map.get(map, key), d}
@@ -48,11 +56,38 @@ defmodule Desktop.Env do
     end
   end
 
+  @impl true
   def handle_call({:connect, object, command, callback, id}, _from, d) do
     opts = [{:callback, fn _, _ -> callback.() end}]
     opts = if id == nil, do: opts, else: [{:id, id} | opts]
     ret = :wxMenu.connect(object, command, opts)
     {:reply, ret, d}
+  end
+
+  @impl true
+  def handle_cast({:register_window, window}, state = %Env{windows: windows}) do
+    Process.monitor(window)
+    {:noreply, %Env{state | windows: [window | windows]}}
+  end
+
+  @impl true
+  def handle_info({:reopen_app, []}, state = %Env{windows: windows}) do
+    # Handling MacOS event when the app icon is clicked again
+    case windows do
+      [window | _] ->
+        # Avoiding constant reopen loops
+        Debouncer.immediate2({Desktop, :reopen}, fn -> Desktop.Window.show(window) end, 500)
+
+      [] ->
+        :nothing
+    end
+
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_info({:DOWN, _ref, :process, pid, _reason}, state = %Env{windows: windows}) do
+    {:noreply, %Env{state | windows: windows -- [pid]}}
   end
 
   def wx() do

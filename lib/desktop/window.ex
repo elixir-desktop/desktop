@@ -49,6 +49,13 @@ defmodule Desktop.Window do
 
     * `:size` - the initial windows size in pixels {width, height}.
 
+    * `:hidden` - whether the window should be initially hidden defaults to false
+
+        Possible values are:
+
+        * `false` - Show the window on startup (default)
+        * `true` - Don't show the window on startup
+
     * `:icon` - an icon file name that will be used as taskbar and
       window icon. Supported formats are png files
 
@@ -112,6 +119,7 @@ defmodule Desktop.Window do
     url = options[:url]
 
     env = Desktop.Env.wx_env()
+    GenServer.cast(Desktop.Env, {:register_window, self()})
     :wx.set_env(env)
 
     frame =
@@ -175,7 +183,7 @@ defmodule Desktop.Window do
       rebuild_timer: timer
     }
 
-    if not hidden do
+    if hidden != true do
       show(self(), url)
     end
 
@@ -216,6 +224,17 @@ defmodule Desktop.Window do
   end
 
   @doc """
+  Iconize or restore the window
+
+    * `pid` - The pid or atom of the Window
+    * `restore` - Optional defaults to false whether the
+                  window should be restored
+  """
+  def iconize(pid, iconize \\ true) do
+    GenServer.cast(pid, {:iconize, iconize})
+  end
+
+  @doc """
   Rebuild the webview. This function is a troubleshooting
   function at this time. On Windows it's sometimes neccesary
   to rebuild the WebView2 frame.
@@ -248,6 +267,23 @@ defmodule Desktop.Window do
   """
   def webview(pid) do
     GenServer.call(pid, :webview)
+  end
+
+  @doc """
+  Fetch the underlying :wxFrame instance object. This represents
+  the window which the webview is drawn into.
+
+    * `pid` - The pid or atom of the Window
+
+  ## Examples
+
+      iex> :wx.set_env(Desktop.Env.wx_env())
+      iex> :wxWindow.show(Desktop.Window.frame(pid), show: false)
+      false
+
+  """
+  def frame(pid) do
+    GenServer.call(pid, :frame)
   end
 
   @doc """
@@ -441,6 +477,13 @@ defmodule Desktop.Window do
   end
 
   @impl true
+  @doc false
+  def handle_cast({:iconize, iconize}, ui = %Window{frame: frame}) do
+    :wxTopLevelWindow.iconize(frame, iconize: iconize)
+    {:noreply, ui}
+  end
+
+  @impl true
   def handle_cast(:rebuild_webview, ui) do
     {:noreply, %Window{ui | webview: Fallback.webview_rebuild(ui)}}
   end
@@ -463,10 +506,10 @@ defmodule Desktop.Window do
   end
 
   @impl true
-  def handle_cast({:show, url}, ui = %Window{home_url: home}) do
-    url = prepare_url(url)
-    Logger.info("Showing #{url || prepare_url(home)}")
-    Fallback.webview_show(ui, url, prepare_url(home))
+  def handle_cast({:show, url}, ui = %Window{home_url: home, last_url: last}) do
+    url = prepare_url(url || last || home)
+    Logger.info("Showing #{url}")
+    Fallback.webview_show(ui, url)
     {:noreply, %Window{ui | last_url: url}}
   end
 
@@ -474,6 +517,12 @@ defmodule Desktop.Window do
   @doc false
   def handle_call(:webview, _from, ui = %Window{webview: webview}) do
     {:reply, webview, ui}
+  end
+
+  @impl true
+  @doc false
+  def handle_call(:frame, _from, ui = %Window{frame: frame}) do
+    {:reply, frame, ui}
   end
 
   defp prepare_url(url) do
