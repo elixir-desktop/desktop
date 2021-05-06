@@ -507,10 +507,10 @@ defmodule Desktop.Window do
 
   @impl true
   def handle_cast({:show, url}, ui = %Window{home_url: home, last_url: last}) do
-    url = prepare_url(url || last || home)
-    Logger.info("Showing #{url}")
-    Fallback.webview_show(ui, url)
-    {:noreply, %Window{ui | last_url: url}}
+    new_url = prepare_url(url || last || home)
+    Logger.info("Showing #{new_url}")
+    Fallback.webview_show(ui, new_url, url == nil)
+    {:noreply, %Window{ui | last_url: new_url}}
   end
 
   @impl true
@@ -537,8 +537,15 @@ defmodule Desktop.Window do
 
   defp append_query(url, query) do
     case URI.parse(url) do
-      url = %URI{query: nil} -> %URI{url | query: query}
-      url = %URI{query: other} -> %URI{url | query: other <> "&" <> query}
+      url = %URI{query: nil} ->
+        %URI{url | query: query}
+
+      url = %URI{query: other} ->
+        if not String.contains?(other, query) do
+          %URI{url | query: other <> "&" <> query}
+        else
+          url
+        end
     end
     |> URI.to_string()
   end

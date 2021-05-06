@@ -86,6 +86,12 @@ defmodule Desktop.Env do
   end
 
   @impl true
+  def handle_info({mac_event, list}, state = %Env{}) when is_list(list) do
+    IO.puts("Ignoring event: #{mac_event} #{inspect(list)}")
+    {:noreply, state}
+  end
+
+  @impl true
   def handle_info({:DOWN, _ref, :process, pid, _reason}, state = %Env{windows: windows}) do
     {:noreply, %Env{state | windows: windows -- [pid]}}
   end
