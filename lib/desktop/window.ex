@@ -35,9 +35,7 @@ defmodule Desktop.Window do
 
   ### Window configuration
 
-  Phoenix allows you to choose which webserver adapter to use. The default
-  is `Phoenix.Endpoint.Cowboy2Adapter` which can be configured via the
-  following options.
+  In order to change the appearance of the application window these options can be defined:
 
     * `:app` - your app name within which the Window is running.
 

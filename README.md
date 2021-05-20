@@ -2,7 +2,7 @@
 
 *Bleeding Edge* ONLY WORKS WITH OTP24 https://www.erlang.org/news/148
 
-Building native-like Elixir apps is the goal of this library. It combines Phoenix and Erlangs builting WxWidgets library to archieve this.
+Building native-like Elixir apps is the goal of this library. It combines Phoenix LiveView and Erlangs built-in WxWidgets library to archieve this.
 
 ## Example
 

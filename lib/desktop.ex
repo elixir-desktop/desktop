@@ -12,7 +12,20 @@ defmodule Desktop do
     * [Sqlite3 Ecto](https://github.com/elixir-sqlite/ecto_sqlite3) - local
       database
 
-  To get started, see our [guides](introduction.html).
+  To get started, see the [installation guide](installation.html).
+
+  This library is still worked on heaviliy and APIs are going to change in v2. If you are curious
+  to play around or contribute it's to best clone the current sample app at:
+  https://github.com/elixir-desktop/desktop-example-app and start modifying it to your wishes.
+
+  ## Contributing and raising Issues
+
+  Please checkout the github repo at https://github.com/elixir-desktop/desktop and raise any issues.
+  Suggestions about the API and usage are welcome!
+
+  Cheers!
+
+
   """
   use Application
 

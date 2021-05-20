@@ -65,12 +65,12 @@ defmodule Desktop.MixProject do
 
   defp docs do
     [
-      main: "introduction",
+      main: "Desktop",
       source_ref: "v#{@version}",
       source_url: @url,
       extra_section: "GUIDES",
       extras: [
-        "guides/introduction.md"
+        "guides/installation.md"
       ]
     ]
   end
