@@ -81,7 +81,7 @@ defmodule Desktop.MixProject do
       licenses: ["MIT"],
       links: %{github: @url},
       files:
-        ~w(src lib priv) ++
+        ~w(src lib) ++
           ~w(LICENSE.md mix.exs README.md)
     ]
   end
