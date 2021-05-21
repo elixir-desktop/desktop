@@ -120,6 +120,8 @@ Working and compiling under Windows is probably the most difficult. The setup is
 **Install Dependencies:**
 
 * Install Erlang 24: https://erlang.org/download/otp_win64_24.0.exe
+  * Or Build: https://erlang.org/doc/installation_guide/INSTALL-WIN32.html
+
 * Install msys2 https://www.msys2.org/ 
 
 Install additional msys2 packages from an msys2 64-bit shell

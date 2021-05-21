@@ -25,6 +25,7 @@ defmodule Desktop.Menu do
     quote do
       @behaviour Desktop.Menu
       import Desktop.Menu, only: [assign: 2, escape: 1]
+      import Phoenix.HTML, only: [sigil_e: 2, sigil_E: 2]
 
       if not Keyword.get(unquote(opts), :skip_render, false) do
         require EEx
@@ -351,6 +352,10 @@ defmodule Desktop.Menu do
 
   for tag <- [:xmlElement, :xmlAttribute, :xmlText] do
     Record.defrecordp(tag, Record.extract(tag, from_lib: "xmerl/include/xmerl.hrl"))
+  end
+
+  defp parse({:safe, string}) do
+    parse(string)
   end
 
   defp parse(string) do

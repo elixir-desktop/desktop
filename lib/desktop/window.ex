@@ -523,7 +523,7 @@ defmodule Desktop.Window do
     {:reply, frame, ui}
   end
 
-  defp prepare_url(url) do
+  def prepare_url(url) do
     query = "k=" <> Desktop.Auth.login_key()
 
     case url do
