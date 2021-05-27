@@ -498,7 +498,7 @@ defmodule Desktop.Window do
         {note, _} -> {note, callback}
       end
 
-    Fallback.notification_show(n, message, timeout)
+    Fallback.notification_show(n, message, timeout, title || window_title)
     noties = Map.put(noties, id, note)
     {:noreply, %Window{ui | notifications: noties}}
   end

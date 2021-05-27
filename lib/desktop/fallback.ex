@@ -187,12 +187,16 @@ defmodule Desktop.Fallback do
     end
   end
 
-  def notification_show(notification, message, timeout) do
+  def notification_show(notification, message, timeout, title \\ nil) do
     if is_module?(:wxNotificationMessage) do
+      if title != nil do
+        call(:wxNotificationMessage, :setTitle, [notification, to_charlist(title)])
+      end
+
       call(:wxNotificationMessage, :setMessage, [notification, to_charlist(message)])
       call(:wxNotificationMessage, :show, [notification, [timeout: timeout]])
     else
-      Logger.notice("NOTIFICATION: #{message}")
+      Logger.notice("NOTIFICATION: #{title}: #{message}")
     end
   end
 
