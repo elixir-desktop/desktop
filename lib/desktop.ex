@@ -55,10 +55,8 @@ defmodule Desktop do
     ```
   """
   def identify_default_locale(backend) do
-    :wx.set_env(Desktop.Env.wx_env())
-    locale = :wxLocale.new(:wxLocale.getSystemLanguage())
     # this is in the form "xx_XX"
-    language_code = :wxLocale.getCanonicalName(locale) |> List.to_string() |> String.downcase()
+    language_code = language_code()
 
     # All locales with translations:
     known_locales = Gettext.known_locales(backend)
@@ -81,6 +79,26 @@ defmodule Desktop do
       else
         # we're giving up, not updating the default locale
       end
+    end
+  end
+
+  def language_code() do
+    with MacOS <- Desktop.OS.type(),
+         {locale, 0} <- System.cmd("defaults", ~w(read -g AppleLocale)),
+         [code] <- Regex.run(~r/[a-z]+_[A-Z]+/, locale) do
+      # On MacOS getSystemLanguage() is calculated based on the the number
+      # format (so mostly English) and not based on the actual used language
+      # https://trac.wxwidgets.org/ticket/11594
+
+      # So we are using this workaround instead to get the current locale as "xx_XX"
+      # https://stackoverflow.com/questions/661935/how-to-detect-current-locale-in-mac-os-x-from-the-shell
+      code
+    else
+      _ ->
+        :wx.set_env(Desktop.Env.wx_env())
+        locale = :wxLocale.new(:wxLocale.getSystemLanguage())
+        # this is in the form "xx_XX"
+        :wxLocale.getCanonicalName(locale) |> List.to_string() |> String.downcase()
     end
   end
 
