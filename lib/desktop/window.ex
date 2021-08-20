@@ -126,7 +126,7 @@ defmodule Desktop.Window do
         {:style, Wx.wxDEFAULT_FRAME_STYLE()}
       ])
 
-    :wxFrame.connect(frame, :close_window)
+    :wxFrame.connect(frame, :close_window, callback: &close_window/2, userData: self())
     :wxFrame.setSizer(frame, :wxBoxSizer.new(Wx.wxHORIZONTAL()))
 
     # This one-line version will not show right on MacOS:
@@ -384,19 +384,6 @@ defmodule Desktop.Window do
     {:noreply, menu}
   end
 
-  def handle_event(
-        wx(event: wxClose(type: :close_window)),
-        ui = %Window{frame: frame, taskbar: taskbar}
-      ) do
-    if taskbar == nil do
-      :wxFrame.hide(frame)
-      {:stop, :normal, ui}
-    else
-      :wxFrame.hide(frame)
-      {:noreply, ui}
-    end
-  end
-
   def handle_event(wx(event: {:wxWebView, :webview_newwindow, _, _, _target, url}), ui) do
     :wx_misc.launchDefaultBrowser(url)
     {:noreply, ui}
@@ -464,8 +451,32 @@ defmodule Desktop.Window do
     {:noreply, ui}
   end
 
+  def close_window(wx(userData: pid), inev) do
+    # if we don't veto vetoable events on MacOS the app freezes.
+    if :wxCloseEvent.canVeto(inev) do
+      :wxCloseEvent.veto(inev)
+    end
+
+    GenServer.cast(pid, :close_window)
+    :ok
+  end
+
   @impl true
   @doc false
+  def handle_cast(:close_window, ui = %Window{frame: frame, taskbar: taskbar}) do
+    if not :wxFrame.isShown(frame) do
+      OS.shutdown()
+    end
+
+    if taskbar == nil do
+      :wxFrame.hide(frame)
+      {:stop, :normal, ui}
+    else
+      :wxFrame.hide(frame)
+      {:noreply, ui}
+    end
+  end
+
   def handle_cast({:set_title, title}, ui = %Window{title: old, frame: frame}) do
     if title != old and frame != nil do
       :wxFrame.setTitle(frame, String.to_charlist(title))
