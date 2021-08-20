@@ -28,9 +28,24 @@ defmodule Desktop.OS do
   def shutdown() do
     spawn(fn ->
       Process.sleep(300)
-      kill_heart()
-      System.halt(0)
+
+      if windows?() do
+        System.stop(0)
+      else
+        kill_heart()
+        System.halt(0)
+      end
     end)
+  end
+
+  def restart() do
+    if windows?() do
+      # on windows reinitializing wx-widgets does work sometimes...
+      :init.restart()
+    else
+      # relying on heart
+      kill_beam()
+    end
   end
 
   def windows?() do
