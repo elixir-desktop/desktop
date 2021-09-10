@@ -32,35 +32,58 @@ defmodule Desktop.MixProject do
     [
       mod: {Desktop, []},
       extra_applications: [
-        :logger,
-        :wx,
-        :ssl,
         :crypto,
-        :sasl,
-        :tools,
-        :inets,
         :eex,
+        :inets,
+        :logger,
+        :sasl,
+        :ssl,
+        :tools,
         :xmerl
+        | extra()
       ]
     ]
   end
 
+  def is_mobile_build() do
+    case System.get_env("MOBILE") do
+      "false" -> false
+      nil -> false
+      "0" -> false
+      _ -> true
+    end
+  end
+
+  def extra() do
+    if is_mobile_build() do
+      []
+    else
+      [:wx]
+    end
+  end
+
   # Run "mix help deps" to learn about dependencies.
   defp deps do
-    [
-      {:ex_doc, "~> 0.22", only: :dev, runtime: false},
-      {:oncrash, "~> 0.1"},
-      {:debouncer, "~> 0.1"},
+    if is_mobile_build() do
+      # [{:bridge, path: "../bridge/"}]
+      [{:bridge, github: "elixir-desktop/bridge"}]
+    else
+      []
+    end ++
+      [
+        {:ex_doc, "~> 0.22", only: :dev, runtime: false},
+        {:oncrash, "~> 0.1"},
+        {:debouncer, "~> 0.1"},
 
-      # phoenix stuff
-      {:phoenix, "~> 1.5.7"},
-      {:phoenix_live_view, "~> 0.15"},
-      {:phoenix_html, "~> 2.11"},
-      {:phoenix_live_reload, "~> 1.2"},
-      {:gettext, "~> 0.11"},
-      {:plug_cowboy, "~> 2.0"},
-      {:jason, "~> 1.0"}
-    ]
+        # phoenix stuff
+        {:phoenix, "~> 1.5.7"},
+        {:phoenix_live_view, "~> 0.15"},
+        {:phoenix_html, "~> 2.11"},
+        {:phoenix_live_reload, "~> 1.2"},
+        {:gettext, "~> 0.11"},
+        {:plug_cowboy, "~> 2.0"},
+        {:jason, "~> 1.0"}
+      ]
   end
 
   defp docs do
