@@ -1,4 +1,5 @@
 defmodule Desktop.Menu do
+  require Logger
   alias Desktop.Menu
   alias Desktop.Menu.{Adapter, Parser}
 
@@ -73,8 +74,17 @@ defmodule Desktop.Menu do
 
   def create(%{__adapter__: adapter, mod: mod, dom: dom} = menu, opts) do
     menu = %{menu | __adapter__: Adapter.create(adapter, dom, opts)}
-    {:ok, menu} = mod.mount(menu)
-    update_dom(menu)
+
+    try do
+      mod.mount(menu)
+    rescue
+      error ->
+        Logger.debug(error)
+        menu
+    else
+      {:ok, menu} -> update_dom(menu)
+      _ -> menu
+    end
   end
 
   def update_dom(%{__adapter__: nil}) do
