@@ -550,10 +550,10 @@ defmodule Desktop.Window do
         %URI{url | query: query}
 
       url = %URI{query: other} ->
-        if not String.contains?(other, query) do
-          %URI{url | query: other <> "&" <> query}
-        else
+        if String.contains?(other, query) do
           url
+        else
+          %URI{url | query: other <> "&" <> query}
         end
     end
     |> URI.to_string()

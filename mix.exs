@@ -59,7 +59,8 @@ defmodule Desktop.MixProject do
       {:ex_doc, "~> 0.22", only: :dev, runtime: false},
       {:oncrash, "~> 0.1"},
       {:debouncer, "~> 0.1"},
-      {:bridge, github: "elixir-desktop/bridge", targets: [:android, :ios]},
+      {:wx, github: "elixir-desktop/bridge", targets: [:android, :ios]},
+      {:credo, "~> 1.5", only: [:dev, :test], runtime: false},
 
       # phoenix stuff
       {:phoenix, "~> 1.5.7"},

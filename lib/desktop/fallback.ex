@@ -56,7 +56,10 @@ defmodule Desktop.Fallback do
 
       webview =
         if OS.type() == Windows do
-          if not call(:wxWebView, :isBackendAvailable, ['wxWebViewEdge']) do
+          if call(:wxWebView, :isBackendAvailable, ['wxWebViewEdge']) do
+            call(:wxWebView, :new, [frame, -1, [backend: 'wxWebViewEdge']])
+            |> configure_webview()
+          else
             Logger.warning("""
             Missing support for wxWebViewEdge.
             Check your OTP install for edge support and download it here:
@@ -80,9 +83,6 @@ defmodule Desktop.Fallback do
 
             :wxHtmlWindow.connect(win, :command_html_link_clicked, skip: true)
             win
-          else
-            call(:wxWebView, :new, [frame, -1, [backend: 'wxWebViewEdge']])
-            |> configure_webview()
           end
         else
           call(:wxWebView, :new, [frame, -1])
