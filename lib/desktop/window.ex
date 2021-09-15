@@ -159,8 +159,6 @@ defmodule Desktop.Window do
       end
     end
 
-    taskbar = nil
-
     taskbar =
       if icon_menu do
         case Desktop.Env.sni() do

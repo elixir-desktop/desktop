@@ -16,7 +16,7 @@ defmodule Desktop.Menu.Adapter.DBus do
     }
   end
 
-  def create(%__MODULE__{env: env, menubar: menubar, icon: icon} = menu, dom, opts) do
+  def create(%__MODULE__{menubar: menubar, icon: icon} = menu, _dom, opts) do
     sni = Keyword.get(opts, :sni)
     ExSni.set_icon(sni, icon)
     ExSni.set_menu(sni, menubar)
@@ -24,7 +24,7 @@ defmodule Desktop.Menu.Adapter.DBus do
     %{menu | sni: sni}
   end
 
-  def update_dom(%__MODULE__{mod: module, menubar: menubar, sni: sni} = menu, dom) do
+  def update_dom(%__MODULE__{mod: module, menubar: _menubar, sni: sni} = menu, dom) do
     {children, _} = create_menu_items(1, dom, module: module)
     root = %Item{id: 0, children: children}
 
@@ -71,7 +71,7 @@ defmodule Desktop.Menu.Adapter.DBus do
     {item, last_id}
   end
 
-  defp create_standard_item(id, label, params, opts \\ []) do
+  defp create_standard_item(id, label, params, opts) do
     module = Keyword.get(opts, :module, nil)
     menu = Keyword.get(opts, :menu, nil)
 

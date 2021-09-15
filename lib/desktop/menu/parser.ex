@@ -2,8 +2,6 @@ defmodule Desktop.Menu.Parser do
   require Record
   require Logger
 
-  alias Desktop.Menu
-
   for tag <- [:xmlElement, :xmlAttribute, :xmlText] do
     Record.defrecordp(tag, Record.extract(tag, from_lib: "xmerl/include/xmerl.hrl"))
   end

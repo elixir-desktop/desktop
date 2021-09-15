@@ -117,7 +117,7 @@ defmodule Desktop.Menu.Adapter.Wx do
     %{menu | bindings: bindings, old_bindings: old}
   end
 
-  defp update_menubar(%__MODULE__{menubar: bar, loaded: loaded} = menu, menues) do
+  defp update_menubar(%__MODULE__{menubar: _bar, loaded: _loaded} = menu, menues) do
     menu =
       :wx.batch(fn ->
         do_update_menubar(menu, menues)
