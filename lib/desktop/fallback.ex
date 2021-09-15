@@ -2,7 +2,7 @@ defmodule Desktop.Fallback do
   require Logger
   alias Desktop.{Wx, OS}
 
-  def taskbaricon_new(popup, icon) do
+  def taskbaricon_new_wx(popup, icon) do
     # Proper OTP24 release
     bar =
       if OS.type() == MacOS do

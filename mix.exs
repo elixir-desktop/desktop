@@ -61,6 +61,9 @@ defmodule Desktop.MixProject do
       {:debouncer, "~> 0.1"},
       {:credo, "~> 1.5", only: [:dev, :test], runtime: false},
 
+      # DBus SNI
+      {:ex_sni, github: "mpotra/ex_sni"},
+
       # Phoenix & Plug
       {:plug, "> 1.0.0"},
       {:gettext, "> 0.10.0"}

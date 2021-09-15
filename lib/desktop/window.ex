@@ -143,11 +143,15 @@ defmodule Desktop.Window do
     :wxTopLevelWindow.setIcon(frame, icon)
 
     if menubar do
-      # if OS.type() == MacOS do
-      #   :wxMenuBar.oSXGetAppleMenu(:wxMenuBar.new())
-      # else
-      {:ok, pid} = Menu.start_link(menubar, env, :wxMenuBar.new())
-      :wxFrame.setMenuBar(frame, Menu.menubar(pid))
+      ## if OS.type() == MacOS do
+      ##   :wxMenuBar.oSXGetAppleMenu(:wxMenuBar.new())
+      ## else
+
+      menu =
+        Menu.new(menubar, env, :wx)
+        |> Menu.create(:wxMenuBar.new())
+
+      :wxFrame.setMenuBar(frame, Menu.menubar(menu))
     else
       # MacOS osMenu
       if OS.type() == MacOS do
@@ -155,14 +159,26 @@ defmodule Desktop.Window do
       end
     end
 
+    taskbar = nil
+
     taskbar =
       if icon_menu do
-        {:ok, pid} = Menu.start_link(icon_menu, env, {:taskbar, icon})
+        case Desktop.Env.sni() do
+          nil ->
+            menu =
+              Menu.new(icon_menu, env, :wx)
+              |> Menu.create({:taskbar, icon})
 
-        :wxTaskBarIcon.connect(Menu.taskbar(pid), :taskbar_left_down, skip: true)
-        :wxTaskBarIcon.connect(Menu.taskbar(pid), :taskbar_right_down, skip: true)
+            taskbar = Menu.menubar(menu)
+            :wxTaskBarIcon.connect(taskbar, :taskbar_left_down, skip: true)
+            :wxTaskBarIcon.connect(taskbar, :taskbar_right_down, skip: true)
 
-        pid
+            menu
+
+          sni ->
+            Menu.new(icon_menu, env, :dbus)
+            |> Menu.create(sni: sni, icon: icon)
+        end
       end
 
     timer =

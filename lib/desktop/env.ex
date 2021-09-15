@@ -2,7 +2,7 @@ defmodule Desktop.Env do
   alias Desktop.Env
   use GenServer
 
-  defstruct [:wx_env, :wx, :map, :waiters, :windows]
+  defstruct [:wx_env, :wx, :map, :waiters, :windows, :sni]
 
   @doc false
   @spec start_link() :: :ignore | {:error, any} | {:ok, pid}
@@ -14,8 +14,10 @@ defmodule Desktop.Env do
   @impl true
   def init(_arg) do
     wx = :wx.new([])
+    sni = init_sni()
+
     Desktop.Fallback.wx_subscribe()
-    {:ok, %Env{wx_env: :wx.get_env(), wx: wx, map: %{}, waiters: %{}, windows: []}}
+    {:ok, %Env{wx_env: :wx.get_env(), wx: wx, map: %{}, waiters: %{}, windows: [], sni: sni}}
   end
 
   @impl true
@@ -26,6 +28,11 @@ defmodule Desktop.Env do
   @impl true
   def handle_call(:wx, _from, d = %Env{wx: wx}) do
     {:reply, wx, d}
+  end
+
+  @impl true
+  def handle_call(:sni, _from, %Env{sni: sni} = state) do
+    {:reply, sni, state}
   end
 
   @impl true
@@ -96,6 +103,10 @@ defmodule Desktop.Env do
     {:noreply, %Env{state | windows: windows -- [pid]}}
   end
 
+  def sni() do
+    GenServer.call(__MODULE__, :sni)
+  end
+
   def wx() do
     GenServer.call(__MODULE__, :wx)
   end
@@ -122,5 +133,22 @@ defmodule Desktop.Env do
 
   def await(key) do
     GenServer.call(__MODULE__, {:await, key})
+  end
+
+  defp init_sni() do
+    if Desktop.OS.type() == Linux do
+      case ExSni.start_link() do
+        {:ok, pid} ->
+          if ExSni.is_supported?(pid) do
+            pid
+          else
+            ExSni.close(pid)
+            nil
+          end
+
+        _ ->
+          nil
+      end
+    end
   end
 end
