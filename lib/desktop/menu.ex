@@ -82,6 +82,11 @@ defmodule Desktop.Menu do
   def create(%{__adapter__: adapter, dom: dom, proxy: proxy} = menu, opts) do
     menu = %{menu | __adapter__: Adapter.create(adapter, dom, opts)}
 
+    # We need to `mount/2` the menu, inside a server process
+    # that will receive `handle_info/2` calls.
+    # And that is because Phoenix.PubSub.subscribe/2
+    # takes the `pid` it's called under and uses that
+    # to send messages, such as `:changed`
     Proxy.update(proxy, menu)
     Proxy.mount(proxy)
   end
