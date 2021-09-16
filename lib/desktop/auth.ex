@@ -1,5 +1,6 @@
 defmodule Desktop.Auth do
   import Plug.Conn
+  alias Desktop.OS
   @behaviour Plug
 
   @key :crypto.strong_rand_bytes(32)
@@ -23,7 +24,7 @@ defmodule Desktop.Auth do
   defp require_auth(conn) do
     conn = fetch_query_params(conn)
 
-    if login_key() == conn.query_params["k"] do
+    if OS.mobile?() or login_key() == conn.query_params["k"] do
       put_session(conn, :user, true)
     else
       conn
