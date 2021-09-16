@@ -1,20 +1,22 @@
 defmodule Desktop.Menu do
   require Logger
   alias Desktop.Menu
-  alias Desktop.Menu.{Adapter, Parser}
+  alias Desktop.Menu.{Adapter, Parser, Proxy}
 
   defstruct [
     :__adapter__,
     :assigns,
     :dom,
-    :mod
+    :mod,
+    :proxy
   ]
 
   @type t() :: %__MODULE__{
           __adapter__: any(),
           assigns: %{},
           mod: atom(),
-          dom: any()
+          dom: any(),
+          proxy: nil | pid()
         }
 
   @callback mount(Menu.t()) :: {:ok, Menu.t()}
@@ -25,6 +27,7 @@ defmodule Desktop.Menu do
   @doc false
   defmacro __using__(opts) do
     quote do
+      import Phoenix.LiveView, except: [assign: 2]
       @behaviour Desktop.Menu
       import Desktop.Menu, only: [assign: 2, escape: 1]
       import Phoenix.HTML, only: [sigil_e: 2, sigil_E: 2]
@@ -58,49 +61,64 @@ defmodule Desktop.Menu do
   end
 
   def new(module, env, adapter) do
-    adapter = adapter.new(env, module)
+    {:ok, proxy} = Proxy.start_link(nil)
+    adapter = adapter.new(env, proxy)
 
-    %Menu{
+    menu = %Menu{
       __adapter__: adapter,
       mod: module,
       dom: [],
-      assigns: %{}
+      assigns: %{},
+      proxy: proxy
     }
+
+    Proxy.update(proxy, menu)
   end
 
   def create(%{__adapter__: nil}) do
     raise "Menu has no adapter set"
   end
 
-  def create(%{__adapter__: adapter, mod: mod, dom: dom} = menu, opts) do
+  def create(%{__adapter__: adapter, dom: dom, proxy: proxy} = menu, opts) do
     menu = %{menu | __adapter__: Adapter.create(adapter, dom, opts)}
 
-    try do
-      mod.mount(menu)
-    rescue
-      error ->
-        Logger.debug(error)
-        menu
-    else
-      {:ok, menu} -> update_dom(menu)
-      _ -> menu
-    end
+    Proxy.update(proxy, menu)
+    Proxy.mount(proxy)
   end
 
   def update_dom(%{__adapter__: nil}) do
     raise "Menu has no adapter"
   end
 
-  def update_dom(%{__adapter__: adapter, mod: mod, dom: dom, assigns: assigns} = menu) do
+  def update_dom(
+        %{__adapter__: adapter, mod: mod, dom: dom, assigns: assigns, proxy: proxy} = menu
+      ) do
     new_dom =
       mod.render(assigns)
       |> Parser.parse()
 
     if new_dom != dom do
       adapter = Adapter.update_dom(adapter, new_dom)
-      %{menu | __adapter__: adapter, dom: new_dom}
+      menu = %{menu | __adapter__: adapter, dom: new_dom}
+
+      if self() != proxy do
+        Proxy.update(proxy, menu)
+      else
+        menu
+      end
     else
       menu
+    end
+  end
+
+  def trigger_event(%Menu{mod: mod} = menu, event) do
+    try do
+      mod.handle_event(event, menu)
+    rescue
+      _ -> menu
+    else
+      {:update, menu} -> update_dom(menu)
+      _ -> menu
     end
   end
 

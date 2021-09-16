@@ -127,7 +127,11 @@ defmodule Desktop.Window do
         {:style, Wx.wxDEFAULT_FRAME_STYLE()}
       ])
 
-    :wxFrame.connect(frame, :close_window, callback: &close_window/2, userData: self())
+    :wxFrame.connect(frame, :close_window,
+      callback: &close_window/2,
+      userData: self()
+    )
+
     :wxFrame.setSizer(frame, :wxBoxSizer.new(Wx.wxHORIZONTAL()))
 
     # This one-line version will not show right on MacOS:

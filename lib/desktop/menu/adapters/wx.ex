@@ -1,44 +1,52 @@
 defmodule Desktop.Menu.Adapter.Wx do
   alias Desktop.{Wx, OS, Fallback}
+  alias Desktop.Menu.Adapter.Wx.Server
+
   require Record
   require Logger
   # use GenServer
-  defstruct [:mod, :env, :bindings, :old_bindings, :menubar, :pid, :loaded]
+  defstruct [:proxy, :env, :bindings, :old_bindings, :menubar, :server, :loaded]
 
   @type t() :: %__MODULE__{
           bindings: %{},
           # We're keeping one generation of bindings because the menubaricon will usually have
           # two (2) active generations. The currently displayed one and the newly generated one.
           old_bindings: %{},
-          pid: pid()
+          server: pid(),
+          proxy: pid() | nil
         }
 
-  for tag <- [:wx, :wxCommand] do
-    Record.defrecordp(tag, Record.extract(tag, from_lib: "wx/include/wx.hrl"))
-  end
+  # for tag <- [:wx, :wxCommand] do
+  #   Record.defrecordp(tag, Record.extract(tag, from_lib: "wx/include/wx.hrl"))
+  # end
 
-  def new(env, module) do
+  def new(env, proxy) do
     %__MODULE__{
-      mod: module,
+      proxy: proxy,
       bindings: %{},
       old_bindings: %{},
       env: env,
-      pid: nil
+      server: nil
     }
   end
 
   def create(%__MODULE__{env: env} = menu, dom, opts) do
     :wx.set_env(env)
 
-    case opts do
-      {:taskbar, icon} ->
-        create_popup = fn -> create_popup_menu(menu, dom) end
-        %{menu | menubar: Fallback.taskbaricon_new_wx(create_popup, icon)}
+    {:ok, server} = Server.start_link(menu)
 
-      wx_ref ->
-        :wxMenuBar = :wx.getObjectType(wx_ref)
-        %{menu | menubar: wx_ref}
-    end
+    menu =
+      case opts do
+        {:taskbar, icon} ->
+          create_popup = fn -> create_popup_menu(menu, dom) end
+          %{menu | menubar: Fallback.taskbaricon_new_wx(create_popup, icon)}
+
+        wx_ref ->
+          :wxMenuBar = :wx.getObjectType(wx_ref)
+          %{menu | menubar: wx_ref}
+      end
+
+    Server.update(server, %{menu | server: server})
   end
 
   defp create_popup_menu(%__MODULE__{} = menu, dom) do
@@ -48,10 +56,13 @@ defmodule Desktop.Menu.Adapter.Wx do
   def menu(%__MODULE__{} = menu, dom) do
     # This will create the menu for next round
     spawn(fn -> create_menu(menu, dom) end)
+
+    # Desktop.Env.pop({:menu, server})
   end
 
   def update_dom(%__MODULE__{menubar: menubar} = menu, dom) do
-    # if dom != new_dom do
+    # Desktop.Env.put({:dom, server}, dom)
+
     if menubar != nil do
       :wx.set_env(Desktop.Env.wx_env())
       menues = :wx.batch(fn -> do_create_menubar_menues(dom) end)
@@ -67,7 +78,8 @@ defmodule Desktop.Menu.Adapter.Wx do
   end
 
   defp create_menu(%__MODULE__{} = menu, dom) do
-    # dom = Desktop.Env.await({:dom, pid})
+    # dom = Desktop.Env.await({:dom, server})
+
     :wx.set_env(Desktop.Env.wx_env())
 
     {wx_menu, callbacks} =
@@ -79,10 +91,8 @@ defmodule Desktop.Menu.Adapter.Wx do
 
     # Would like to do this synchronously, but this is running in the context of
     # :wxe_server and so :wxe_server is blocked to accept :connect() calls
-    menu =
-      :wx.batch(fn ->
-        update_callbacks(menu, callbacks)
-      end)
+
+    menu = update_callbacks(menu, callbacks)
 
     case menu do
       nil -> :ok
@@ -92,29 +102,11 @@ defmodule Desktop.Menu.Adapter.Wx do
     menu
   end
 
-  defp update_callbacks(menu = %__MODULE__{bindings: bindings, old_bindings: old}, callbacks) do
-    new_bindings =
-      List.wrap(callbacks)
-      |> List.flatten()
-      |> Enum.reduce(%{}, fn callback, bind ->
-        case callback do
-          {:connect, {event_src, id, onclick}} ->
-            :wxMenu.connect(event_src, :command_menu_selected, id: id)
-            Map.put(bind, id, onclick)
-
-          _ ->
-            bind
-        end
-      end)
-
-    {bindings, old} =
-      if map_size(bindings) > 1000 do
-        {new_bindings, bindings}
-      else
-        {Map.merge(bindings, new_bindings), old}
-      end
-
-    %{menu | bindings: bindings, old_bindings: old}
+  defp update_callbacks(
+         %__MODULE__{server: server},
+         callbacks
+       ) do
+    Server.update_callbacks(server, callbacks)
   end
 
   defp update_menubar(%__MODULE__{menubar: _bar, loaded: _loaded} = menu, menues) do

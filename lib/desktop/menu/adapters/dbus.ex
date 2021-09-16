@@ -3,12 +3,13 @@ defmodule Desktop.Menu.Adapter.DBus do
   alias ExSni.Icon.{Info, Tooltip}
   alias ExSni.Menu
   alias ExSni.Menu.Item
+  alias Desktop.Menu.Proxy
 
-  defstruct [:mod, :env, :sni, :icon, :menubar]
+  defstruct [:proxy, :env, :sni, :icon, :menubar]
 
-  def new(env, module) do
+  def new(env, proxy) do
     %__MODULE__{
-      mod: module,
+      proxy: proxy,
       env: env,
       sni: nil,
       icon: dummy_icon(),
@@ -24,8 +25,9 @@ defmodule Desktop.Menu.Adapter.DBus do
     %{menu | sni: sni}
   end
 
-  def update_dom(%__MODULE__{mod: module, menubar: _menubar, sni: sni} = menu, dom) do
-    {children, _} = create_menu_items(1, dom, module: module)
+  def update_dom(%__MODULE__{proxy: proxy, menubar: _menubar, sni: sni} = menu, dom) do
+    {children, _} = create_menu_items(1, dom, proxy: proxy)
+
     root = %Item{id: 0, children: children}
 
     callbacks = [
@@ -72,18 +74,30 @@ defmodule Desktop.Menu.Adapter.DBus do
   end
 
   defp create_standard_item(id, label, params, opts) do
-    module = Keyword.get(opts, :module, nil)
-    menu = Keyword.get(opts, :menu, nil)
+    proxy = Keyword.get(opts, :proxy, nil)
+
+    toggle_type =
+      case Map.get(params, :type, nil) do
+        "checkbox" -> :checkmark
+        "radio" -> :radio
+        _ -> nil
+      end
+
+    toggle_state =
+      case Map.get(params, :checked, nil) do
+        "checked" -> :on
+        _ -> :off
+      end
 
     callbacks =
-      if is_atom(module) do
+      if proxy != nil do
         Enum.reduce(params, [], fn param, acc ->
           case param do
             {:onclick, event} ->
               [
                 {"clicked",
                  fn _, _ ->
-                   module.handle_event(event, menu)
+                   Proxy.trigger_event(proxy, event)
                  end}
                 | acc
               ]
@@ -94,7 +108,13 @@ defmodule Desktop.Menu.Adapter.DBus do
         end)
       end
 
-    %Item{id: id, label: label, callbacks: callbacks}
+    %Item{
+      id: id,
+      label: label,
+      toggle_type: toggle_type,
+      toggle_state: toggle_state,
+      callbacks: callbacks
+    }
   end
 
   defp dummy_icon() do
