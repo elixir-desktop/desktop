@@ -47,7 +47,8 @@ defmodule Desktop.Window do
 
     * `:size` - the initial windows size in pixels {width, height}.
 
-    * `:hidden` - whether the window should be initially hidden defaults to false
+    * `:hidden` - whether the window should be initially hidden defaults to false,
+                  but is ignored on mobile platforms
 
         Possible values are:
 
@@ -113,7 +114,7 @@ defmodule Desktop.Window do
     icon = options[:icon] || "icon.png"
     menubar = options[:menubar]
     icon_menu = options[:icon_menu]
-    hidden = options[:hidden] || false
+    hidden = if OS.mobile?(), do: false, else: options[:hidden] || false
     url = options[:url]
 
     env = Desktop.Env.wx_env()

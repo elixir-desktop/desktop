@@ -17,11 +17,21 @@ defmodule Desktop.OS do
     end
   end
 
+  @target Mix.target()
   def type() do
-    case :os.type() do
-      {:unix, :darwin} -> MacOS
-      {:unix, :linux} -> Linux
-      {:win32, _} -> Windows
+    case @target do
+      :android ->
+        Android
+
+      :ios ->
+        IOS
+
+      _ ->
+        case :os.type() do
+          {:unix, :darwin} -> MacOS
+          {:unix, :linux} -> Linux
+          {:win32, _} -> Windows
+        end
     end
   end
 
@@ -50,6 +60,14 @@ defmodule Desktop.OS do
 
   def windows?() do
     type() == Windows
+  end
+
+  def mobile?() do
+    case type() do
+      Android -> true
+      IOS -> true
+      _other -> false
+    end
   end
 
   defp kill_heart() do
