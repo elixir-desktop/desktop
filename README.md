@@ -1,6 +1,6 @@
 # Desktop 
 
-*Bleeding Edge* ONLY WORKS WITH OTP24 https://www.erlang.org/news/148
+*Bleeding Edge* ONLY WORKS WITH erlang >= 24.0.1 https://www.erlang.org/news/148
 
 Building native-like Elixir apps is the goal of this library. It combines Phoenix LiveView and Erlangs built-in WxWidgets library to archieve this.
 
@@ -10,3 +10,6 @@ Checkout the Todo sample application for reference. https://github.com/elixir-de
 
 ![MacOS build](https://raw.githubusercontent.com/elixir-desktop/desktop-example-app/main/nodeploy/macos_todo.png "MacOS build")
 
+## Gettings Started
+
+Check out the [Getting Started Guide](https://hexdocs.pm/desktop/installation.html)
