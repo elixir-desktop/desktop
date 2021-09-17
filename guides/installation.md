@@ -12,6 +12,17 @@ Unfortunately these versions are not yet (2021-05-20) available on most OS packa
 
 ## Building on Ubuntu Linux
 
+**Update: Using ASDF**
+
+It has been reported that under linux using `asdf` it is possible to install the needed dependencies automatically.
+
+```
+asdf plugin-update --all
+asdf install erlang 24.0.1
+```
+
+Reference: https://elixirforum.com/t/cannot-run-desktop-example-app/41953/5
+
 **Install System Dependencies:**
 
 ```bash

@@ -8,5 +8,5 @@ Building native-like Elixir apps is the goal of this library. It combines Phoeni
 
 Checkout the Todo sample application for reference. https://github.com/elixir-desktop/desktop-example-app
 
-![MacOS build](https://raw.githubusercontent.com/desktop/desktop-example-app/main/nodeploy/macos_todo.png "MacOS build")
+![MacOS build](https://raw.githubusercontent.com/elixir-desktop/desktop-example-app/main/nodeploy/macos_todo.png "MacOS build")
 
