@@ -397,6 +397,13 @@ defmodule Desktop.Window do
 
   def handle_event(wx(obj: obj, event: wxCommand(type: :notification_message_dismissed)), ui) do
     notification(ui, obj, :dismiss)
+
+    if OS.type() == Linux do
+      notification(ui, obj, :action)
+    else
+      notification(ui, obj, :dismiss)
+    end
+
     {:noreply, ui}
   end
 
