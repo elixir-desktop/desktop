@@ -1,4 +1,6 @@
 defprotocol Desktop.Menu.Adapter do
+  @fallback_to_any true
+
   @spec create(t(), dom :: any(), opts :: any()) :: t()
   def create(adapter, dom, opts)
 
@@ -10,4 +12,26 @@ defprotocol Desktop.Menu.Adapter do
 
   @spec menubar(t()) :: any()
   def menubar(adapter)
+end
+
+defimpl Desktop.Menu.Adapter, for: Any do
+  def create(adapter = %{__struct__: module}, dom, opts) do
+    module.create(adapter, dom, opts)
+  end
+
+  def update_dom(adapter = %{__struct__: module}) do
+    module.update_dom(adapter, %{})
+  end
+
+  def update_dom(adapter = %{__struct__: module}, dom) do
+    module.update_dom(adapter, dom)
+  end
+
+  def popup_menu(adapter = %{__struct__: module}, dom) do
+    module.popup_menu(adapter, dom)
+  end
+
+  def menubar(%{menubar: bar}) do
+    bar
+  end
 end
