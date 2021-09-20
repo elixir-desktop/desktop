@@ -31,7 +31,7 @@ defmodule Desktop.Env do
   end
 
   @impl true
-  def handle_call(:sni, _from, %Env{sni: sni} = state) do
+  def handle_call(:sni, _from, state = %Env{sni: sni}) do
     {:reply, sni, state}
   end
 
