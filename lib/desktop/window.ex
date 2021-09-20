@@ -152,7 +152,7 @@ defmodule Desktop.Window do
       ## else
 
       menu =
-        Menu.new(menubar, env, :wx)
+        Menu.new(menubar, env)
         |> Menu.create(:wxMenuBar.new())
 
       :wxFrame.setMenuBar(frame, Menu.menubar(menu))
@@ -168,7 +168,7 @@ defmodule Desktop.Window do
         case Desktop.Env.sni() do
           nil ->
             menu =
-              Menu.new(icon_menu, env, :wx)
+              Menu.new(icon_menu, env)
               |> Menu.create({:taskbar, icon})
 
             taskbar = Menu.menubar(menu)
@@ -178,7 +178,7 @@ defmodule Desktop.Window do
             menu
 
           sni ->
-            Menu.new(icon_menu, env, :dbus)
+            Menu.new(icon_menu, env, Menu.Adapter.DBus)
             |> Menu.create(sni: sni, icon: icon)
         end
       end

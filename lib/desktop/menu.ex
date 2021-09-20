@@ -50,15 +50,7 @@ defmodule Desktop.Menu do
     %{menu | assigns: assigns}
   end
 
-  def new(module, env, adapter \\ :wx)
-
-  def new(module, env, :wx) do
-    new(module, env, Adapter.Wx)
-  end
-
-  def new(module, env, :dbus) do
-    new(module, env, Adapter.DBus)
-  end
+  def new(module, env, adapter \\ Adapter.Wx)
 
   def new(module, env, adapter) do
     {:ok, proxy} = Proxy.start_link(nil)
