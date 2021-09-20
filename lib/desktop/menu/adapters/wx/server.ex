@@ -81,7 +81,7 @@ defmodule Desktop.Menu.Adapter.Wx.Server do
   end
 
   defp do_update_callbacks(
-         %{bindings: bindings, old_bindings: old} = menu,
+         menu = %{bindings: bindings, old_bindings: old},
          callbacks
        ) do
     new_bindings =

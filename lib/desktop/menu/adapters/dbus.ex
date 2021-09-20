@@ -17,7 +17,7 @@ defmodule Desktop.Menu.Adapter.DBus do
     }
   end
 
-  def create(%__MODULE__{menubar: menubar, icon: icon} = menu, _dom, opts) do
+  def create(menu = %__MODULE__{menubar: menubar, icon: icon}, _dom, opts) do
     sni = Keyword.get(opts, :sni)
     ExSni.set_icon(sni, icon)
     ExSni.set_menu(sni, menubar)
@@ -25,7 +25,7 @@ defmodule Desktop.Menu.Adapter.DBus do
     %{menu | sni: sni}
   end
 
-  def update_dom(%__MODULE__{proxy: proxy, menubar: _menubar, sni: sni} = menu, dom) do
+  def update_dom(menu = %__MODULE__{proxy: proxy, menubar: _menubar, sni: sni}, dom) do
     {children, _} = create_menu_items(1, dom, proxy: proxy)
 
     root = %Item{id: 0, children: children}
@@ -44,7 +44,7 @@ defmodule Desktop.Menu.Adapter.DBus do
     %{menu | menubar: menubar}
   end
 
-  def popup_menu(%__MODULE__{} = menu, _dom) do
+  def popup_menu(menu = %__MODULE__{}, _dom) do
     menu
   end
 

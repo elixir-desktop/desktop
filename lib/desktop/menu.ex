@@ -45,7 +45,7 @@ defmodule Desktop.Menu do
     Parser.escape(string)
   end
 
-  def assign(%Menu{assigns: assigns} = menu, keywords \\ []) do
+  def assign(menu = %Menu{assigns: assigns}, keywords \\ []) do
     assigns = Map.merge(assigns, Map.new(keywords))
     %{menu | assigns: assigns}
   end
@@ -79,7 +79,7 @@ defmodule Desktop.Menu do
     raise "Menu has no adapter set"
   end
 
-  def create(%{__adapter__: adapter, dom: dom, proxy: proxy} = menu, opts) do
+  def create(menu = %{__adapter__: adapter, dom: dom, proxy: proxy}, opts) do
     menu = %{menu | __adapter__: Adapter.create(adapter, dom, opts)}
 
     # We need to `mount/2` the menu, inside a server process
@@ -96,7 +96,7 @@ defmodule Desktop.Menu do
   end
 
   def update_dom(
-        %{__adapter__: adapter, mod: mod, dom: dom, assigns: assigns, proxy: proxy} = menu
+        menu = %{__adapter__: adapter, mod: mod, dom: dom, assigns: assigns, proxy: proxy}
       ) do
     new_dom =
       mod.render(assigns)
@@ -116,7 +116,7 @@ defmodule Desktop.Menu do
     end
   end
 
-  def trigger_event(%Menu{mod: mod} = menu, event) do
+  def trigger_event(menu = %Menu{mod: mod}, event) do
     try do
       mod.handle_event(event, menu)
     rescue

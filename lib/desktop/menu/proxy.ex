@@ -19,7 +19,7 @@ defmodule Desktop.Menu.Proxy do
     {:ok, nil}
   end
 
-  def init(%Menu{} = menu) do
+  def init(menu = %Menu{}) do
     {:ok, %{menu | proxy: self()}}
   end
 
@@ -31,7 +31,7 @@ defmodule Desktop.Menu.Proxy do
     GenServer.call(proxy, :get)
   end
 
-  def update(proxy, %Menu{} = menu) do
+  def update(proxy, menu = %Menu{}) do
     GenServer.call(proxy, {:update, menu})
   end
 
@@ -55,14 +55,14 @@ defmodule Desktop.Menu.Proxy do
     {:reply, menu, menu}
   end
 
-  def handle_call(:mount, _from, %{mod: mod} = menu) do
+  def handle_call(:mount, _from, menu = %{mod: mod}) do
     menu = try_module_func(mod, :mount, [menu], menu)
 
     {:reply, menu, menu}
   end
 
   @impl true
-  def handle_info(:changed, %{mod: mod} = menu) do
+  def handle_info(:changed, menu = %{mod: mod}) do
     menu = try_module_func(mod, :handle_info, [:changed, menu], menu)
 
     {:noreply, menu}
@@ -82,11 +82,11 @@ defmodule Desktop.Menu.Proxy do
     end
   end
 
-  defp maybe_update(%{assigns: assigns} = menu, %{assigns: assigns}) do
+  defp maybe_update(menu = %{assigns: assigns}, %{assigns: assigns}) do
     menu
   end
 
-  defp maybe_update(%{} = menu, %{assigns: assigns}) do
+  defp maybe_update(menu = %{}, %{assigns: assigns}) do
     Menu.update_dom(%{menu | assigns: assigns})
   end
 

@@ -30,7 +30,7 @@ defmodule Desktop.Menu.Adapter.Wx do
     }
   end
 
-  def create(%__MODULE__{env: env} = menu, dom, opts) do
+  def create(menu = %__MODULE__{env: env}, dom, opts) do
     :wx.set_env(env)
 
     {:ok, server} = Server.start_link(menu)
@@ -49,18 +49,18 @@ defmodule Desktop.Menu.Adapter.Wx do
     Server.update(server, %{menu | server: server})
   end
 
-  defp create_popup_menu(%__MODULE__{} = menu, dom) do
+  defp create_popup_menu(menu = %__MODULE__{}, dom) do
     menu(menu, dom)
   end
 
-  def menu(%__MODULE__{} = menu, dom) do
+  def menu(menu = %__MODULE__{}, dom) do
     # This will create the menu for next round
     spawn(fn -> create_menu(menu, dom) end)
 
     # Desktop.Env.pop({:menu, server})
   end
 
-  def update_dom(%__MODULE__{menubar: menubar} = menu, dom) do
+  def update_dom(menu = %__MODULE__{menubar: menubar}, dom) do
     # Desktop.Env.put({:dom, server}, dom)
 
     if menubar != nil do
@@ -72,12 +72,12 @@ defmodule Desktop.Menu.Adapter.Wx do
     end
   end
 
-  def popup_menu(%__MODULE__{menubar: bar} = menu, dom) do
+  def popup_menu(menu = %__MODULE__{menubar: bar}, dom) do
     :wxTaskBarIcon.popupMenu(bar, create_popup_menu(menu, dom))
     menu
   end
 
-  defp create_menu(%__MODULE__{} = menu, dom) do
+  defp create_menu(menu = %__MODULE__{}, dom) do
     # dom = Desktop.Env.await({:dom, server})
 
     :wx.set_env(Desktop.Env.wx_env())
@@ -109,7 +109,7 @@ defmodule Desktop.Menu.Adapter.Wx do
     Server.update_callbacks(server, callbacks)
   end
 
-  defp update_menubar(%__MODULE__{menubar: _bar, loaded: _loaded} = menu, menues) do
+  defp update_menubar(menu = %__MODULE__{menubar: _bar, loaded: _loaded}, menues) do
     menu =
       :wx.batch(fn ->
         do_update_menubar(menu, menues)
