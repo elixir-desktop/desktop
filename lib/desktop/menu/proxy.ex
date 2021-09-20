@@ -10,7 +10,7 @@ defmodule Desktop.Menu.Proxy do
     GenServer.start_link(__MODULE__, nil, opts)
   end
 
-  def start_link(%Menu{} = menu, opts) do
+  def start_link(menu = %Menu{}, opts) do
     GenServer.start_link(__MODULE__, menu, opts)
   end
 

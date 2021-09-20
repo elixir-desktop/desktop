@@ -126,7 +126,7 @@ defmodule Desktop.Menu.Adapter.Wx do
     size = :wxMenuBar.getMenuCount(menubar)
 
     Enum.with_index(menues)
-    |> Enum.map(fn {{label, menu, _callbacks}, pos} ->
+    |> Enum.each(fn {{label, menu, _callbacks}, pos} ->
       if pos < size do
         :wxMenuBar.replace(menubar, pos, menu, label)
       else

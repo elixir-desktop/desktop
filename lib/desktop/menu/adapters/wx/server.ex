@@ -29,7 +29,7 @@ defmodule Desktop.Menu.Adapter.Wx.Server do
     {:ok, %{menu | server: self()}}
   end
 
-  def handle_call({:update_callbacks, callbacks}, _from, %{env: env} = menu) do
+  def handle_call({:update_callbacks, callbacks}, _from, menu = %{env: env}) do
     :wx.set_env(env)
 
     menu =

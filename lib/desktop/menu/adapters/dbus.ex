@@ -33,7 +33,9 @@ defmodule Desktop.Menu.Adapter.DBus do
     callbacks = [
       {:show,
        fn ->
-         IO.inspect(false, label: "ABOUT TO SHOW menubar")
+         # ABOUT TO SHOW menubar
+         # Return "needUpdate" = false
+         false
        end}
     ]
 
