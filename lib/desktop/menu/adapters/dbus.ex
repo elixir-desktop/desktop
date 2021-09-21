@@ -3,30 +3,40 @@ defmodule Desktop.Menu.Adapter.DBus do
   alias ExSni.Icon.{Info, Tooltip}
   alias ExSni.Menu
   alias ExSni.Menu.Item
-  alias Desktop.Menu.Proxy
 
-  defstruct [:proxy, :env, :sni, :icon, :menubar]
+  defstruct [:menu_pid, :sni, :icon, :menubar]
 
-  def new(env, proxy) do
+  @type t() :: %__MODULE__{
+          menu_pid: pid() | nil,
+          sni: pid() | nil,
+          icon: ExSni.Icon.t() | nil,
+          menubar: ExSni.Menu.t() | nil
+        }
+
+  def new(opts) do
     %__MODULE__{
-      proxy: proxy,
-      env: env,
-      sni: nil,
+      menu_pid: Keyword.get(opts, :menu_pid),
+      sni: Keyword.get(opts, :sni),
       icon: dummy_icon(),
       menubar: nil
     }
   end
 
-  def create(menu = %__MODULE__{menubar: menubar, icon: icon}, _dom, opts) do
-    sni = Keyword.get(opts, :sni)
-    ExSni.set_icon(sni, icon)
-    ExSni.set_menu(sni, menubar)
-    ExSni.register_icon(sni)
-    %{menu | sni: sni}
+  def create(adapter = %__MODULE__{sni: sni, menubar: menubar, icon: icon}, _dom) do
+    if menubar != nil do
+      ExSni.set_menu(sni, menubar)
+    end
+
+    if icon != nil do
+      ExSni.set_icon(sni, icon)
+      ExSni.register_icon(sni)
+    end
+
+    adapter
   end
 
-  def update_dom(menu = %__MODULE__{proxy: proxy, menubar: _menubar, sni: sni}, dom) do
-    {children, _} = create_menu_items(1, dom, proxy: proxy)
+  def update_dom(adapter = %__MODULE__{menubar: _menubar, sni: sni}, dom) do
+    {children, _} = create_menu_items(1, dom, adapter)
 
     root = %Item{id: 0, children: children}
 
@@ -43,41 +53,41 @@ defmodule Desktop.Menu.Adapter.DBus do
 
     ExSni.update_menu(sni, nil, menubar)
 
-    %{menu | menubar: menubar}
+    %{adapter | menubar: menubar}
   end
 
-  def popup_menu(menu = %__MODULE__{}, _dom) do
-    menu
+  def popup_menu(adapter = %__MODULE__{}, _dom) do
+    adapter
   end
+
+  # Private functions
 
   defp create_menu_items(next_id, [], _opts) do
     {[], next_id}
   end
 
-  defp create_menu_items(next_id, [child | children], opts) do
-    {item, last_id} = create_menu_item(next_id, child, opts)
-    {items, last_id} = create_menu_items(last_id + 1, children, opts)
+  defp create_menu_items(next_id, [child | children], adapter) do
+    {item, last_id} = create_menu_item(next_id, child, adapter)
+    {items, last_id} = create_menu_items(last_id + 1, children, adapter)
     {[item | items], last_id}
   end
 
-  defp create_menu_item(id, {:item, params, [label]}, opts) do
-    {create_standard_item(id, label, params, opts), id}
+  defp create_menu_item(id, {:item, params, [label]}, adapter) do
+    {create_standard_item(id, label, params, adapter), id}
   end
 
   defp create_menu_item(id, {:hr, _, _}, _opts) do
     {%Item{id: id, type: "separator"}, id}
   end
 
-  defp create_menu_item(id, {:menu, params, children}, opts) do
-    item = create_standard_item(id, Map.get(params, :label, ""), params, opts)
-    {children, last_id} = create_menu_items(id + 1, children, opts)
+  defp create_menu_item(id, {:menu, params, children}, adapter) do
+    item = create_standard_item(id, Map.get(params, :label, ""), params, adapter)
+    {children, last_id} = create_menu_items(id + 1, children, adapter)
     item = %{item | children: children}
     {item, last_id}
   end
 
-  defp create_standard_item(id, label, params, opts) do
-    proxy = Keyword.get(opts, :proxy, nil)
-
+  defp create_standard_item(id, label, params, %{menu_pid: menu_pid}) do
     toggle_type =
       case Map.get(params, :type, nil) do
         "checkbox" -> :checkmark
@@ -92,14 +102,14 @@ defmodule Desktop.Menu.Adapter.DBus do
       end
 
     callbacks =
-      if proxy != nil do
+      if menu_pid != nil do
         Enum.reduce(params, [], fn param, acc ->
           case param do
             {:onclick, event} ->
               [
                 {"clicked",
                  fn _, _ ->
-                   Proxy.trigger_event(proxy, event)
+                   spawn_link(Desktop.Menu, :trigger_event, [menu_pid, event])
                  end}
                 | acc
               ]

@@ -151,11 +151,14 @@ defmodule Desktop.Window do
       ##   :wxMenuBar.oSXGetAppleMenu(:wxMenuBar.new())
       ## else
 
-      menu =
-        Menu.new(menubar, env)
-        |> Menu.create(:wxMenuBar.new())
+      {:ok, menu_pid} =
+        Menu.start_link(
+          module: menubar,
+          env: env,
+          wx: :wxMenuBar.new()
+        )
 
-      :wxFrame.setMenuBar(frame, Menu.menubar(menu))
+      :wxFrame.setMenuBar(frame, Menu.menubar(menu_pid))
     else
       # MacOS osMenu
       if OS.type() == MacOS do
@@ -167,19 +170,29 @@ defmodule Desktop.Window do
       if icon_menu do
         case Desktop.Env.sni() do
           nil ->
-            menu =
-              Menu.new(icon_menu, env)
-              |> Menu.create({:taskbar, icon})
+            {:ok, menu_pid} =
+              Menu.start_link(
+                module: icon_menu,
+                env: env,
+                wx: {:taskbar, icon}
+              )
 
-            taskbar = Menu.menubar(menu)
+            taskbar = Menu.menubar(menu_pid)
             :wxTaskBarIcon.connect(taskbar, :taskbar_left_down, skip: true)
             :wxTaskBarIcon.connect(taskbar, :taskbar_right_down, skip: true)
 
-            menu
+            menu_pid
 
           sni ->
-            Menu.new(icon_menu, env, Menu.Adapter.DBus)
-            |> Menu.create(sni: sni, icon: icon)
+            {:ok, menu_pid} =
+              Menu.start_link(
+                module: icon_menu,
+                adapter: Menu.Adapter.DBus,
+                sni: sni,
+                icon: icon
+              )
+
+            menu_pid
         end
       end
 
@@ -437,9 +450,7 @@ defmodule Desktop.Window do
     case Enum.find(noties, fn {_, {wx_ref, _callback}} -> wx_ref == obj end) do
       nil ->
         Logger.error(
-          "Received unhandled notification event #{inspect(obj)}: #{inspect(action)} (#{
-            inspect(noties)
-          })"
+          "Received unhandled notification event #{inspect(obj)}: #{inspect(action)} (#{inspect(noties)})"
         )
 
       {_, {_ref, nil}} ->

@@ -1,8 +1,8 @@
 defprotocol Desktop.Menu.Adapter do
   @fallback_to_any true
 
-  @spec create(t(), dom :: any(), opts :: any()) :: t()
-  def create(adapter, dom, opts)
+  @spec create(t(), dom :: any()) :: t()
+  def create(adapter, dom)
 
   @spec update_dom(t(), dom :: any()) :: t()
   def update_dom(adapter, dom)
@@ -15,8 +15,8 @@ defprotocol Desktop.Menu.Adapter do
 end
 
 defimpl Desktop.Menu.Adapter, for: Any do
-  def create(adapter = %{__struct__: module}, dom, opts) do
-    module.create(adapter, dom, opts)
+  def create(adapter = %{__struct__: module}, dom) do
+    module.create(adapter, dom)
   end
 
   def update_dom(adapter = %{__struct__: module}) do

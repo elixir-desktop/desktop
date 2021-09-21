@@ -1,52 +1,55 @@
 defmodule Desktop.Menu.Adapter.Wx do
   alias Desktop.{Wx, OS, Fallback}
-  alias Desktop.Menu.Adapter.Wx.Server
 
   require Record
   require Logger
-  # use GenServer
-  defstruct [:proxy, :env, :bindings, :old_bindings, :menubar, :server, :loaded]
+
+  defstruct [:menu_pid, :env, :bindings, :old_bindings, :menubar, :menubar_opts]
 
   @type t() :: %__MODULE__{
+          menu_pid: pid() | nil,
+          env: any(),
+          menubar: any(),
+          menubar_opts: any(),
           bindings: %{},
           # We're keeping one generation of bindings because the menubaricon will usually have
           # two (2) active generations. The currently displayed one and the newly generated one.
-          old_bindings: %{},
-          server: pid(),
-          proxy: pid() | nil
+          old_bindings: %{}
         }
 
-  # for tag <- [:wx, :wxCommand] do
-  #   Record.defrecordp(tag, Record.extract(tag, from_lib: "wx/include/wx.hrl"))
-  # end
+  for tag <- [:wx, :wxCommand] do
+    Record.defrecordp(tag, Record.extract(tag, from_lib: "wx/include/wx.hrl"))
+  end
 
-  def new(env, proxy) do
+  def new(opts) do
     %__MODULE__{
-      proxy: proxy,
+      env: Keyword.get(opts, :env),
+      menu_pid: Keyword.get(opts, :menu_pid),
+      menubar: nil,
+      menubar_opts: Keyword.get(opts, :wx),
       bindings: %{},
-      old_bindings: %{},
-      env: env,
-      server: nil
+      old_bindings: %{}
     }
   end
 
-  def create(menu = %__MODULE__{env: env}, dom, opts) do
+  def create(menu = %__MODULE__{env: env, menubar_opts: menubar_opts}, dom) do
     :wx.set_env(env)
 
-    {:ok, server} = Server.start_link(menu)
-
-    menu =
-      case opts do
+    menubar =
+      case menubar_opts do
         {:taskbar, icon} ->
           create_popup = fn -> create_popup_menu(menu, dom) end
-          %{menu | menubar: Fallback.taskbaricon_new_wx(create_popup, icon)}
+          Fallback.taskbaricon_new_wx(create_popup, icon)
 
         wx_ref ->
-          :wxMenuBar = :wx.getObjectType(wx_ref)
-          %{menu | menubar: wx_ref}
+          if :wxMenuBar == :wx.getObjectType(wx_ref) do
+            wx_ref
+          else
+            nil
+          end
       end
 
-    Server.update(server, %{menu | server: server})
+    %{menu | menubar: menubar}
   end
 
   defp create_popup_menu(menu = %__MODULE__{}, dom) do
@@ -77,6 +80,30 @@ defmodule Desktop.Menu.Adapter.Wx do
     menu
   end
 
+  def handle_info(
+        wx(id: id, event: wxCommand(type: :command_menu_selected)),
+        adapter = %{bindings: bindings, old_bindings: old, menu_pid: menu_pid}
+      ) do
+    Map.merge(old, bindings)
+    |> Map.get(id)
+    |> case do
+      nil ->
+        Logger.warning("Desktop.Menu unbound message id #{inspect(id)}")
+
+      name ->
+        spawn_link(Desktop.Menu, :trigger_event, [menu_pid, name])
+    end
+
+    {:noreply, adapter}
+  end
+
+  def handle_info(event = wx(), adapter) do
+    Logger.warning("Desktop.Menu received unexpected wx message #{inspect({event, adapter})}")
+    {:noreply, adapter}
+  end
+
+  # Private functions
+
   defp create_menu(menu = %__MODULE__{}, dom) do
     # dom = Desktop.Env.await({:dom, server})
 
@@ -103,13 +130,15 @@ defmodule Desktop.Menu.Adapter.Wx do
   end
 
   defp update_callbacks(
-         %__MODULE__{server: server},
+         menu = %__MODULE__{},
          callbacks
        ) do
-    Server.update_callbacks(server, callbacks)
+    :wx.batch(fn ->
+      do_update_callbacks(menu, callbacks)
+    end)
   end
 
-  defp update_menubar(menu = %__MODULE__{menubar: _bar, loaded: _loaded}, menues) do
+  defp update_menubar(menu = %__MODULE__{menubar: _bar}, menues) do
     menu =
       :wx.batch(fn ->
         do_update_menubar(menu, menues)
@@ -119,7 +148,8 @@ defmodule Desktop.Menu.Adapter.Wx do
     #   {:from, from} -> GenServer.reply(from, bar)
     #   _ -> :ok
     # end
-    %{menu | loaded: true}
+    # %{menu | loaded: true}
+    menu
   end
 
   defp do_update_menubar(menu = %__MODULE__{menubar: menubar}, menues) do
@@ -197,6 +227,34 @@ defmodule Desktop.Menu.Adapter.Wx do
         :wxMenu.append(hd(menues), Wx.wxID_ANY(), String.to_charlist(attr[:label] || ""), menu)
         ret
     end
+  end
+
+  defp do_update_callbacks(
+         menu = %__MODULE__{bindings: bindings, old_bindings: old},
+         callbacks
+       ) do
+    new_bindings =
+      List.wrap(callbacks)
+      |> List.flatten()
+      |> Enum.reduce(%{}, fn callback, bind ->
+        case callback do
+          {:connect, {event_src, id, onclick}} ->
+            :wxMenu.connect(event_src, :command_menu_selected, id: id)
+            Map.put(bind, id, onclick)
+
+          _ ->
+            bind
+        end
+      end)
+
+    {bindings, old} =
+      if map_size(bindings) > 1000 do
+        {new_bindings, bindings}
+      else
+        {Map.merge(bindings, new_bindings), old}
+      end
+
+    %{menu | bindings: bindings, old_bindings: old}
   end
 
   def is_true(value) do
