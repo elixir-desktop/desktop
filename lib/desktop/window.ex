@@ -189,7 +189,7 @@ defmodule Desktop.Window do
                 module: icon_menu,
                 adapter: Menu.Adapter.DBus,
                 sni: sni,
-                icon: icon
+                icon: {:wxIcon, icon, env}
               )
 
             menu_pid

@@ -1,8 +1,11 @@
 defmodule Desktop.Menu.Adapter.DBus do
+  require Logger
+
   alias ExSni.Icon
   alias ExSni.Icon.{Info, Tooltip}
   alias ExSni.Menu
   alias ExSni.Menu.Item
+  alias Desktop.Menu.Pixmap
 
   defstruct [:menu_pid, :sni, :icon, :menubar]
 
@@ -17,7 +20,7 @@ defmodule Desktop.Menu.Adapter.DBus do
     %__MODULE__{
       menu_pid: Keyword.get(opts, :menu_pid),
       sni: Keyword.get(opts, :sni),
-      icon: dummy_icon(),
+      icon: generate_icon(Keyword.get(opts, :icon)),
       menubar: nil
     }
   end
@@ -129,21 +132,35 @@ defmodule Desktop.Menu.Adapter.DBus do
     }
   end
 
-  defp dummy_icon() do
-    %Icon{
-      category: :application_status,
-      id: "1",
-      title: "Test_Icon",
-      menu: "/MenuBar",
-      status: :active,
-      icon: %Info{
-        name: "applications-development"
-      },
-      tooltip: %Tooltip{
-        name: "applications-development",
-        title: "test-tooltip",
-        description: "Some tooltip description here"
+  defp generate_icon(nil) do
+    nil
+  end
+
+  defp generate_icon(icon = %Icon{}) do
+    icon
+  end
+
+  defp generate_icon({:wxIcon, wx_icon, env}) do
+    with {:ok, pixmap} <- Pixmap.from_wxIcon(wx_icon, env) do
+      %Icon{
+        category: :application_status,
+        id: "1",
+        title: "Test_Icon",
+        menu: "/MenuBar",
+        status: :active,
+        icon: %Info{
+          data: {:pixmap, pixmap}
+        },
+        tooltip: %Tooltip{
+          data: {:pixmap, pixmap},
+          title: "test-tooltip",
+          description: "Some tooltip description here"
+        }
       }
-    }
+    else
+      error ->
+        Logger.warn(error)
+        nil
+    end
   end
 end
