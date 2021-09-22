@@ -450,7 +450,9 @@ defmodule Desktop.Window do
     case Enum.find(noties, fn {_, {wx_ref, _callback}} -> wx_ref == obj end) do
       nil ->
         Logger.error(
-          "Received unhandled notification event #{inspect(obj)}: #{inspect(action)} (#{inspect(noties)})"
+          "Received unhandled notification event #{inspect(obj)}: #{inspect(action)} (#{
+            inspect(noties)
+          })"
         )
 
       {_, {_ref, nil}} ->
