@@ -2,7 +2,7 @@ defmodule Desktop.Menu.Adapter.DBus do
   require Logger
 
   alias ExSni.Icon
-  alias ExSni.Icon.{Info, Tooltip}
+  alias ExSni.Icon.Info
   alias ExSni.Menu
   alias ExSni.Menu.Item
   alias Desktop.Menu.Pixmap
@@ -20,7 +20,7 @@ defmodule Desktop.Menu.Adapter.DBus do
     %__MODULE__{
       menu_pid: Keyword.get(opts, :menu_pid),
       sni: Keyword.get(opts, :sni),
-      icon: generate_icon(Keyword.get(opts, :icon)),
+      icon: Keyword.get(opts, :icon),
       menubar: nil
     }
   end
@@ -31,8 +31,7 @@ defmodule Desktop.Menu.Adapter.DBus do
     end
 
     if icon != nil do
-      ExSni.set_icon(sni, icon)
-      ExSni.register_icon(sni)
+      set_sni_icon(sni, icon)
     end
 
     adapter
@@ -63,7 +62,28 @@ defmodule Desktop.Menu.Adapter.DBus do
     adapter
   end
 
+  def get_icon(%__MODULE__{icon: icon}) do
+    icon
+  end
+
+  def set_icon(adapter = %__MODULE__{}, nil) do
+    {:ok, %{adapter | icon: nil}}
+  end
+
+  def set_icon(adapter = %__MODULE__{sni: sni}, icon) do
+    with {:ok, _} <- set_sni_icon(sni, icon) do
+      {:ok, %{adapter | icon: icon}}
+    end
+  end
+
   # Private functions
+
+  defp set_sni_icon(sni, icon) do
+    with {:ok, dbus_icon} <- generate_icon(icon),
+         {:ok, icon} <- ExSni.update_icon(sni, dbus_icon) do
+      {:ok, icon}
+    end
+  end
 
   defp create_menu_items(next_id, [], _opts) do
     {[], next_id}
@@ -133,34 +153,31 @@ defmodule Desktop.Menu.Adapter.DBus do
   end
 
   defp generate_icon(nil) do
-    nil
+    {:ok, nil}
   end
 
   defp generate_icon(icon = %Icon{}) do
-    icon
+    {:ok, icon}
   end
 
-  defp generate_icon({:wxIcon, wx_icon, env}) do
-    with {:ok, pixmap} <- Pixmap.from_wxIcon(wx_icon, env) do
-      %Icon{
+  defp generate_icon(wx_icon = {:wx_ref, _, :wxIcon, _}) do
+    with {:ok, pixmap} <- Pixmap.from_wxIcon(wx_icon, Desktop.Env.wx_env()) do
+      icon = %Icon{
         category: :application_status,
         id: "1",
-        title: "Test_Icon",
+        title: "",
         menu: "/MenuBar",
         status: :active,
         icon: %Info{
           data: {:pixmap, pixmap}
-        },
-        tooltip: %Tooltip{
-          data: {:pixmap, pixmap},
-          title: "test-tooltip",
-          description: "Some tooltip description here"
         }
       }
+
+      {:ok, icon}
     else
       error ->
         Logger.warn(error)
-        nil
+        error
     end
   end
 end

@@ -138,11 +138,12 @@ defmodule Desktop.Window do
     # icon = :wxIcon.new(Path.join(:code.priv_dir(app), icon))
 
     # This 5-line version does show right though:
-    image = :wxImage.new(Path.join(:code.priv_dir(app), icon))
-    bitmap = :wxBitmap.new(image)
-    icon = :wxIcon.new()
-    :wxIcon.copyFromBitmap(icon, bitmap)
-    :wxBitmap.destroy(bitmap)
+    # image = :wxImage.new(Path.join(:code.priv_dir(app), icon))
+    # bitmap = :wxBitmap.new(image)
+    # icon = :wxIcon.new()
+    # :wxIcon.copyFromBitmap(icon, bitmap)
+    # :wxBitmap.destroy(bitmap)
+    {:ok, icon} = Desktop.Image.new_icon(app, icon)
 
     :wxTopLevelWindow.setIcon(frame, icon)
 
@@ -154,6 +155,7 @@ defmodule Desktop.Window do
       {:ok, menu_pid} =
         Menu.start_link(
           module: menubar,
+          app: app,
           env: env,
           wx: :wxMenuBar.new()
         )
@@ -173,6 +175,7 @@ defmodule Desktop.Window do
             {:ok, menu_pid} =
               Menu.start_link(
                 module: icon_menu,
+                app: app,
                 env: env,
                 wx: {:taskbar, icon}
               )
@@ -187,9 +190,10 @@ defmodule Desktop.Window do
             {:ok, menu_pid} =
               Menu.start_link(
                 module: icon_menu,
+                app: app,
                 adapter: Menu.Adapter.DBus,
                 sni: sni,
-                icon: {:wxIcon, icon, env}
+                icon: icon
               )
 
             menu_pid
@@ -450,9 +454,7 @@ defmodule Desktop.Window do
     case Enum.find(noties, fn {_, {wx_ref, _callback}} -> wx_ref == obj end) do
       nil ->
         Logger.error(
-          "Received unhandled notification event #{inspect(obj)}: #{inspect(action)} (#{
-            inspect(noties)
-          })"
+          "Received unhandled notification event #{inspect(obj)}: #{inspect(action)} (#{inspect(noties)})"
         )
 
       {_, {_ref, nil}} ->

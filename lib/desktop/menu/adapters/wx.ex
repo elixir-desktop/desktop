@@ -32,13 +32,13 @@ defmodule Desktop.Menu.Adapter.Wx do
     }
   end
 
-  def create(menu = %__MODULE__{env: env, menubar_opts: menubar_opts}, dom) do
+  def create(adapter = %__MODULE__{env: env, menubar_opts: menubar_opts}, dom) do
     :wx.set_env(env)
 
     menubar =
       case menubar_opts do
         {:taskbar, icon} ->
-          create_popup = fn -> create_popup_menu(menu, dom) end
+          create_popup = fn -> create_popup_menu(adapter, dom) end
           Fallback.taskbaricon_new_wx(create_popup, icon)
 
         wx_ref ->
@@ -49,35 +49,57 @@ defmodule Desktop.Menu.Adapter.Wx do
           end
       end
 
-    %{menu | menubar: menubar}
+    %{adapter | menubar: menubar}
   end
 
-  defp create_popup_menu(menu = %__MODULE__{}, dom) do
-    menu(menu, dom)
+  defp create_popup_menu(adapter = %__MODULE__{}, dom) do
+    menu(adapter, dom)
   end
 
-  def menu(menu = %__MODULE__{}, dom) do
+  def menu(adapter = %__MODULE__{}, dom) do
     # This will create the menu for next round
-    spawn(fn -> create_menu(menu, dom) end)
+    spawn(fn -> create_menu(adapter, dom) end)
 
     # Desktop.Env.pop({:menu, server})
   end
 
-  def update_dom(menu = %__MODULE__{menubar: menubar}, dom) do
+  def update_dom(adapter = %__MODULE__{menubar: menubar}, dom) do
     # Desktop.Env.put({:dom, server}, dom)
 
     if menubar != nil do
       :wx.set_env(Desktop.Env.wx_env())
       menues = :wx.batch(fn -> do_create_menubar_menues(dom) end)
-      update_menubar(menu, menues)
+      update_menubar(adapter, menues)
     else
-      create_menu(menu, dom)
+      create_menu(adapter, dom)
     end
   end
 
-  def popup_menu(menu = %__MODULE__{menubar: bar}, dom) do
-    :wxTaskBarIcon.popupMenu(bar, create_popup_menu(menu, dom))
-    menu
+  def popup_menu(adapter = %__MODULE__{menubar: bar}, dom) do
+    :wxTaskBarIcon.popupMenu(bar, create_popup_menu(adapter, dom))
+    adapter
+  end
+
+  def get_icon(%__MODULE__{menubar: nil}) do
+    nil
+  end
+
+  def get_icon(%__MODULE__{menubar: _}) do
+    # nil
+  end
+
+  def set_icon(%__MODULE__{menubar: nil}, _) do
+    {:error, "Cannot set icon on `nil` taskbar"}
+  end
+
+  def set_icon(adapter = %__MODULE__{menubar: bar}, nil) do
+    :wxTaskBarIcon.removeIcon(bar)
+    {:ok, adapter}
+  end
+
+  def set_icon(adapter = %__MODULE__{menubar: bar}, icon) do
+    :wxTaskBarIcon.setIcon(bar, icon)
+    {:ok, adapter}
   end
 
   def handle_info(
@@ -104,7 +126,7 @@ defmodule Desktop.Menu.Adapter.Wx do
 
   # Private functions
 
-  defp create_menu(menu = %__MODULE__{}, dom) do
+  defp create_menu(adapter = %__MODULE__{}, dom) do
     # dom = Desktop.Env.await({:dom, server})
 
     :wx.set_env(Desktop.Env.wx_env())
@@ -119,48 +141,48 @@ defmodule Desktop.Menu.Adapter.Wx do
     # Would like to do this synchronously, but this is running in the context of
     # :wxe_server and so :wxe_server is blocked to accept :connect() calls
 
-    menu = update_callbacks(menu, callbacks)
+    adapter = update_callbacks(adapter, callbacks)
 
-    case menu do
+    case adapter do
       nil -> :ok
-      _menu -> :wxMenu.destroy(wx_menu)
+      _adapter -> :wxMenu.destroy(wx_menu)
     end
 
-    menu
+    adapter
   end
 
   defp update_callbacks(
-         menu = %__MODULE__{},
+         adapter = %__MODULE__{},
          callbacks
        ) do
     :wx.batch(fn ->
-      do_update_callbacks(menu, callbacks)
+      do_update_callbacks(adapter, callbacks)
     end)
   end
 
-  defp update_menubar(menu = %__MODULE__{menubar: _bar}, menues) do
-    menu =
+  defp update_menubar(adapter = %__MODULE__{menubar: _bar}, menues) do
+    adapter =
       :wx.batch(fn ->
-        do_update_menubar(menu, menues)
+        do_update_menubar(adapter, menues)
       end)
 
     # case loaded do
     #   {:from, from} -> GenServer.reply(from, bar)
     #   _ -> :ok
     # end
-    # %{menu | loaded: true}
-    menu
+    # %{adapter | loaded: true}
+    adapter
   end
 
-  defp do_update_menubar(menu = %__MODULE__{menubar: menubar}, menues) do
+  defp do_update_menubar(adapter = %__MODULE__{menubar: menubar}, menues) do
     size = :wxMenuBar.getMenuCount(menubar)
 
     Enum.with_index(menues)
-    |> Enum.each(fn {{label, menu, _callbacks}, pos} ->
+    |> Enum.each(fn {{label, adapter, _callbacks}, pos} ->
       if pos < size do
-        :wxMenuBar.replace(menubar, pos, menu, label)
+        :wxMenuBar.replace(menubar, pos, adapter, label)
       else
-        :wxMenuBar.append(menubar, menu, label)
+        :wxMenuBar.append(menubar, adapter, label)
       end
     end)
 
@@ -169,7 +191,7 @@ defmodule Desktop.Menu.Adapter.Wx do
     end
 
     callbacks = Enum.map(menues, fn {_label, _menu, callback} -> callback end)
-    update_callbacks(menu, callbacks)
+    update_callbacks(adapter, callbacks)
   end
 
   defp do_create_menubar_menues(dom) when is_list(dom) do
@@ -230,7 +252,7 @@ defmodule Desktop.Menu.Adapter.Wx do
   end
 
   defp do_update_callbacks(
-         menu = %__MODULE__{bindings: bindings, old_bindings: old},
+         adapter = %__MODULE__{bindings: bindings, old_bindings: old},
          callbacks
        ) do
     new_bindings =
@@ -254,7 +276,7 @@ defmodule Desktop.Menu.Adapter.Wx do
         {Map.merge(bindings, new_bindings), old}
       end
 
-    %{menu | bindings: bindings, old_bindings: old}
+    %{adapter | bindings: bindings, old_bindings: old}
   end
 
   def is_true(value) do

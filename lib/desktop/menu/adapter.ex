@@ -12,6 +12,12 @@ defprotocol Desktop.Menu.Adapter do
 
   @spec menubar(t()) :: any()
   def menubar(adapter)
+
+  @spec get_icon(t()) :: any()
+  def get_icon(adapter)
+
+  @spec set_icon(t(), any()) :: {:ok, any()} | {:error, any()}
+  def set_icon(adapter, icon)
 end
 
 defimpl Desktop.Menu.Adapter, for: Any do
@@ -29,6 +35,14 @@ defimpl Desktop.Menu.Adapter, for: Any do
 
   def popup_menu(adapter = %{__struct__: module}, dom) do
     module.popup_menu(adapter, dom)
+  end
+
+  def get_icon(adapter = %{__struct__: module}) do
+    module.get_icon(adapter)
+  end
+
+  def set_icon(adapter = %{__struct__: module}, icon) do
+    module.set_icon(adapter, icon)
   end
 
   def menubar(%{menubar: bar}) do

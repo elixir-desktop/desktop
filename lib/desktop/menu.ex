@@ -7,6 +7,7 @@ defmodule Desktop.Menu do
 
   defstruct [
     :__adapter__,
+    :app,
     :assigns,
     :module,
     :dom,
@@ -15,6 +16,7 @@ defmodule Desktop.Menu do
 
   @type t() :: %__MODULE__{
           __adapter__: any(),
+          app: nil,
           assigns: %{},
           module: module,
           dom: any(),
@@ -32,6 +34,7 @@ defmodule Desktop.Menu do
       @behaviour Desktop.Menu
       import Desktop.Menu, only: [assign: 2, escape: 1]
       import Phoenix.HTML, only: [sigil_e: 2, sigil_E: 2]
+      alias Desktop.Menu
 
       if not Keyword.get(unquote(opts), :skip_render, false) do
         require EEx
@@ -93,6 +96,7 @@ defmodule Desktop.Menu do
     menu_pid = self()
     module = Keyword.get(init_opts, :module)
     dom = Keyword.get(init_opts, :dom, [])
+    app = Keyword.get(init_opts, :app, nil)
 
     adapter_module =
       case Keyword.get(init_opts, :adapter, Adapter.Wx) do
@@ -113,6 +117,7 @@ defmodule Desktop.Menu do
     menu =
       %Menu{
         __adapter__: adapter,
+        app: app,
         module: module,
         dom: dom,
         assigns: %{},
@@ -139,6 +144,30 @@ defmodule Desktop.Menu do
     GenServer.call(menu_pid, :menubar)
   end
 
+  def get_icon(%__MODULE__{pid: menu_pid}) do
+    get_icon(menu_pid)
+  end
+
+  def get_icon(menu_pid) do
+    if menu_pid == self() do
+      spawn_link(__MODULE__, :get_icon, [menu_pid])
+    else
+      GenServer.call(menu_pid, :get_icon)
+    end
+  end
+
+  def set_icon(%__MODULE__{pid: menu_pid}, icon) do
+    set_icon(menu_pid, icon)
+  end
+
+  def set_icon(menu_pid, icon) do
+    if menu_pid == self() do
+      spawn_link(__MODULE__, :set_icon, [menu_pid, icon])
+    else
+      GenServer.call(menu_pid, {:set_icon, icon})
+    end
+  end
+
   @impl true
   def handle_call(:popup_menu, _from, menu = %{__adapter__: adapter, dom: dom}) do
     {:reply, Adapter.popup_menu(adapter, dom), menu}
@@ -147,6 +176,19 @@ defmodule Desktop.Menu do
   @impl true
   def handle_call(:menubar, _from, menu = %{__adapter__: adapter}) do
     {:reply, Adapter.menubar(adapter), menu}
+  end
+
+  @impl true
+  def handle_call(:get_icon, _from, menu) do
+    {:reply, get_adapter_icon(menu), menu}
+  end
+
+  @impl true
+  def handle_call({:set_icon, icon}, _from, menu) do
+    case set_adapter_icon(menu, icon) do
+      {:ok, menu} -> {:reply, get_adapter_icon(menu), menu}
+      error -> {:reply, error, menu}
+    end
   end
 
   @impl true
@@ -183,6 +225,19 @@ defmodule Desktop.Menu do
   end
 
   # Private functions
+
+  defp get_adapter_icon(%{__adapter__: adapter}) do
+    Adapter.get_icon(adapter)
+  end
+
+  defp set_adapter_icon(menu = %{__adapter__: adapter, app: app}, icon) do
+    with {:ok, icon} <- Desktop.Image.new_icon(app, icon),
+         {:ok, adapter} <- Adapter.set_icon(adapter, icon) do
+      menu = %{menu | __adapter__: adapter}
+      Desktop.Image.destroy(icon)
+      {:ok, menu}
+    end
+  end
 
   defp do_mount(menu = %{module: module}) do
     try_module_func(module, :mount, [menu], menu)
