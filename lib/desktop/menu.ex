@@ -1,4 +1,7 @@
 defmodule Desktop.Menu do
+  @moduledoc """
+  Menu module used to create and handle menus in Desktop
+  """
   use GenServer
 
   require Logger
@@ -11,7 +14,8 @@ defmodule Desktop.Menu do
     :assigns,
     :module,
     :dom,
-    :pid
+    :pid,
+    :last_render
   ]
 
   @type t() :: %__MODULE__{
@@ -20,12 +24,13 @@ defmodule Desktop.Menu do
           assigns: %{},
           module: module,
           dom: any(),
-          pid: nil | pid()
+          pid: nil | pid(),
+          last_render: nil | DateTime.t()
         }
 
-  @callback mount(Menu.t()) :: {:ok, Menu.t()}
-  @callback handle_event(String.t(), Menu.t()) :: {:noreply, Menu.t()}
-  @callback handle_info(any(), Menu.t()) :: {:noreply, Menu.t()}
+  @callback mount(assigns :: map()) :: {:ok, map()}
+  @callback handle_event(event_name :: String.t(), assigns :: map()) :: {:noreply, map()}
+  @callback handle_info(any(), assigns :: map()) :: {:noreply, map()}
   @callback render(Keyword.t()) :: String.t()
 
   @doc false
@@ -49,26 +54,32 @@ defmodule Desktop.Menu do
     Parser.escape(string)
   end
 
-  def assign(menu = %Menu{assigns: assigns}, keywords \\ []) do
-    assigns = Map.merge(assigns, Map.new(keywords))
-    %{menu | assigns: assigns}
+  def assign(assigns = %{}) do
+    assigns
   end
 
-  def update_dom(%{__adapter__: nil}) do
-    raise "Menu has no adapter"
+  def assign(assigns = %{}, properties) when is_list(properties) do
+    assign(assigns, Map.new(properties))
   end
 
-  def update_dom(menu = %{__adapter__: adapter, module: module, dom: dom, assigns: assigns}) do
-    new_dom =
-      module.render(assigns)
-      |> Parser.parse()
+  def assign(assigns = %{}, properties) when is_map(properties) do
+    assigns
+    |> Map.merge(properties)
+  end
 
-    if new_dom != dom do
-      adapter = Adapter.update_dom(adapter, new_dom)
-      %{menu | __adapter__: adapter, dom: new_dom}
-    else
-      menu
-    end
+  def assign(assigns = %{}, property, value) when is_atom(property) do
+    assigns
+    |> Map.put(property, value)
+  end
+
+  def assign_new(assigns = %{}, property, value) when is_atom(property) do
+    assigns
+    |> Map.put_new(property, value)
+  end
+
+  def assign_new(assigns = %{}, property, fun) when is_function(fun) do
+    assigns
+    |> Map.put_new_lazy(property, fun)
   end
 
   # GenServer implementation
@@ -128,9 +139,9 @@ defmodule Desktop.Menu do
     {:ok, menu}
   end
 
-  def mount(menu_pid) do
-    GenServer.call(menu_pid, :mount)
-  end
+  # def mount(menu_pid) do
+  #   GenServer.cast(menu_pid, :mount)
+  # end
 
   def trigger_event(menu_pid, event) do
     GenServer.call(menu_pid, {:trigger_event, event})
@@ -144,23 +155,19 @@ defmodule Desktop.Menu do
     GenServer.call(menu_pid, :menubar)
   end
 
-  def get_icon(menu = %__MODULE__{pid: menu_pid}) when is_pid(menu_pid) do
-    if menu_pid == self() do
-      get_adapter_icon(menu)
-    else
-      GenServer.call(menu_pid, :get_icon)
-    end
+  def get_icon(%{__menu__: menu_pid}) when is_pid(menu_pid) do
+    get_icon(menu_pid)
   end
 
   def get_icon(menu_pid) when is_pid(menu_pid) do
     GenServer.call(menu_pid, :get_icon)
   end
 
-  def set_icon(%__MODULE__{pid: menu_pid}, icon) do
+  def set_icon(%{__menu__: menu_pid}, icon) when is_pid(menu_pid) do
     set_icon(menu_pid, icon)
   end
 
-  def set_icon(menu_pid, icon) do
+  def set_icon(menu_pid, icon) when is_pid(menu_pid) do
     if menu_pid == self() do
       spawn_link(__MODULE__, :set_icon, [menu_pid, icon])
     else
@@ -193,15 +200,21 @@ defmodule Desktop.Menu do
 
   @impl true
   def handle_call({:trigger_event, event}, _from, menu = %{module: module}) do
-    menu = try_module_func(module, :handle_event, [event, menu], menu)
+    assigns = build_assigns(menu)
 
-    {:reply, menu, menu}
+    menu =
+      case invoke_module_func(module, :handle_event, [event, assigns]) do
+        {:ok, {:ok, assigns}} -> maybe_update_dom(menu, assigns)
+        {:ok, {:noreply, assigns}} -> maybe_update_dom(menu, assigns)
+        _ -> menu
+      end
+
+    {:reply, build_assigns(menu), menu}
   end
 
-  def handle_call(:mount, _from, menu) do
-    menu = do_mount(menu)
-
-    {:reply, menu, menu}
+  @impl true
+  def handle_cast(:mount, menu) do
+    {:noreply, do_mount(menu)}
   end
 
   @impl true
@@ -247,37 +260,86 @@ defmodule Desktop.Menu do
     end
   end
 
-  defp do_mount(menu = %{module: module}) do
-    try_module_func(module, :mount, [menu], menu)
-  end
+  defp do_mount(menu = %__MODULE__{module: module}) do
+    assigns = build_assigns(menu)
 
-  defp do_changed(menu = %{module: module}) do
-    try_module_func(module, :handle_info, [:changed, menu], menu)
-  end
-
-  defp try_module_func(module, func, args, menu) do
-    try do
-      Kernel.apply(module, func, args)
-    rescue
-      error ->
-        Logger.debug(error)
-        menu
-    else
-      {:ok, ret} -> maybe_update(menu, ret)
-      {:noreply, ret} -> maybe_update(menu, ret)
+    case invoke_module_func(module, :mount, [assigns]) do
+      {:ok, {:ok, assigns}} -> maybe_update_dom(menu, assigns)
+      {:ok, {:noreply, assigns}} -> maybe_update_dom(menu, assigns)
       _ -> menu
     end
   end
 
-  defp maybe_update(menu = %{assigns: assigns}, %{assigns: assigns}) do
+  defp do_changed(menu = %__MODULE__{module: module}) do
+    assigns = build_assigns(menu)
+
+    case invoke_module_func(module, :handle_info, [:changed, assigns]) do
+      {:ok, {:ok, assigns}} -> maybe_update_dom(menu, assigns)
+      {:ok, {:noreply, assigns}} -> maybe_update_dom(menu, assigns)
+      _ -> menu
+    end
+  end
+
+  defp maybe_update_dom(menu, assigns = %{__menu__: _}) do
+    maybe_update_dom(menu, Map.delete(assigns, :__menu__))
+  end
+
+  defp maybe_update_dom(menu = %{assigns: assigns}, assigns) do
     menu
   end
 
-  defp maybe_update(menu = %{}, %{assigns: assigns}) do
-    Menu.update_dom(%{menu | assigns: assigns})
+  defp maybe_update_dom(menu = %{}, assigns) do
+    case update_dom(%{menu | assigns: assigns}) do
+      {:ok, _updated?, menu} ->
+        menu
+
+      _error ->
+        menu
+    end
   end
 
-  defp maybe_update(menu, _) do
+  defp maybe_update_dom(menu, _) do
     menu
+  end
+
+  @spec update_dom(menu :: t()) :: {:ok, updated :: boolean(), menu :: t()} | {:error, binary()}
+  defp update_dom(
+         menu = %__MODULE__{__adapter__: adapter, module: module, dom: dom, assigns: assigns}
+       ) do
+    with {:ok, new_dom} <- invoke_render(module, assigns) do
+      if new_dom != dom do
+        adapter = Adapter.update_dom(adapter, new_dom)
+        {:ok, true, %{menu | __adapter__: adapter, dom: new_dom, last_render: DateTime.utc_now()}}
+      else
+        {:ok, false, menu}
+      end
+    end
+  end
+
+  @spec invoke_render(module :: module(), assigns :: map()) ::
+          {:ok, any()} | {:error, binary()}
+  defp invoke_render(module, assigns) do
+    with {:ok, str_render} <- invoke_module_func(module, :render, [assigns]) do
+      {:ok, Parser.parse(str_render)}
+    end
+  end
+
+  @spec invoke_module_func(module :: module(), func :: atom(), args :: list(any())) ::
+          {:error, binary()} | {:ok, any()}
+  defp invoke_module_func(module, func, args) do
+    try do
+      Kernel.apply(module, func, args)
+    rescue
+      error ->
+        Logger.error(Exception.format(:error, error, __STACKTRACE__))
+        {:error, "Failed to invoke #{module}.#{func}/#{Enum.count(args)}"}
+    else
+      return -> {:ok, return}
+    end
+  end
+
+  defp build_assigns(%__MODULE__{assigns: assigns, pid: menu_pid}) do
+    assigns
+    |> Map.merge(%{__menu__: menu_pid})
   end
 end
