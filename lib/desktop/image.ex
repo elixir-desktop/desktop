@@ -1,12 +1,16 @@
 defmodule Desktop.Image do
+  @moduledoc """
+  A module that creates images and icons using :wx
+  """
   def new(app, path) when is_binary(path) do
     path = get_abs_path(app, path)
     {:ok, :wxImage.new(path)}
   end
 
   def new_icon(app, path) do
-    with {:ok, image} = new(app, path) do
-      new_icon(image)
+    case new(app, path) do
+      {:ok, image} -> new_icon(image)
+      error -> error
     end
   end
 

@@ -1,11 +1,16 @@
-defmodule Desktop.Menu.Pixmap do
-  def from_wxIcon(icon) do
+defmodule Desktop.Pixmap do
+  @moduledoc """
+  Module that generates pixmaps out of wx objects
+  such as :wxIcon, :wxImage, :wxBitmap
+  """
+
+  def from_wx_icon(icon) do
     width = :wxIcon.getWidth(icon)
     height = :wxIcon.getHeight(icon)
     bitmap = :wxBitmap.new(width, height)
 
     if :wxBitmap.copyFromIcon(bitmap, icon) do
-      ret = from_wxBitmap(bitmap)
+      ret = from_wx_bitmap(bitmap)
       :wxBitmap.destroy(bitmap)
       ret
     else
@@ -14,12 +19,12 @@ defmodule Desktop.Menu.Pixmap do
     end
   end
 
-  def from_wxIcon(icon, env) do
+  def from_wx_icon(icon, env) do
     :wx.set_env(env)
-    from_wxIcon(icon)
+    from_wx_icon(icon)
   end
 
-  defp from_wxBitmap(bitmap) do
+  defp from_wx_bitmap(bitmap) do
     width = :wxBitmap.getWidth(bitmap)
     height = :wxBitmap.getHeight(bitmap)
     image = :wxBitmap.convertToImage(bitmap)

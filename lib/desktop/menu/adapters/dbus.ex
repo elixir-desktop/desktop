@@ -1,4 +1,9 @@
 defmodule Desktop.Menu.Adapter.DBus do
+  @moduledoc """
+  DBus Menu adapter that creates and handles
+  menus and tray icons created over DBus.
+  """
+
   require Logger
 
   alias ExSni.Icon
@@ -6,7 +11,7 @@ defmodule Desktop.Menu.Adapter.DBus do
   alias ExSni.Icon.Tooltip
   alias ExSni.Menu
   alias ExSni.Menu.Item
-  alias Desktop.Menu.Pixmap
+  alias Desktop.Pixmap
 
   defstruct [:menu_pid, :sni, :icon, :menubar]
 
@@ -132,7 +137,7 @@ defmodule Desktop.Menu.Adapter.DBus do
             {:onclick, event} ->
               [
                 {"clicked",
-                 fn _, _ ->
+                 fn _data, _timestamp ->
                    spawn_link(Desktop.Menu, :trigger_event, [menu_pid, event])
                  end}
                 | acc
@@ -173,16 +178,17 @@ defmodule Desktop.Menu.Adapter.DBus do
   end
 
   defp generate_icon(wx_icon = {:wx_ref, _, :wxIcon, _}) do
-    with {:ok, pixmap} <- Pixmap.from_wxIcon(wx_icon, Desktop.Env.wx_env()) do
-      icon = %{
-        generate_sni_icon()
-        | icon: %Info{
-            data: {:pixmap, pixmap}
-          }
-      }
+    case Pixmap.from_wx_icon(wx_icon, Desktop.Env.wx_env()) do
+      {:ok, pixmap} ->
+        icon = %{
+          generate_sni_icon()
+          | icon: %Info{
+              data: {:pixmap, pixmap}
+            }
+        }
 
-      {:ok, icon}
-    else
+        {:ok, icon}
+
       error ->
         Logger.warn(error)
         error
