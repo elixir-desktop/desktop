@@ -144,16 +144,16 @@ defmodule Desktop.Menu do
     GenServer.call(menu_pid, :menubar)
   end
 
-  def get_icon(%__MODULE__{pid: menu_pid}) do
-    get_icon(menu_pid)
-  end
-
-  def get_icon(menu_pid) do
+  def get_icon(menu = %__MODULE__{pid: menu_pid}) when is_pid(menu_pid) do
     if menu_pid == self() do
-      spawn_link(__MODULE__, :get_icon, [menu_pid])
+      get_adapter_icon(menu)
     else
       GenServer.call(menu_pid, :get_icon)
     end
+  end
+
+  def get_icon(menu_pid) when is_pid(menu_pid) do
+    GenServer.call(menu_pid, :get_icon)
   end
 
   def set_icon(%__MODULE__{pid: menu_pid}, icon) do
@@ -230,11 +230,19 @@ defmodule Desktop.Menu do
     Adapter.get_icon(adapter)
   end
 
-  defp set_adapter_icon(menu = %{__adapter__: adapter, app: app}, icon) do
-    with {:ok, icon} <- Desktop.Image.new_icon(app, icon),
-         {:ok, adapter} <- Adapter.set_icon(adapter, icon) do
+  defp set_adapter_icon(menu = %{app: app}, {:file, icon}) do
+    with {:ok, wx_icon} <- Desktop.Image.new_icon(app, icon),
+         ret = {:ok, _menu} <- set_adapter_icon(menu, wx_icon) do
+      # Destroy the :wxIcon
+      Desktop.Image.destroy(wx_icon)
+      # Now return the result
+      ret
+    end
+  end
+
+  defp set_adapter_icon(menu = %{__adapter__: adapter}, icon) do
+    with {:ok, adapter} <- Adapter.set_icon(adapter, icon) do
       menu = %{menu | __adapter__: adapter}
-      Desktop.Image.destroy(icon)
       {:ok, menu}
     end
   end

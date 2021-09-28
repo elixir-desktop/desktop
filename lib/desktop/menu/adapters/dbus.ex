@@ -3,6 +3,7 @@ defmodule Desktop.Menu.Adapter.DBus do
 
   alias ExSni.Icon
   alias ExSni.Icon.Info
+  alias ExSni.Icon.Tooltip
   alias ExSni.Menu
   alias ExSni.Menu.Item
   alias Desktop.Menu.Pixmap
@@ -160,17 +161,24 @@ defmodule Desktop.Menu.Adapter.DBus do
     {:ok, icon}
   end
 
+  defp generate_icon(icon_name) when is_binary(icon_name) do
+    icon = %{
+      generate_sni_icon()
+      | icon: %Info{
+          name: icon_name
+        }
+    }
+
+    {:ok, icon}
+  end
+
   defp generate_icon(wx_icon = {:wx_ref, _, :wxIcon, _}) do
     with {:ok, pixmap} <- Pixmap.from_wxIcon(wx_icon, Desktop.Env.wx_env()) do
-      icon = %Icon{
-        category: :application_status,
-        id: "1",
-        title: "",
-        menu: "/MenuBar",
-        status: :active,
-        icon: %Info{
-          data: {:pixmap, pixmap}
-        }
+      icon = %{
+        generate_sni_icon()
+        | icon: %Info{
+            data: {:pixmap, pixmap}
+          }
       }
 
       {:ok, icon}
@@ -179,5 +187,20 @@ defmodule Desktop.Menu.Adapter.DBus do
         Logger.warn(error)
         error
     end
+  end
+
+  defp generate_sni_icon() do
+    %Icon{
+      category: :application_status,
+      id: "1",
+      title: "",
+      menu: "/MenuBar",
+      status: :active,
+      tooltip: %Tooltip{
+        name: "",
+        title: "",
+        description: ""
+      }
+    }
   end
 end
