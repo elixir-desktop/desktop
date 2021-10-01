@@ -2,53 +2,6 @@ defmodule Desktop.Fallback do
   require Logger
   alias Desktop.{Wx, OS}
 
-  def taskbaricon_new_wx(popup, icon) do
-    # Proper OTP24 release
-    bar =
-      if OS.type() == MacOS do
-        if is_module?(:wxWebView) do
-          :wxTaskBarIcon.new(createPopupMenu: popup)
-        else
-          # Pre-OTP24 custom version for backwards compat.
-          try do
-            :wxTaskBarIcon.new(popup)
-          catch
-            :error, :function_clause ->
-              Logger.error("No MacOS compatible :wxTaskBarIcon found! Please use at least OTP24")
-
-              nil
-          end
-        end
-      end
-
-    bar =
-      if bar == nil do
-        # This works better under Linux and Windows (uses either mouse button for the menu)
-        # but this doesn't work on MacOS at all :-(
-        bar = :wxTaskBarIcon.new()
-        # :wxTaskBarIcon.connect(bar, :taskbar_left_down, skip: true)
-        # :wxTaskBarIcon.connect(bar, :taskbar_right_down, skip: true)
-        bar
-      else
-        bar
-      end
-
-    true = :wxTaskBarIcon.setIcon(bar, icon)
-
-    if OS.type() == Windows do
-      # This links the taskbar icon and the application itself on Windows
-      call(:wxNotificationMessage, :useTaskBarIcon, [bar])
-    end
-
-    OnCrash.call(fn ->
-      :wx.set_env(Desktop.Env.wx_env())
-      :wxTaskBarIcon.removeIcon(bar)
-      :wxTaskBarIcon.destroy(bar)
-    end)
-
-    bar
-  end
-
   def webview_new(frame) do
     if is_module?(:wxWebView) do
       sizer = :wxFrame.getSizer(frame)

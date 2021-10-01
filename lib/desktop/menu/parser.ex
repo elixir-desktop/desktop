@@ -27,7 +27,8 @@ defmodule Desktop.Menu.Parser do
 
       # 'simple-form' is what xmerl documentation calls a tree of tuples:
       # {tag, attributes = %{key => value}, content = []}
-      simple_form(xmlElement(xml, :content))
+      # simple_form(xmlElement(xml, :content))
+      simple_form(xml)
     catch
       :exit, error ->
         Logger.error("Failed to parse document #{inspect(error)}")

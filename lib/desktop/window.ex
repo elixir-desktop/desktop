@@ -404,21 +404,22 @@ defmodule Desktop.Window do
   end
 
   @doc false
-  def handle_event(
-        wx(event: {:wxTaskBarIcon, :taskbar_left_down}),
-        menu = %Window{taskbar: taskbar}
-      ) do
-    Menu.popup_menu(taskbar)
-    {:noreply, menu}
-  end
 
-  def handle_event(
-        wx(event: {:wxTaskBarIcon, :taskbar_right_down}),
-        menu = %Window{taskbar: taskbar}
-      ) do
-    Menu.popup_menu(taskbar)
-    {:noreply, menu}
-  end
+  # def handle_event(
+  #       wx(event: {:wxTaskBarIcon, :taskbar_left_down}),
+  #       menu = %Window{taskbar: taskbar}
+  #     ) do
+  #   Menu.popup_menu(taskbar)
+  #   {:noreply, menu}
+  # end
+
+  # def handle_event(
+  #       wx(event: {:wxTaskBarIcon, :taskbar_right_down}),
+  #       menu = %Window{taskbar: taskbar}
+  #     ) do
+  #   Menu.popup_menu(taskbar)
+  #   {:noreply, menu}
+  # end
 
   def handle_event(wx(event: {:wxWebView, :webview_newwindow, _, _, _target, url}), ui) do
     :wx_misc.launchDefaultBrowser(url)

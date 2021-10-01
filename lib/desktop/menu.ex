@@ -176,11 +176,6 @@ defmodule Desktop.Menu do
   end
 
   @impl true
-  def handle_call(:popup_menu, _from, menu = %{__adapter__: adapter, dom: dom}) do
-    {:reply, Adapter.popup_menu(adapter, dom), menu}
-  end
-
-  @impl true
   def handle_call(:menubar, _from, menu = %{__adapter__: adapter}) do
     {:reply, Adapter.menubar(adapter), menu}
   end
@@ -213,6 +208,23 @@ defmodule Desktop.Menu do
   end
 
   @impl true
+  def handle_call(:get_adapter, _from, menu = %{__adapter__: adapter}) do
+    {:reply, adapter, menu}
+  end
+
+  @impl true
+  def handle_call({:set_adapter, adapter}, _from, menu) do
+    %{menu | __adapter__: adapter}
+    {:reply, adapter, menu}
+  end
+
+  @impl true
+  def handle_cast(:popup_menu, menu = %{__adapter__: adapter, dom: dom}) do
+    adapter = Adapter.popup_menu(adapter, dom)
+    {:noreply, %{menu | __adapter__: adapter}}
+  end
+
+  @impl true
   def handle_cast(:mount, menu) do
     {:noreply, do_mount(menu)}
   end
@@ -223,11 +235,11 @@ defmodule Desktop.Menu do
   end
 
   @impl true
-  def handle_info(event, menu = %{__adapter__: adapter = %{__struct__: adapter_module}}) do
+  def handle_info(event, menu = %{__adapter__: adapter = %{__struct__: adapter_module}, dom: dom}) do
     adapter =
       case elem(event, 0) do
         :wx ->
-          {:noreply, adapter} = adapter_module.handle_info(event, adapter)
+          {:noreply, adapter} = adapter_module.handle_info(event, adapter, dom)
           adapter
 
         _ ->

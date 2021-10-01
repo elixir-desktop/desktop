@@ -91,8 +91,12 @@ defmodule Desktop.Menu.Adapter.DBus do
     end
   end
 
-  defp create_menu_items(next_id, [], _opts) do
+  defp create_menu_items(next_id, [], _adapter) do
     {[], next_id}
+  end
+
+  defp create_menu_items(next_id, {:menu, _, children}, adapter) do
+    create_menu_items(next_id, children, adapter)
   end
 
   defp create_menu_items(next_id, [child | children], adapter) do
@@ -114,6 +118,10 @@ defmodule Desktop.Menu.Adapter.DBus do
     {children, last_id} = create_menu_items(id + 1, children, adapter)
     item = %{item | children: children}
     {item, last_id}
+  end
+
+  defp create_menu_item(id, {:menubar, _params, children}, adapter) do
+    create_menu_items(id, children, adapter)
   end
 
   defp create_standard_item(id, label, params, %{menu_pid: menu_pid}) do
