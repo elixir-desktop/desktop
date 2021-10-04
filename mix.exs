@@ -15,7 +15,7 @@ defmodule Desktop.MixProject do
       """,
       elixir: "~> 1.10",
       elixirc_paths: elixirc_paths(Mix.env()),
-      compilers: [:phoenix, :gettext] ++ Mix.compilers(),
+      compilers: Mix.compilers(),
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       docs: docs(),
@@ -56,20 +56,15 @@ defmodule Desktop.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:ex_doc, "~> 0.22", only: :dev, runtime: false},
+      {:ex_doc, "~> 0.25", only: :dev, runtime: false},
       {:oncrash, "~> 0.1"},
       {:debouncer, "~> 0.1"},
       {:wx, "~> 1.0", hex: :bridge, targets: [:android, :ios]},
       {:credo, "~> 1.5", only: [:dev, :test], runtime: false},
 
-      # phoenix stuff
-      {:phoenix, "~> 1.5.7"},
-      {:phoenix_live_view, "~> 0.15"},
-      {:phoenix_html, "~> 2.11"},
-      {:phoenix_live_reload, "~> 1.2"},
-      {:gettext, "~> 0.11"},
-      {:plug_cowboy, "~> 2.0"},
-      {:jason, "~> 1.0"}
+      # Phoenix & Plug
+      {:plug, "> 1.0.0"},
+      {:gettext, "> 0.10.0"}
     ]
   end
 
