@@ -85,9 +85,7 @@ defmodule Desktop.MixProject do
       maintainers: ["Dominic Letz"],
       licenses: ["MIT"],
       links: %{github: @url},
-      files:
-        ~w(src lib) ++
-          ~w(LICENSE.md mix.exs README.md)
+      files: ~w(src lib LICENSE.md mix.exs README.md)
     ]
   end
 end

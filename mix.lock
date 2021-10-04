@@ -16,5 +16,5 @@
   "plug": {:hex, :plug, "1.12.1", "645678c800601d8d9f27ad1aebba1fdb9ce5b2623ddb961a074da0b96c35187d", [:mix], [{:mime, "~> 1.0 or ~> 2.0", [hex: :mime, repo: "hexpm", optional: false]}, {:plug_crypto, "~> 1.1.1 or ~> 1.2", [hex: :plug_crypto, repo: "hexpm", optional: false]}, {:telemetry, "~> 0.4.3 or ~> 1.0", [hex: :telemetry, repo: "hexpm", optional: false]}], "hexpm", "d57e799a777bc20494b784966dc5fbda91eb4a09f571f76545b72a634ce0d30b"},
   "plug_crypto": {:hex, :plug_crypto, "1.2.2", "05654514ac717ff3a1843204b424477d9e60c143406aa94daf2274fdd280794d", [:mix], [], "hexpm", "87631c7ad914a5a445f0a3809f99b079113ae4ed4b867348dd9eec288cecb6db"},
   "telemetry": {:hex, :telemetry, "1.0.0", "0f453a102cdf13d506b7c0ab158324c337c41f1cc7548f0bc0e130bbf0ae9452", [:rebar3], [], "hexpm", "73bc09fa59b4a0284efb4624335583c528e07ec9ae76aca96ea0673850aec57a"},
-  "wx": {:hex, :bridge, "1.0.0", "d1331138a7da0b90b151f1b98b0e8c5746a53dcde4b442fb7e1b7d517e03dbf2", [:mix], [{:jason, "~> 1.2", [hex: :jason, repo: "hexpm", optional: false]}], "hexpm", "1c87fed6b0fba12627d69476e3b0b0acbfcb54f646adeac63acb05b5b07b1076"},
+  "wx": {:hex, :bridge, "1.0.1", "74872f248de89943331b135d91a6c87e47c20c51e37a22c8fdbc8f0b409ed700", [:mix], [{:jason, "~> 1.2", [hex: :jason, repo: "hexpm", optional: false]}], "hexpm", "14fd2a2d41503de3204f1f144443c6db4ce713e18b5a83ce7cd0853e0fd7f8c7"},
 }
