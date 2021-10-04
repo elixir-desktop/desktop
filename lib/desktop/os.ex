@@ -1,9 +1,28 @@
 defmodule Desktop.OS do
+  @moduledoc """
+    The OS module provides shortcuts and helper functions
+    to access OS specific information.
+
+    Most significant one should use OS.type() to differentiate
+    between the currently supported environments:
+    - Android
+    - IOS
+    - MacOS
+    - Windows
+    - Linux
+
+  """
+
+  @doc """
+    Returns the users home directory
+  """
+  @spec home :: binary
   def home() do
     {:ok, [[home]]} = :init.get_argument(:home)
     List.to_string(home)
   end
 
+  @doc false
   def raise_frame(frame) do
     if type() == MacOS do
       name = System.get_env("EMU", "beam.smp")
@@ -18,6 +37,7 @@ defmodule Desktop.OS do
   end
 
   @target Mix.target()
+  @spec type :: Linux | MacOS | Windows | Android | IOS
   def type() do
     case @target do
       :android ->
@@ -90,8 +110,11 @@ defmodule Desktop.OS do
     System.cmd("kill", ["-9", "#{:os.getpid()}"], stderr_to_stdout: true)
   end
 
-  # This is a Path.expand variant that normalizes the drive letter
-  # on windows
+  @doc """
+  This is a Path.expand variant that normalizes the drive letter
+  on windows
+  """
+  @spec path_expand(binary) :: binary
   def path_expand(path) do
     if windows?() do
       path = Path.expand(path)

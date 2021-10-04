@@ -1,12 +1,16 @@
 # Desktop 
 
-*Bleeding Edge* ONLY WORKS WITH erlang >= 24.0.1 https://www.erlang.org/news/148
+Building native-like Elixir apps for Window, MacOS, Linux, iOS and Android using Phoenix LiveView!
 
-Building native-like Elixir apps is the goal of this library. It combines Phoenix LiveView and Erlangs built-in WxWidgets library to archieve this.
+## Changes in 1.2
+
+- Removed the bleeding edge notices because Erlang OTP 24 is now broadly available for Windows/Linux/MacOS
+- Added build support for iOS devices
+- Moved most phoenix dependencies out to allow using Phoenix 1.6 / esbuild
 
 ## Example
 
-Checkout the Todo sample application for reference. https://github.com/elixir-desktop/desktop-example-app
+Checkout the Todo sample application for reference of a starting point. https://github.com/elixir-desktop/desktop-example-app
 
 ![MacOS build](https://raw.githubusercontent.com/elixir-desktop/desktop-example-app/main/nodeploy/macos_todo.png "MacOS build")
 
