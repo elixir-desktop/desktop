@@ -235,7 +235,7 @@ defmodule Desktop.Window do
 
   @doc """
   Rebuild the webview. This function is a troubleshooting
-  function at this time. On Windows it's sometimes neccesary
+  function at this time. On Windows it's sometimes necessary
   to rebuild the WebView2 frame.
 
     * `pid` - The pid or atom of the Window
@@ -313,7 +313,7 @@ defmodule Desktop.Window do
 
             * `:auto` - This is the default and let's the OS decide
 
-            * `:never` - Indiciates that notification should not be hidden
+            * `:never` - Indicates that notification should not be hidden
               automatically
 
             * ms - A time value in milliseconds, how long the notification
@@ -355,7 +355,7 @@ defmodule Desktop.Window do
 
   @doc """
   Quit the application. This forces a quick termination which can
-  be helpfull on MacOS/Windows as sometimes the destruction is
+  be helpful on MacOS/Windows as sometimes the destruction is
   crashing.
   """
   def quit() do

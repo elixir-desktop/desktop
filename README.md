@@ -1,4 +1,11 @@
-# Desktop 
+# Desktop
+
+[![Module Version](https://img.shields.io/hexpm/v/desktop.svg)](https://hex.pm/packages/desktop)
+[![Hex Docs](https://img.shields.io/badge/hex-docs-lightgreen.svg)](https://hexdocs.pm/desktop/)
+[![Total Download](https://img.shields.io/hexpm/dt/desktop.svg)](https://hex.pm/packages/desktop)
+[![License](https://img.shields.io/hexpm/l/desktop.svg)](https://github.com/elixir-desktop/desktop/blob/master/LICENSE.md)
+[![Last Updated](https://img.shields.io/github/last-commit/elixir-desktop/desktop.svg)](https://github.com/elixir-desktop/desktop/commits/master)
+
 
 Building native-like Elixir apps for Window, MacOS, Linux, iOS and Android using Phoenix LiveView!
 
@@ -16,4 +23,18 @@ Checkout the Todo sample application for reference of a starting point. https://
 
 ## Gettings Started
 
-Check out the [Getting Started Guide](https://hexdocs.pm/desktop/installation.html)
+Check out the [Getting Started Guide](./guides/getting_started.md)
+
+## Contributing and raising Issues
+
+Please checkout the github repo at https://github.com/elixir-desktop/desktop and raise any issues.
+
+Suggestions about the API and usage are welcome!
+
+Cheers!
+
+## Copyright and License
+
+Copyright (c) 2021 Dominic Letz
+
+This work is free. You can redistribute it and/or modify it under the terms of the MIT License. See the [LICENSE.md](./LICENSE.md) file for more details.
