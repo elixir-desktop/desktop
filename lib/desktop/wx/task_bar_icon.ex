@@ -72,24 +72,46 @@ defmodule Desktop.Wx.TaskBarIcon do
   end
 
   @spec popupMenu(t()) :: boolean()
-  def popupMenu(%__MODULE__{
-        wx_taskbar_icon: wx_taskbar_icon,
-        fn_create_popup: fn_create_popup,
-        skip_popup_menu?: false
-      })
+  @spec popupMenu(t(), atom()) :: boolean()
+  def popupMenu(taskbar_icon, event \\ :taskbar_left_down)
+
+  def popupMenu(
+        %__MODULE__{
+          wx_taskbar_icon: wx_taskbar_icon,
+          fn_create_popup: fn_create_popup,
+          skip_popup_menu?: true
+        },
+        :taskbar_left_down
+      )
       when is_function(fn_create_popup) do
     menu = fn_create_popup.()
     :wxTaskBarIcon.popupMenu(wx_taskbar_icon, menu)
   end
 
-  def popupMenu(%__MODULE__{
-        fn_create_popup: fn_create_popup
-      })
+  def popupMenu(
+        %__MODULE__{
+          wx_taskbar_icon: wx_taskbar_icon,
+          fn_create_popup: fn_create_popup,
+          skip_popup_menu?: false
+        },
+        _
+      )
+      when is_function(fn_create_popup) do
+    menu = fn_create_popup.()
+    :wxTaskBarIcon.popupMenu(wx_taskbar_icon, menu)
+  end
+
+  def popupMenu(
+        %__MODULE__{
+          fn_create_popup: fn_create_popup
+        },
+        _
+      )
       when is_function(fn_create_popup) do
     true
   end
 
-  def popupMenu(_) do
+  def popupMenu(_, _) do
     false
   end
 

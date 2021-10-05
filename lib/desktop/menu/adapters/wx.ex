@@ -190,8 +190,8 @@ defmodule Desktop.Menu.Adapter.Wx do
 
     menubar_menu = :wxMenuBar.getMenu(menubar, 0)
 
-    # {menu, items} = wx_clone_menu(menubar_menu)
-    # IO.inspect({menubar_menu, self()}, label: "event_src [menubar_menu]")
+    {menu, items} = wx_clone_menu(menubar_menu)
+    IO.inspect({menu, self()}, label: "CLONED MENU")
 
     # # _bindings =
     # #   items
@@ -224,13 +224,13 @@ defmodule Desktop.Menu.Adapter.Wx do
     #   end
     # )
 
-    # :wxMenu.connect(
-    #   menu,
-    #   :command_menu_selected,
-    #   callback: fn a, b ->
-    #     IO.inspect({a, b}, label: "GOT CALLBACK (any id)")
-    #   end
-    # )
+    :wxMenu.connect(
+      menu,
+      :command_menu_selected,
+      callback: fn a, b ->
+        IO.inspect({a, b}, label: "GOT CALLBACK (any id)")
+      end
+    )
 
     :wxMenuBar.remove(menubar, 0)
     menu = menubar_menu
@@ -246,63 +246,63 @@ defmodule Desktop.Menu.Adapter.Wx do
     menu
   end
 
-  # defp wx_clone_menu(menu) do
-  #   if :wx.getObjectType(menu) == :wxMenu do
-  #     IO.inspect({menu, self()}, label: "wx_clone_menu:")
-  #     # Clone the menu.
-  #     wx_menu = :wxMenu.new()
-  #     :wxMenu.setTitle(wx_menu, :wxMenu.getTitle(menu))
+  defp wx_clone_menu(menu) do
+    if :wx.getObjectType(menu) == :wxMenu do
+      IO.inspect({menu, self()}, label: "wx_clone_menu:")
+      # Clone the menu.
+      wx_menu = :wxMenu.new()
+      :wxMenu.setTitle(wx_menu, :wxMenu.getTitle(menu))
 
-  #     menu
-  #     |> :wxMenu.getMenuItems()
-  #     |> Enum.reduce({wx_menu, []}, &wx_clone_menu_item(&2, &1))
-  #   else
-  #     {:wx.null(), []}
-  #   end
-  # end
+      menu
+      |> :wxMenu.getMenuItems()
+      |> Enum.reduce({wx_menu, []}, &wx_clone_menu_item(&2, &1))
+    else
+      {:wx.null(), []}
+    end
+  end
 
-  # defp wx_clone_menu_item({menu, prev_items}, src) do
-  #   {menu, items} = wx_clone_menu_item(menu, src)
-  #   {menu, prev_items ++ items}
-  # end
+  defp wx_clone_menu_item({menu, prev_items}, src) do
+    {menu, items} = wx_clone_menu_item(menu, src)
+    {menu, prev_items ++ items}
+  end
 
-  # defp wx_clone_menu_item(menu, src) do
-  #   id = :wxMenuItem.getId(src)
+  defp wx_clone_menu_item(menu, src) do
+    id = :wxMenuItem.getId(src)
 
-  #   item =
-  #     case :wxMenuItem.getKind(src) do
-  #       kind = @wxMenuItemSeparator ->
-  #         :wxMenuItem.new(id: id, text: "", kind: kind)
+    item =
+      case :wxMenuItem.getKind(src) do
+        kind = @wxMenuItemSeparator ->
+          :wxMenuItem.new(id: id, text: "", kind: kind)
 
-  #       kind ->
-  #         :wxMenuItem.new(
-  #           # id: Wx.wxID_ANY(),
-  #           id: id,
-  #           text: :wxMenuItem.getText(src),
-  #           kind: kind
-  #         )
-  #     end
+        kind ->
+          :wxMenuItem.new(
+            # id: Wx.wxID_ANY(),
+            id: id,
+            text: :wxMenuItem.getText(src),
+            kind: kind
+          )
+      end
 
-  #   id = :wxMenuItem.getId(item)
+    id = :wxMenuItem.getId(item)
 
-  #   :wxMenu.append(menu, item)
+    :wxMenu.append(menu, item)
 
-  #   if :wxMenuItem.isCheckable(src) do
-  #     :wxMenuItem.check(item, check: :wxMenuItem.isChecked(src))
-  #   end
+    if :wxMenuItem.isCheckable(src) do
+      :wxMenuItem.check(item, check: :wxMenuItem.isChecked(src))
+    end
 
-  #   :wxMenu.enable(menu, id, :wxMenuItem.isEnabled(item))
+    :wxMenu.enable(menu, id, :wxMenuItem.isEnabled(item))
 
-  #   submenu = :wxMenuItem.getSubMenu(src)
+    submenu = :wxMenuItem.getSubMenu(src)
 
-  #   if :wx.is_null(submenu) == false do
-  #     {submenu, items} = wx_clone_menu(submenu)
-  #     :wxMenuItem.setSubMenu(item, submenu)
-  #     {menu, [item | items]}
-  #   else
-  #     {menu, [item]}
-  #   end
-  # end
+    if :wx.is_null(submenu) == false do
+      {submenu, items} = wx_clone_menu(submenu)
+      :wxMenuItem.setSubMenu(item, submenu)
+      {menu, [item | items]}
+    else
+      {menu, [item]}
+    end
+  end
 
   def update_dom(adapter, {:menubar, _, children}) do
     update_dom(adapter, children)
@@ -330,14 +330,14 @@ defmodule Desktop.Menu.Adapter.Wx do
     end
   end
 
-  def popup_menu(adapter = %__MODULE__{}, dom) do
+  def popup_menu(adapter = %__MODULE__{}, dom, event) do
     case create_menu(adapter, dom) do
       adapter = %{taskbar_icon: taskbar_icon}
       when not is_nil(taskbar_icon) ->
         # :wxTaskBarIcon.popupMenu(taskbar_icon, create_popup_menu(adapter))
-        IO.inspect(adapter.menubar, label: "ADAPTER POPUP MENU")
+        IO.inspect(adapter.menubar, label: "ADAPTER POPUP MENU [#{event}]")
         IO.inspect(taskbar_icon)
-        TaskBarIcon.popupMenu(taskbar_icon)
+        TaskBarIcon.popupMenu(taskbar_icon, event)
         adapter
 
       adapter ->
@@ -400,7 +400,7 @@ defmodule Desktop.Menu.Adapter.Wx do
         adapter,
         dom
       ) do
-    {:noreply, popup_menu(adapter, dom)}
+    {:noreply, popup_menu(adapter, dom, :taskbar_left_down)}
   end
 
   def handle_info(
@@ -408,7 +408,7 @@ defmodule Desktop.Menu.Adapter.Wx do
         adapter,
         dom
       ) do
-    {:noreply, popup_menu(adapter, dom)}
+    {:noreply, popup_menu(adapter, dom, :taskbar_right_down)}
   end
 
   def handle_info(event = wx(), adapter, _) do
