@@ -3,6 +3,7 @@ defmodule Desktop.Menu.Adapter.Wx do
   WX Menu Adapter that creates menus and icons using :wx
   """
   alias Desktop.{Wx, OS}
+  alias Desktop.Wx.TaskBarIcon
 
   require Record
   require Logger
@@ -18,7 +19,7 @@ defmodule Desktop.Menu.Adapter.Wx do
     :menubar_opts,
     :taskbar_icon,
     :wx_menu,
-    :call_taskbar_popupmenu
+    :skip_tb_popup?
   ]
 
   @type t() :: %__MODULE__{
@@ -26,8 +27,8 @@ defmodule Desktop.Menu.Adapter.Wx do
           env: any(),
           menubar: any(),
           menubar_opts: any(),
-          taskbar_icon: any(),
-          call_taskbar_popupmenu: boolean(),
+          taskbar_icon: TaskBarIcon.t() | nil,
+          skip_tb_popup?: boolean(),
           wx_menu: any(),
           bindings: %{},
           # We're keeping one generation of bindings because the menubaricon will usually have
@@ -46,7 +47,7 @@ defmodule Desktop.Menu.Adapter.Wx do
       menubar: nil,
       menubar_opts: Keyword.get(opts, :wx),
       taskbar_icon: nil,
-      call_taskbar_popupmenu: false,
+      skip_tb_popup?: false,
       wx_menu: nil,
       bindings: %{},
       old_bindings: %{}
@@ -59,16 +60,37 @@ defmodule Desktop.Menu.Adapter.Wx do
     create_menubar(adapter, menubar_opts, dom)
   end
 
+  # defp create_menubar(adapter = %__MODULE__{}, {:taskbar, icon}, dom) do
+  #   adapter =
+  #     %{adapter | menubar: :wxMenuBar.new(), call_taskbar_popupmenu: false}
+  #     |> create_menu(dom)
+
+  #   create_popup = fn ->
+  #     create_popup_menu(adapter)
+  #   end
+
+  #   {handle_popup?, taskbar_icon} = create_taskbar_icon(create_popup, icon)
+  #   %{adapter | taskbar_icon: taskbar_icon, handle_tb_popup?: handle_popup?}
+  # end
+
   defp create_menubar(adapter = %__MODULE__{}, {:taskbar, icon}, dom) do
+    menubar = :wxMenuBar.new()
+
     adapter =
-      %{adapter | menubar: :wxMenuBar.new(), call_taskbar_popupmenu: false}
+      %{adapter | menubar: menubar}
       |> create_menu(dom)
 
     create_popup = fn ->
+      IO.inspect(menubar, label: "CREATE POPUP CALLBACK")
       create_popup_menu(adapter)
     end
 
-    taskbar_icon = create_taskbar_icon(create_popup, icon)
+    IO.inspect("CREATING TASKBARICON")
+
+    taskbar_icon =
+      create_taskbar_icon(create_popup, icon)
+      |> IO.inspect(label: "CREATED TaskBarIcon")
+
     %{adapter | taskbar_icon: taskbar_icon}
   end
 
@@ -80,127 +102,207 @@ defmodule Desktop.Menu.Adapter.Wx do
     end
   end
 
-  defp create_taskbar_icon(fn_popup, icon) do
-    # Proper OTP24 release
-    taskbar_icon =
-      if OS.type() == MacOS do
-        if is_module?(:wxWebView) do
-          :wxTaskBarIcon.new(createPopupMenu: fn_popup)
-        else
-          # Pre-OTP24 custom version for backwards compat.
-          try do
-            :wxTaskBarIcon.new(fn_popup)
-          catch
-            :error, :function_clause ->
-              Logger.error("No MacOS compatible :wxTaskBarIcon found! Please use at least OTP24")
+  defp create_taskbar_icon(fn_create_popup, icon) do
+    with {:ok, taskbar_icon = %TaskBarIcon{wx_taskbar_icon: wx_taskbar_icon}} <-
+           TaskBarIcon.create(fn_create_popup) do
+      TaskBarIcon.connect(taskbar_icon)
+      TaskBarIcon.setIcon(taskbar_icon, icon)
 
-              nil
-          end
+      if OS.type() == Windows do
+        # This links the taskbar icon and the application itself on Windows
+        if Code.ensure_loaded?(:wxNotificationMessage) &&
+             Kernel.function_exported?(:wxNotificationMessage, :useTaskBarIcon, 1) do
+          :wxNotificationMessage.useTaskBarIcon(wx_taskbar_icon)
         end
       end
 
-    taskbar_icon =
-      if taskbar_icon == nil do
-        # This works better under Linux and Windows (uses either mouse button for the menu)
-        # but this doesn't work on MacOS at all :-(
-        taskbar_icon = :wxTaskBarIcon.new(createPopupMenu: fn_popup)
-        :wxTaskBarIcon.connect(taskbar_icon, :taskbar_left_down, skip: true)
-        :wxTaskBarIcon.connect(taskbar_icon, :taskbar_right_down, skip: true)
-        taskbar_icon
-      else
-        taskbar_icon
-      end
-
-    true = :wxTaskBarIcon.setIcon(taskbar_icon, icon)
-
-    if OS.type() == Windows do
-      # This links the taskbar icon and the application itself on Windows
-      call(:wxNotificationMessage, :useTaskBarIcon, [taskbar_icon])
+      taskbar_icon
+    else
+      error ->
+        IO.inspect(error, label: "CREATE TASKBAR ICON ERROR")
+        Logger.debug(error)
+        nil
     end
-
-    OnCrash.call(fn ->
-      :wx.set_env(Desktop.Env.wx_env())
-      :wxTaskBarIcon.removeIcon(taskbar_icon)
-      :wxTaskBarIcon.destroy(taskbar_icon)
-    end)
-
-    taskbar_icon
   end
+
+  # defp create_taskbar_icon(fn_popup, icon) do
+  #   skip_tb_popup? = false
+  #   # Proper OTP24 release
+  #   taskbar_icon =
+  #     if OS.type() == MacOS do
+  #       if is_module?(:wxWebView) do
+  #         :wxTaskBarIcon.new(createPopupMenu: fn_popup)
+  #       else
+  #         # Pre-OTP24 custom version for backwards compat.
+  #         try do
+  #           :wxTaskBarIcon.new(fn_popup)
+  #         catch
+  #           :error, :function_clause ->
+  #             Logger.error("No MacOS compatible :wxTaskBarIcon found! Please use at least OTP24")
+
+  #             nil
+  #         end
+  #       end
+  #     end
+
+  #   taskbar_icon =
+  #     if taskbar_icon == nil do
+  #       # This works better under Linux and Windows (uses either mouse button for the menu)
+  #       # but this doesn't work on MacOS at all :-(
+  #       taskbar_icon = :wxTaskBarIcon.new(createPopupMenu: fn_popup)
+  #       # taskbar_icon = :wxTaskBarIcon.new()
+  #       :wxTaskBarIcon.connect(taskbar_icon, :taskbar_left_down, skip: true)
+  #       :wxTaskBarIcon.connect(taskbar_icon, :taskbar_right_down, skip: true)
+  #       taskbar_icon
+  #     else
+  #       taskbar_icon
+  #     end
+
+  #   true = :wxTaskBarIcon.setIcon(taskbar_icon, icon)
+
+  #   if OS.type() == Windows do
+  #     # This links the taskbar icon and the application itself on Windows
+  #     call(:wxNotificationMessage, :useTaskBarIcon, [taskbar_icon])
+  #   end
+
+  #   OnCrash.call(fn ->
+  #     :wx.set_env(Desktop.Env.wx_env())
+  #     :wxTaskBarIcon.removeIcon(taskbar_icon)
+  #     :wxTaskBarIcon.destroy(taskbar_icon)
+  #   end)
+
+  #   {skip_tb_popup?, taskbar_icon}
+  # end
 
   defp create_popup_menu(%__MODULE__{menubar: nil}) do
     nil
   end
 
-  defp create_popup_menu(%__MODULE__{menubar: menubar}) do
-    menubar_menu = :wxMenuBar.getMenu(menubar, 0)
-    {menu, items} = wx_clone_menu(menubar_menu)
+  defp create_popup_menu(adapter = %__MODULE__{menubar: menubar}) do
+    IO.inspect(menubar, label: "CREATE POPUP MENU")
 
-    _bindings =
-      items
-      |> Enum.map(fn item ->
-        id = :wxMenuItem.getId(item)
-        :wxMenu.connect(menubar_menu, :command_menu_selected, id: id)
-      end)
+    spawn_link(fn ->
+      adapter = GenServer.call(adapter.menu_pid, :get_adapter)
+      IO.inspect(Map.take(adapter, [:bindings, :old_bindings]), label: "ADAPTER BINDINGS")
+    end)
+
+    IO.inspect(:wxMenuBar.getMenuCount(menubar), label: "NUMBER OF MENUS IS MENUBAR")
+
+    menubar_menu = :wxMenuBar.getMenu(menubar, 0)
+
+    # {menu, items} = wx_clone_menu(menubar_menu)
+    # IO.inspect({menubar_menu, self()}, label: "event_src [menubar_menu]")
+
+    # # _bindings =
+    # #   items
+    # #   |> Enum.map(fn item ->
+    # #     id = :wxMenuItem.getId(item)
+    # #     IO.inspect({id, item}, label: "Do connect")
+
+    # #     :wxMenu.connect(
+    # #       menu,
+    # #       :command_menu_selected,
+    # #       id: id,
+    # #       callback: fn a, b ->
+    # #         IO.inspect({id, a, b}, label: "GOT CALLBACK")
+    # #       end
+    # #     )
+    # #   end)
+    # :wxMenu.connect(
+    #   menu,
+    #   :menu_open,
+    #   callback: fn menuId, mmenu ->
+    #     IO.inspect({menuId, mmenu}, label: "GOT MENU OPEN")
+    #   end
+    # )
+
+    # :wxMenu.connect(
+    #   menu,
+    #   :menu_close,
+    #   callback: fn menuId, mmenu ->
+    #     IO.inspect({menuId, mmenu}, label: "GOT MENU CLOSE")
+    #   end
+    # )
+
+    # :wxMenu.connect(
+    #   menu,
+    #   :command_menu_selected,
+    #   callback: fn a, b ->
+    #     IO.inspect({a, b}, label: "GOT CALLBACK (any id)")
+    #   end
+    # )
+
+    :wxMenuBar.remove(menubar, 0)
+    menu = menubar_menu
+
+    :wxMenu.connect(
+      menu,
+      :menu_close,
+      callback: fn menuId, mmenu ->
+        IO.inspect({menuId, mmenu}, label: "GOT MENU CLOSE")
+      end
+    )
 
     menu
   end
 
-  defp wx_clone_menu(menu) do
-    if :wx.getObjectType(menu) == :wxMenu do
-      # Clone the menu.
-      wx_menu = :wxMenu.new()
-      :wxMenu.setTitle(wx_menu, :wxMenu.getTitle(menu))
+  # defp wx_clone_menu(menu) do
+  #   if :wx.getObjectType(menu) == :wxMenu do
+  #     IO.inspect({menu, self()}, label: "wx_clone_menu:")
+  #     # Clone the menu.
+  #     wx_menu = :wxMenu.new()
+  #     :wxMenu.setTitle(wx_menu, :wxMenu.getTitle(menu))
 
-      menu
-      |> :wxMenu.getMenuItems()
-      |> Enum.reduce({wx_menu, []}, &wx_clone_menu_item(&2, &1))
-    else
-      {:wx.null(), []}
-    end
-  end
+  #     menu
+  #     |> :wxMenu.getMenuItems()
+  #     |> Enum.reduce({wx_menu, []}, &wx_clone_menu_item(&2, &1))
+  #   else
+  #     {:wx.null(), []}
+  #   end
+  # end
 
-  defp wx_clone_menu_item({menu, prev_items}, src) do
-    {menu, items} = wx_clone_menu_item(menu, src)
-    {menu, prev_items ++ items}
-  end
+  # defp wx_clone_menu_item({menu, prev_items}, src) do
+  #   {menu, items} = wx_clone_menu_item(menu, src)
+  #   {menu, prev_items ++ items}
+  # end
 
-  defp wx_clone_menu_item(menu, src) do
-    id = :wxMenuItem.getId(src)
+  # defp wx_clone_menu_item(menu, src) do
+  #   id = :wxMenuItem.getId(src)
 
-    item =
-      case :wxMenuItem.getKind(src) do
-        kind = @wxMenuItemSeparator ->
-          :wxMenuItem.new(id: id, text: "", kind: kind)
+  #   item =
+  #     case :wxMenuItem.getKind(src) do
+  #       kind = @wxMenuItemSeparator ->
+  #         :wxMenuItem.new(id: id, text: "", kind: kind)
 
-        kind ->
-          :wxMenuItem.new(
-            # id: Wx.wxID_ANY(),
-            id: id,
-            text: :wxMenuItem.getText(src),
-            kind: kind
-          )
-      end
+  #       kind ->
+  #         :wxMenuItem.new(
+  #           # id: Wx.wxID_ANY(),
+  #           id: id,
+  #           text: :wxMenuItem.getText(src),
+  #           kind: kind
+  #         )
+  #     end
 
-    id = :wxMenuItem.getId(item)
+  #   id = :wxMenuItem.getId(item)
 
-    :wxMenu.append(menu, item)
+  #   :wxMenu.append(menu, item)
 
-    if :wxMenuItem.isCheckable(src) do
-      :wxMenuItem.check(item, check: :wxMenuItem.isChecked(src))
-    end
+  #   if :wxMenuItem.isCheckable(src) do
+  #     :wxMenuItem.check(item, check: :wxMenuItem.isChecked(src))
+  #   end
 
-    :wxMenu.enable(menu, id, :wxMenuItem.isEnabled(item))
+  #   :wxMenu.enable(menu, id, :wxMenuItem.isEnabled(item))
 
-    submenu = :wxMenuItem.getSubMenu(src)
+  #   submenu = :wxMenuItem.getSubMenu(src)
 
-    if :wx.is_null(submenu) == false do
-      {submenu, items} = wx_clone_menu(submenu)
-      :wxMenuItem.setSubMenu(item, submenu)
-      {menu, [item | items]}
-    else
-      {menu, [item]}
-    end
-  end
+  #   if :wx.is_null(submenu) == false do
+  #     {submenu, items} = wx_clone_menu(submenu)
+  #     :wxMenuItem.setSubMenu(item, submenu)
+  #     {menu, [item | items]}
+  #   else
+  #     {menu, [item]}
+  #   end
+  # end
 
   def update_dom(adapter, {:menubar, _, children}) do
     update_dom(adapter, children)
@@ -230,9 +332,12 @@ defmodule Desktop.Menu.Adapter.Wx do
 
   def popup_menu(adapter = %__MODULE__{}, dom) do
     case create_menu(adapter, dom) do
-      adapter = %{taskbar_icon: taskbar_icon, call_taskbar_popupmenu: true}
+      adapter = %{taskbar_icon: taskbar_icon}
       when not is_nil(taskbar_icon) ->
-        :wxTaskBarIcon.popupMenu(taskbar_icon, create_popup_menu(adapter))
+        # :wxTaskBarIcon.popupMenu(taskbar_icon, create_popup_menu(adapter))
+        IO.inspect(adapter.menubar, label: "ADAPTER POPUP MENU")
+        IO.inspect(taskbar_icon)
+        TaskBarIcon.popupMenu(taskbar_icon)
         adapter
 
       adapter ->
@@ -257,7 +362,8 @@ defmodule Desktop.Menu.Adapter.Wx do
   end
 
   def set_icon(adapter = %__MODULE__{taskbar_icon: taskbar_icon}, nil) do
-    :wxTaskBarIcon.removeIcon(taskbar_icon)
+    # :wxTaskBarIcon.removeIcon(taskbar_icon)
+    TaskBarIcon.removeIcon(taskbar_icon)
     {:ok, adapter}
   end
 
@@ -266,7 +372,8 @@ defmodule Desktop.Menu.Adapter.Wx do
   end
 
   def set_icon(adapter = %__MODULE__{taskbar_icon: taskbar_icon}, icon) do
-    :wxTaskBarIcon.setIcon(taskbar_icon, icon)
+    # :wxTaskBarIcon.setIcon(taskbar_icon, icon)
+    TaskBarIcon.setIcon(taskbar_icon, icon)
     {:ok, adapter}
   end
 
@@ -410,7 +517,7 @@ defmodule Desktop.Menu.Adapter.Wx do
 
         if attr[:onclick] != nil do
           event_src = if OS.windows?(), do: List.last(menues), else: hd(menues)
-
+          IO.inspect({event_src, self()}, label: "event_src")
           # Wx keeps track of the calling process ot the connect call, so we collect
           # all connect's and call them from the GenServer itself.
           {:connect, {event_src, id, attr[:onclick]}}
@@ -434,7 +541,14 @@ defmodule Desktop.Menu.Adapter.Wx do
       |> Enum.reduce(%{}, fn callback, bind ->
         case callback do
           {:connect, {event_src, id, onclick}} ->
-            :wxMenu.connect(event_src, :command_menu_selected, id: id)
+            IO.inspect({id, event_src}, label: "make wxmenu connect")
+
+            :wxMenu.connect(
+              event_src,
+              :command_menu_selected,
+              id: id
+            )
+
             Map.put(bind, id, onclick)
 
           _ ->
@@ -456,13 +570,13 @@ defmodule Desktop.Menu.Adapter.Wx do
     value != nil and value != "false" and value != "0"
   end
 
-  defp is_module?(module) do
-    Code.ensure_compiled(module) == {:module, module}
-  end
+  # defp is_module?(module) do
+  #   Code.ensure_compiled(module) == {:module, module}
+  # end
 
-  defp call(module, method, args) do
-    if Kernel.function_exported?(module, method, length(args)) do
-      apply(module, method, args)
-    end
-  end
+  # defp call(module, method, args) do
+  #   if Kernel.function_exported?(module, method, length(args)) do
+  #     apply(module, method, args)
+  #   end
+  # end
 end
