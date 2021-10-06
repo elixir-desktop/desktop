@@ -173,7 +173,7 @@ defmodule Desktop.Menu.Adapter.Wx do
       taskbar_icon
     else
       error ->
-        Logger.warning("Failed to create TaskBar Icon: #{inspect(error)"")
+        Logger.warning("Failed to create TaskBar Icon: #{inspect(error)}")
         nil
     end
   end
