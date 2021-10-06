@@ -323,7 +323,7 @@ defmodule Desktop.Menu do
         if attr[:onclick] != nil do
           event_src = if OS.windows?(), do: List.last(menues), else: hd(menues)
 
-          # Wx keeps track of the calling process ot the connect call, so we collect
+          # Wx keeps track of the calling process of the connect call, so we collect
           # all connect's and call them from the GenServer itself.
           {:connect, {event_src, id, attr[:onclick]}}
         end

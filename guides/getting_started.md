@@ -2,7 +2,7 @@
 
 ## General notes
 
-Elixir Desktop depends on recent versions of 
+Elixir Desktop depends on recent versions of
 
 * Erlang >= OTP/24 (with wxWidgets >= 3.1.15)
 * Elixir >= 1.11.4
@@ -22,6 +22,6 @@ Just use brew and it will fetch a recent version:
 
 `brew install elixir`
 
-### Linux
+### GNU/Linux
 
 Best to use Erlang solutions packages: https://www.erlang-solutions.com/downloads/

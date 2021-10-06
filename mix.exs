@@ -70,13 +70,16 @@ defmodule Desktop.MixProject do
 
   defp docs do
     [
-      main: "Desktop",
-      source_ref: "v#{@version}",
-      source_url: @url,
       extra_section: "GUIDES",
       extras: [
-        "guides/installation.md"
-      ]
+        "LICENSE.md": [title: "License"],
+        "README.md": [title: "Overview"],
+        "guides/getting_started.md": [title: "Getting Started"]
+      ],
+      main: "readme",
+      source_ref: "v#{@version}",
+      source_url: @url,
+      formatters: ["html"]
     ]
   end
 
