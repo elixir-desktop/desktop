@@ -68,6 +68,10 @@ defmodule Desktop.Menu.Adapter.DBus do
     adapter
   end
 
+  def recreate_menu(adapter = %__MODULE__{}, _dom) do
+    adapter
+  end
+
   def get_icon(%__MODULE__{icon: icon}) do
     icon
   end

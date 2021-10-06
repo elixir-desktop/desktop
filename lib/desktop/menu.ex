@@ -225,6 +225,13 @@ defmodule Desktop.Menu do
   end
 
   @impl true
+  def handle_cast(:recreate_menu, menu = %{__adapter__: adapter, dom: dom}) do
+    # This is called from within the Adapter
+    adapter = Adapter.recreate_menu(adapter, dom)
+    {:noreply, %{menu | __adapter__: adapter}}
+  end
+
+  @impl true
   def handle_cast(:mount, menu) do
     {:noreply, do_mount(menu)}
   end

@@ -10,6 +10,9 @@ defprotocol Desktop.Menu.Adapter do
   @spec popup_menu(t(), dom :: any()) :: t()
   def popup_menu(adapter, dom)
 
+  @spec recreate_menu(t(), dom :: any()) :: t()
+  def recreate_menu(adapter, dom)
+
   @spec menubar(t()) :: any()
   def menubar(adapter)
 
@@ -35,6 +38,10 @@ defimpl Desktop.Menu.Adapter, for: Any do
 
   def popup_menu(adapter = %{__struct__: module}, dom) do
     module.popup_menu(adapter, dom)
+  end
+
+  def recreate_menu(adapter = %{__struct__: module}, dom) do
+    module.recreate_menu(adapter, dom)
   end
 
   def get_icon(adapter = %{__struct__: module}) do
