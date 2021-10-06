@@ -128,8 +128,6 @@ defmodule Desktop.Menu.Adapter.Wx do
   # Private functions
 
   defp do_popup_menu(adapter = %__MODULE__{taskbar_icon: taskbar_icon}, event) do
-    IO.inspect(adapter.menubar, label: "ADAPTER POPUP MENU [#{event}]")
-    IO.inspect(taskbar_icon)
     TaskBarIcon.popupMenu(taskbar_icon, event)
     adapter
   end
@@ -145,10 +143,7 @@ defmodule Desktop.Menu.Adapter.Wx do
       create_popup_menu(adapter)
     end
 
-    taskbar_icon =
-      create_taskbar_icon(create_popup, icon)
-      |> IO.inspect(label: "CREATED TASKBAR ICON")
-
+    taskbar_icon = create_taskbar_icon(create_popup, icon)
     %{adapter | taskbar_icon: taskbar_icon}
   end
 
@@ -178,8 +173,7 @@ defmodule Desktop.Menu.Adapter.Wx do
       taskbar_icon
     else
       error ->
-        IO.inspect(error, label: "TASKBAR CREATE ERROR")
-        Logger.debug(error)
+        Logger.warning("Failed to create TaskBar Icon: #{inspect(error)"")
         nil
     end
   end
@@ -222,7 +216,6 @@ defmodule Desktop.Menu.Adapter.Wx do
 
   defp create_menu(adapter = %__MODULE__{menubar: menubar}, dom) do
     :wx.set_env(Desktop.Env.wx_env())
-    IO.inspect(menubar, label: "CREATE MENU")
 
     :wx.batch(fn ->
       menues = create_menu_items(nil, dom)
