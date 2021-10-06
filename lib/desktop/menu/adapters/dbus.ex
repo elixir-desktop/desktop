@@ -64,12 +64,16 @@ defmodule Desktop.Menu.Adapter.DBus do
     %{adapter | menubar: menubar}
   end
 
-  def popup_menu(adapter = %__MODULE__{}, _dom) do
+  def popup_menu(adapter = %__MODULE__{}) do
     adapter
   end
 
   def recreate_menu(adapter = %__MODULE__{}, _dom) do
     adapter
+  end
+
+  def menubar(%__MODULE__{menubar: menubar}) do
+    menubar
   end
 
   def get_icon(%__MODULE__{icon: icon}) do

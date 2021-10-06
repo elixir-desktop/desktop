@@ -7,8 +7,8 @@ defprotocol Desktop.Menu.Adapter do
   @spec update_dom(t(), dom :: any()) :: t()
   def update_dom(adapter, dom)
 
-  @spec popup_menu(t(), dom :: any()) :: t()
-  def popup_menu(adapter, dom)
+  @spec popup_menu(t()) :: t()
+  def popup_menu(adapter)
 
   @spec recreate_menu(t(), dom :: any()) :: t()
   def recreate_menu(adapter, dom)
@@ -36,8 +36,8 @@ defimpl Desktop.Menu.Adapter, for: Any do
     module.update_dom(adapter, dom)
   end
 
-  def popup_menu(adapter = %{__struct__: module}, dom) do
-    module.popup_menu(adapter, dom)
+  def popup_menu(adapter = %{__struct__: module}) do
+    module.popup_menu(adapter)
   end
 
   def recreate_menu(adapter = %{__struct__: module}, dom) do
@@ -52,7 +52,7 @@ defimpl Desktop.Menu.Adapter, for: Any do
     module.set_icon(adapter, icon)
   end
 
-  def menubar(%{menubar: bar}) do
-    bar
+  def menubar(adapter = %{__struct__: module}) do
+    module.menubar(adapter)
   end
 end

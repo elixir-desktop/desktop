@@ -180,9 +180,10 @@ defmodule Desktop.Window do
                 wx: {:taskbar, icon}
               )
 
-            taskbar = Menu.menubar(menu_pid)
-            :wxTaskBarIcon.connect(taskbar, :taskbar_left_down, skip: true)
-            :wxTaskBarIcon.connect(taskbar, :taskbar_right_down, skip: true)
+            # taskbar = Menu.menubar(menu_pid)
+
+            # :wxTaskBarIcon.connect(taskbar, :taskbar_left_down, skip: true)
+            # :wxTaskBarIcon.connect(taskbar, :taskbar_right_down, skip: true)
 
             menu_pid
 

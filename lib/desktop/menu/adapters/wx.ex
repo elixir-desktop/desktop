@@ -8,18 +8,12 @@ defmodule Desktop.Menu.Adapter.Wx do
   require Record
   require Logger
 
-  @wxMenuItemSeparator Wx.wxITEM_SEPARATOR()
-
   defstruct [
     :menu_pid,
     :env,
-    :bindings,
-    :old_bindings,
     :menubar,
     :menubar_opts,
-    :taskbar_icon,
-    :wx_menu,
-    :skip_tb_popup?
+    :taskbar_icon
   ]
 
   @type t() :: %__MODULE__{
@@ -27,13 +21,7 @@ defmodule Desktop.Menu.Adapter.Wx do
           env: any(),
           menubar: any(),
           menubar_opts: any(),
-          taskbar_icon: TaskBarIcon.t() | nil,
-          skip_tb_popup?: boolean(),
-          wx_menu: any(),
-          bindings: %{},
-          # We're keeping one generation of bindings because the menubaricon will usually have
-          # two (2) active generations. The currently displayed one and the newly generated one.
-          old_bindings: %{}
+          taskbar_icon: TaskBarIcon.t() | nil
         }
 
   for tag <- [:wx, :wxCommand, :wxMenu] do
@@ -46,11 +34,7 @@ defmodule Desktop.Menu.Adapter.Wx do
       menu_pid: Keyword.get(opts, :menu_pid),
       menubar: nil,
       menubar_opts: Keyword.get(opts, :wx),
-      taskbar_icon: nil,
-      skip_tb_popup?: false,
-      wx_menu: nil,
-      bindings: %{},
-      old_bindings: %{}
+      taskbar_icon: nil
     }
   end
 
@@ -60,99 +44,20 @@ defmodule Desktop.Menu.Adapter.Wx do
     create_menubar(adapter, menubar_opts, dom)
   end
 
-  defp create_menubar(adapter = %__MODULE__{}, {:taskbar, icon}, dom) do
-    menubar = :wxMenuBar.new()
-
-    adapter =
-      %{adapter | menubar: menubar}
-      |> create_menu(dom)
-
-    create_popup = fn ->
-      IO.inspect(menubar, label: "CREATE POPUP CALLBACK")
-      create_popup_menu(adapter)
-    end
-
-    taskbar_icon = create_taskbar_icon(create_popup, icon)
-    %{adapter | taskbar_icon: taskbar_icon}
-  end
-
-  defp create_menubar(adapter = %__MODULE__{}, wx_ref, _dom) do
-    if :wxMenuBar == :wx.getObjectType(wx_ref) do
-      %{adapter | menubar: wx_ref, taskbar_icon: nil}
-    else
-      %{adapter | menubar: nil, taskbar_icon: nil}
-    end
-  end
-
-  defp create_taskbar_icon(fn_create_popup, icon) do
-    with {:ok, taskbar_icon = %TaskBarIcon{wx_taskbar_icon: wx_taskbar_icon}} <-
-           TaskBarIcon.create(fn_create_popup) do
-      TaskBarIcon.connect(taskbar_icon)
-      TaskBarIcon.setIcon(taskbar_icon, icon)
-
-      if OS.type() == Windows do
-        # This links the taskbar icon and the application itself on Windows
-        if Code.ensure_loaded?(:wxNotificationMessage) &&
-             Kernel.function_exported?(:wxNotificationMessage, :useTaskBarIcon, 1) do
-          :wxNotificationMessage.useTaskBarIcon(wx_taskbar_icon)
-        end
-      end
-
-      taskbar_icon
-    else
-      error ->
-        IO.inspect(error, label: "CREATE TASKBAR ICON ERROR")
-        Logger.debug(error)
-        nil
-    end
-  end
-
-  defp create_popup_menu(%__MODULE__{menubar: nil}) do
-    nil
-  end
-
-  defp create_popup_menu(adapter = %__MODULE__{menubar: menubar}) do
-    IO.inspect(menubar, label: "wx.create_popup_menu/1")
-
-    num_menus =
-      :wxMenuBar.getMenuCount(menubar)
-      |> IO.inspect(label: "[wx.create_popup_menu/1] number of menus in menubar")
-
-    if num_menus > 0 do
-      menu = :wxMenuBar.remove(menubar, 0)
-
-      # Because the menu is removed from the menubar
-      # trigger a new menu create for next time the popup opens
-      # outside of the Menu -> Adapter flow
-      GenServer.cast(adapter.menu_pid, :recreate_menu)
-
-      menu
-    else
-      :wx.null()
-    end
-  end
-
-  def update_dom(adapter = %__MODULE__{menubar: menubar}, dom) do
+  def update_dom(adapter = %__MODULE__{}, dom) do
     create_menu(adapter, dom)
   end
 
-  def popup_menu(adapter = %__MODULE__{}, dom, event) do
-    case update_dom(adapter, dom) do
-      adapter = %{taskbar_icon: taskbar_icon}
-      when not is_nil(taskbar_icon) ->
-        IO.inspect(adapter.menubar, label: "ADAPTER POPUP MENU [#{event}]")
-        IO.inspect(taskbar_icon)
-        TaskBarIcon.popupMenu(taskbar_icon, event)
-        adapter
-
-      adapter ->
-        adapter
-    end
+  def popup_menu(adapter = %__MODULE__{}) do
+    do_popup_menu(adapter, :taskbar_click)
   end
 
   def recreate_menu(adapter = %__MODULE__{}, dom) do
-    IO.inspect(nil, label: "RECREATING MENU")
     create_menu(adapter, dom)
+  end
+
+  def menubar(%__MODULE__{menubar: menubar}) do
+    menubar
   end
 
   def get_icon(%__MODULE__{menubar: nil}) do
@@ -187,8 +92,7 @@ defmodule Desktop.Menu.Adapter.Wx do
 
   def handle_info(
         wx(id: _id, event: wxCommand(type: :command_menu_selected), userData: user_data),
-        adapter = %{menu_pid: menu_pid},
-        _dom
+        adapter = %{menu_pid: menu_pid}
       ) do
     spawn_link(Desktop.Menu, :trigger_event, [menu_pid, user_data])
 
@@ -196,38 +100,110 @@ defmodule Desktop.Menu.Adapter.Wx do
   end
 
   def handle_info(
-        k = wx(id: _id, event: wxMenu(type: :menu_close), userData: user_data),
-        adapter = %{menu_pid: menu_pid},
-        dom
+        wx(id: _id, event: wxMenu(type: :menu_close), userData: _user_data),
+        adapter = %{}
       ) do
-    IO.inspect(k, label: "GOT MENU CLOSE")
-    IO.inspect(user_data)
-
     {:noreply, adapter}
   end
 
   def handle_info(
         wx(event: {:wxTaskBarIcon, :taskbar_left_down}),
-        adapter,
-        dom
+        adapter
       ) do
-    {:noreply, popup_menu(adapter, dom, :taskbar_left_down)}
+    {:noreply, do_popup_menu(adapter, :taskbar_left_down)}
   end
 
   def handle_info(
         wx(event: {:wxTaskBarIcon, :taskbar_right_down}),
-        adapter,
-        dom
+        adapter
       ) do
-    {:noreply, popup_menu(adapter, dom, :taskbar_right_down)}
+    {:noreply, do_popup_menu(adapter, :taskbar_right_down)}
   end
 
-  def handle_info(event = wx(), adapter, _) do
+  def handle_info(event = wx(), adapter) do
     Logger.warning("Desktop.Menu received unexpected wx message #{inspect({event, adapter})}")
     {:noreply, adapter}
   end
 
   # Private functions
+
+  defp do_popup_menu(adapter = %__MODULE__{taskbar_icon: taskbar_icon}, event) do
+    IO.inspect(adapter.menubar, label: "ADAPTER POPUP MENU [#{event}]")
+    IO.inspect(taskbar_icon)
+    TaskBarIcon.popupMenu(taskbar_icon, event)
+    adapter
+  end
+
+  defp create_menubar(adapter = %__MODULE__{}, {:taskbar, icon}, dom) do
+    menubar = :wxMenuBar.new()
+
+    adapter =
+      %{adapter | menubar: menubar}
+      |> create_menu(dom)
+
+    create_popup = fn ->
+      create_popup_menu(adapter)
+    end
+
+    taskbar_icon =
+      create_taskbar_icon(create_popup, icon)
+      |> IO.inspect(label: "CREATED TASKBAR ICON")
+
+    %{adapter | taskbar_icon: taskbar_icon}
+  end
+
+  defp create_menubar(adapter = %__MODULE__{}, wx_ref, dom) do
+    if :wxMenuBar == :wx.getObjectType(wx_ref) do
+      %{adapter | menubar: wx_ref, taskbar_icon: nil}
+      |> create_menu(dom)
+    else
+      %{adapter | menubar: nil, taskbar_icon: nil}
+    end
+  end
+
+  defp create_taskbar_icon(fn_create_popup, icon) do
+    with {:ok, taskbar_icon = %TaskBarIcon{wx_taskbar_icon: wx_taskbar_icon}} <-
+           TaskBarIcon.create(fn_create_popup) do
+      TaskBarIcon.connect(taskbar_icon)
+      TaskBarIcon.setIcon(taskbar_icon, icon)
+
+      if OS.type() == Windows do
+        # This links the taskbar icon and the application itself on Windows
+        if Code.ensure_loaded?(:wxNotificationMessage) &&
+             Kernel.function_exported?(:wxNotificationMessage, :useTaskBarIcon, 1) do
+          :wxNotificationMessage.useTaskBarIcon(wx_taskbar_icon)
+        end
+      end
+
+      taskbar_icon
+    else
+      error ->
+        IO.inspect(error, label: "TASKBAR CREATE ERROR")
+        Logger.debug(error)
+        nil
+    end
+  end
+
+  defp create_popup_menu(%__MODULE__{menubar: nil}) do
+    :wx.null()
+  end
+
+  defp create_popup_menu(adapter = %__MODULE__{menubar: menubar}) do
+    num_menus = :wxMenuBar.getMenuCount(menubar)
+
+    if num_menus > 0 do
+      menu = :wxMenuBar.remove(menubar, 0)
+
+      # Because the menu is removed from the menubar
+      # trigger a new menu create for next time the popup opens
+      # outside of the Menu -> Adapter flow
+      GenServer.cast(adapter.menu_pid, :recreate_menu)
+
+      menu
+    else
+      :wx.null()
+    end
+  end
 
   defp create_menu(adapter, {:menubar, _, children}) do
     create_menu(adapter, children)
@@ -250,16 +226,13 @@ defmodule Desktop.Menu.Adapter.Wx do
 
     :wx.batch(fn ->
       menues = create_menu_items(nil, dom)
-      IO.inspect(Enum.count(menues), label: "created menu items")
 
-      Enum.each(menues, fn {menu, _label} ->
-        IO.inspect(menu, label: "Attaching :menu_close to menu")
-
-        :wxMenu.connect(
-          menu,
-          :menu_close
-        )
-      end)
+      # Enum.each(menues, fn {menu, _label} ->
+      #   :wxMenu.connect(
+      #     menu,
+      #     :menu_close
+      #   )
+      # end)
 
       update_menubar(menubar, menues)
     end)

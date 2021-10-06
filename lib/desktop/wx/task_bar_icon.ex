@@ -5,8 +5,7 @@ defmodule Desktop.Wx.TaskBarIcon do
 
   defstruct fn_create_popup: nil,
             skip_popup_menu?: true,
-            wx_taskbar_icon: nil,
-            wx_menu: nil
+            wx_taskbar_icon: nil
 
   @type wx_menu() :: any()
   @type wx_taskbar_icon() :: any()
@@ -14,8 +13,7 @@ defmodule Desktop.Wx.TaskBarIcon do
   @type t() :: %__MODULE__{
           fn_create_popup: nil | create_popup(),
           skip_popup_menu?: boolean(),
-          wx_taskbar_icon: wx_taskbar_icon(),
-          wx_menu: wx_menu()
+          wx_taskbar_icon: wx_taskbar_icon()
         }
 
   @spec create(fn_create_popup :: create_popup()) :: {:ok, t()} | {:error, any()}
