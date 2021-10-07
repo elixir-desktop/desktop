@@ -1,4 +1,7 @@
 defmodule Desktop.Wx.TaskBarIcon do
+  @moduledoc """
+  TaskBarIcon module for Desktop, based on :wxTaskBarIcon
+  """
   require Logger
 
   alias Desktop.OS
@@ -43,7 +46,7 @@ defmodule Desktop.Wx.TaskBarIcon do
        %{
          taskbar_icon
          | wx_taskbar_icon: wx_taskbar_icon,
-           # On MacOS we always skip using popupMenu() method
+           # On MacOS we always skip using popup_menu() method
            skip_popup_menu?: true
        }}
     end
@@ -59,7 +62,7 @@ defmodule Desktop.Wx.TaskBarIcon do
         # Fallback to :wxTaskBarIcon.new/0
         case create_taskbar_icon_fallback() do
           {:ok, wx_taskbar_icon} ->
-            # When using the fallback, enable popupMenu()
+            # When using the fallback, enable popup_menu()
             # by setting skip_popup_menu? to false
             {:ok, %{taskbar_icon | wx_taskbar_icon: wx_taskbar_icon, skip_popup_menu?: false}}
 
@@ -69,11 +72,11 @@ defmodule Desktop.Wx.TaskBarIcon do
     end
   end
 
-  @spec popupMenu(t()) :: boolean()
-  @spec popupMenu(t(), atom()) :: boolean()
-  def popupMenu(taskbar_icon, event \\ :taskbar_left_down)
+  @spec popup_menu(t()) :: boolean()
+  @spec popup_menu(t(), atom()) :: boolean()
+  def popup_menu(taskbar_icon, event \\ :taskbar_left_down)
 
-  def popupMenu(
+  def popup_menu(
         %__MODULE__{
           wx_taskbar_icon: wx_taskbar_icon,
           fn_create_popup: fn_create_popup,
@@ -86,7 +89,7 @@ defmodule Desktop.Wx.TaskBarIcon do
     :wxTaskBarIcon.popupMenu(wx_taskbar_icon, menu)
   end
 
-  def popupMenu(
+  def popup_menu(
         %__MODULE__{
           wx_taskbar_icon: wx_taskbar_icon,
           fn_create_popup: fn_create_popup,
@@ -99,7 +102,7 @@ defmodule Desktop.Wx.TaskBarIcon do
     :wxTaskBarIcon.popupMenu(wx_taskbar_icon, menu)
   end
 
-  def popupMenu(
+  def popup_menu(
         %__MODULE__{
           fn_create_popup: fn_create_popup
         },
@@ -109,19 +112,19 @@ defmodule Desktop.Wx.TaskBarIcon do
     true
   end
 
-  def popupMenu(_, _) do
+  def popup_menu(_, _) do
     false
   end
 
-  def setIcon(%__MODULE__{wx_taskbar_icon: wx_taskbar_icon}, icon) do
+  def set_icon(%__MODULE__{wx_taskbar_icon: wx_taskbar_icon}, icon) do
     :wxTaskBarIcon.setIcon(wx_taskbar_icon, icon)
   end
 
-  def setIcon(%__MODULE__{wx_taskbar_icon: wx_taskbar_icon}, icon, options) do
+  def set_icon(%__MODULE__{wx_taskbar_icon: wx_taskbar_icon}, icon, options) do
     :wxTaskBarIcon.setIcon(wx_taskbar_icon, icon, options)
   end
 
-  def removeIcon(%__MODULE__{wx_taskbar_icon: wx_taskbar_icon}) do
+  def remove_icon(%__MODULE__{wx_taskbar_icon: wx_taskbar_icon}) do
     :wxTaskBarIcon.removeIcon(wx_taskbar_icon)
   end
 

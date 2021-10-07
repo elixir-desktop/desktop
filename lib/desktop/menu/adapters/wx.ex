@@ -77,7 +77,7 @@ defmodule Desktop.Menu.Adapter.Wx do
   end
 
   def set_icon(adapter = %__MODULE__{taskbar_icon: taskbar_icon}, nil) do
-    TaskBarIcon.removeIcon(taskbar_icon)
+    TaskBarIcon.remove_icon(taskbar_icon)
     {:ok, adapter}
   end
 
@@ -86,7 +86,7 @@ defmodule Desktop.Menu.Adapter.Wx do
   end
 
   def set_icon(adapter = %__MODULE__{taskbar_icon: taskbar_icon}, icon) do
-    TaskBarIcon.setIcon(taskbar_icon, icon)
+    TaskBarIcon.set_icon(taskbar_icon, icon)
     {:ok, adapter}
   end
 
@@ -128,7 +128,7 @@ defmodule Desktop.Menu.Adapter.Wx do
   # Private functions
 
   defp do_popup_menu(adapter = %__MODULE__{taskbar_icon: taskbar_icon}, event) do
-    TaskBarIcon.popupMenu(taskbar_icon, event)
+    TaskBarIcon.popup_menu(taskbar_icon, event)
     adapter
   end
 
@@ -160,7 +160,7 @@ defmodule Desktop.Menu.Adapter.Wx do
     with {:ok, taskbar_icon = %TaskBarIcon{wx_taskbar_icon: wx_taskbar_icon}} <-
            TaskBarIcon.create(fn_create_popup) do
       TaskBarIcon.connect(taskbar_icon)
-      TaskBarIcon.setIcon(taskbar_icon, icon)
+      TaskBarIcon.set_icon(taskbar_icon, icon)
 
       if OS.type() == Windows do
         # This links the taskbar icon and the application itself on Windows
@@ -270,23 +270,23 @@ defmodule Desktop.Menu.Adapter.Wx do
     do_update_menubar(menubar, menues)
   end
 
-  defp create_menu_items(_evtHandler, []) do
+  defp create_menu_items(_evt_handler, []) do
     []
   end
 
-  defp create_menu_items(evtHandler, [{:menu, attr, content} | dom_elements]) do
+  defp create_menu_items(evt_handler, [{:menu, attr, content} | dom_elements]) do
     menu =
-      Enum.reduce(content, :wxMenu.new(), fn domElement, menu ->
-        create_menu_item(menu, menu, domElement)
+      Enum.reduce(content, :wxMenu.new(), fn dom_element, menu ->
+        create_menu_item(menu, menu, dom_element)
       end)
 
-    [{menu, attr[:label]} | create_menu_items(evtHandler, dom_elements)]
+    [{menu, attr[:label]} | create_menu_items(evt_handler, dom_elements)]
   end
 
-  defp create_menu_item(evtHandler, parentMenu, domElement) do
-    case domElement do
+  defp create_menu_item(evt_handler, parent_menu, dom_element) do
+    case dom_element do
       {:hr, _attr, _content} ->
-        :wxMenu.appendSeparator(parentMenu)
+        :wxMenu.appendSeparator(parent_menu)
 
       {:item, attr, content} ->
         kind =
@@ -301,19 +301,19 @@ defmodule Desktop.Menu.Adapter.Wx do
 
         id = :wxMenuItem.getId(item)
 
-        :wxMenu.append(parentMenu, item)
+        :wxMenu.append(parent_menu, item)
 
         if attr[:checked] != nil do
           :wxMenuItem.check(item, check: is_true(attr[:checked]))
         end
 
         if is_true(attr[:disabled]) do
-          :wxMenu.enable(parentMenu, id, false)
+          :wxMenu.enable(parent_menu, id, false)
         end
 
         if attr[:onclick] != nil do
           :wxMenu.connect(
-            evtHandler,
+            evt_handler,
             :command_menu_selected,
             id: id,
             userData: attr[:onclick]
@@ -321,14 +321,20 @@ defmodule Desktop.Menu.Adapter.Wx do
         end
 
       {:menu, attr, content} ->
-        submenu = create_menu_item(evtHandler, :wxMenu.new(), content)
-        :wxMenu.append(parentMenu, Wx.wxID_ANY(), String.to_charlist(attr[:label] || ""), submenu)
+        submenu = create_menu_item(evt_handler, :wxMenu.new(), content)
+
+        :wxMenu.append(
+          parent_menu,
+          Wx.wxID_ANY(),
+          String.to_charlist(attr[:label] || ""),
+          submenu
+        )
 
       _ ->
         nil
     end
 
-    parentMenu
+    parent_menu
   end
 
   defp is_true(value) do
