@@ -1,7 +1,7 @@
 defmodule Desktop.MixProject do
   use Mix.Project
 
-  @version "1.2.0"
+  @version "1.2.1"
   @url "https://github.com/elixir-desktop/desktop"
 
   def project do
@@ -54,18 +54,23 @@ defmodule Desktop.MixProject do
   end
 
   # Run "mix help deps" to learn about dependencies.
-  defp deps do
-    [
+  defp deps() do
+    desktop = [
       {:ex_doc, "~> 0.25", only: :dev, runtime: false},
       {:oncrash, "~> 0.1"},
       {:debouncer, "~> 0.1"},
-      {:wx, "~> 1.0", hex: :bridge, targets: [:android, :ios]},
       {:credo, "~> 1.5", only: [:dev, :test], runtime: false},
 
       # Phoenix & Plug
       {:plug, "> 1.0.0"},
       {:gettext, "> 0.10.0"}
     ]
+
+    if Mix.target() in [:android, :ios] do
+      desktop ++ [{:wx, "~> 1.0", hex: :bridge, targets: [:android, :ios]}]
+    else
+      desktop
+    end
   end
 
   defp docs do
