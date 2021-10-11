@@ -36,14 +36,13 @@ defmodule Desktop.OS do
     end
   end
 
-  @target Mix.target()
   @spec type :: Linux | MacOS | Windows | Android | IOS
   def type() do
-    case @target do
-      :android ->
+    case System.get_env("ELIXIR_DESKTOP_OS", nil) do
+      "android" ->
         Android
 
-      :ios ->
+      "ios" ->
         IOS
 
       _ ->
