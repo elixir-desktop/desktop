@@ -69,7 +69,7 @@ defmodule Desktop.OS do
   end
 
   def restart() do
-    if windows?() do
+    if windows?() or mobile?() do
       # on windows reinitializing wx-widgets does work sometimes...
       :init.restart()
     else
