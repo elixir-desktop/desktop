@@ -283,6 +283,10 @@ defmodule Desktop.Menu.Adapter.Wx do
     [{menu, attr[:label]} | create_menu_items(evt_handler, dom_elements)]
   end
 
+  defp create_menu_items(evt_handler, [_ | dom_elements]) do
+    create_menu_items(evt_handler, dom_elements)
+  end
+
   defp create_menu_item(evt_handler, parent_menu, dom_element) do
     case dom_element do
       {:hr, _attr, _content} ->
