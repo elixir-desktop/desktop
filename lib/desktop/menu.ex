@@ -35,6 +35,10 @@ defmodule Desktop.Menu do
 
   @doc false
   defmacro __using__(opts) do
+    Module.register_attribute(__CALLER__.module, :is_menu_server, persist: true, accumulate: false)
+
+    Module.put_attribute(__CALLER__.module, :is_menu_server, Keyword.get(opts, :server, true))
+
     quote do
       @behaviour Desktop.Menu
       import Desktop.Menu, only: [assign: 2, escape: 1]
@@ -135,6 +139,10 @@ defmodule Desktop.Menu do
         pid: menu_pid
       }
       |> do_mount()
+
+    if is_module_server?(module) do
+      Process.register(menu_pid, module)
+    end
 
     {:ok, menu}
   end
@@ -342,5 +350,16 @@ defmodule Desktop.Menu do
   defp build_assigns(%__MODULE__{assigns: assigns, pid: menu_pid}) do
     assigns
     |> Map.merge(%{__menu__: menu_pid})
+  end
+
+  defp is_module_server?(module) do
+    try do
+      case Keyword.get(module.__info__(:attributes), :is_menu_server, false) do
+        [true] -> true
+        _ -> false
+      end
+    rescue
+      _error -> false
+    end
   end
 end
