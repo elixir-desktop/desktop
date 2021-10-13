@@ -226,23 +226,16 @@ defmodule Desktop.Menu do
   end
 
   @impl true
-  def handle_info(:changed, menu) do
-    {:noreply, do_changed(menu)}
+  def handle_info(event, menu = %{__adapter__: adapter = %{__struct__: adapter_module}})
+      when is_tuple(event) and elem(event, 0) == :wx do
+    {:noreply, adapter} = adapter_module.handle_info(event, adapter)
+
+    {:noreply, %{menu | __adapter__: adapter}}
   end
 
   @impl true
-  def handle_info(event, menu = %{__adapter__: adapter = %{__struct__: adapter_module}}) do
-    adapter =
-      case elem(event, 0) do
-        :wx ->
-          {:noreply, adapter} = adapter_module.handle_info(event, adapter)
-          adapter
-
-        _ ->
-          adapter
-      end
-
-    {:noreply, %{menu | __adapter__: adapter}}
+  def handle_info(msg, menu) do
+    {:noreply, proxy_handle_info(msg, menu)}
   end
 
   # Private functions
@@ -278,10 +271,10 @@ defmodule Desktop.Menu do
     end
   end
 
-  defp do_changed(menu = %__MODULE__{module: module}) do
+  defp proxy_handle_info(msg, menu = %__MODULE__{module: module}) do
     assigns = build_assigns(menu)
 
-    case invoke_module_func(module, :handle_info, [:changed, assigns]) do
+    case invoke_module_func(module, :handle_info, [msg, assigns]) do
       {:ok, {:ok, assigns}} -> maybe_update_dom(menu, assigns)
       {:ok, {:noreply, assigns}} -> maybe_update_dom(menu, assigns)
       _ -> menu
