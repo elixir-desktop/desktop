@@ -62,7 +62,7 @@ defmodule Desktop.MixProject do
       {:credo, "~> 1.5", only: [:dev, :test], runtime: false},
 
       # DBus SNI
-      {:ex_sni, github: "elixir-desktop/ex_sni"},
+      {:ex_sni, "~> 0.1.0"},
 
       # Phoenix & Plug
       {:plug, "> 1.0.0"},
