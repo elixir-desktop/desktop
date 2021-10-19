@@ -194,12 +194,17 @@ defmodule Desktop.Menu.Adapter.DBus do
   end
 
   defp generate_icon(wx_icon = {:wx_ref, _, :wxIcon, _}) do
-    case Pixmap.from_wx_icon(wx_icon, Desktop.Env.wx_env()) do
+    case Pixmap.from_wx_icon(wx_icon,
+           env: Desktop.Env.wx_env(),
+           rescale: true,
+           width: 64,
+           height: 64
+         ) do
       {:ok, pixmap} ->
         icon = %{
           generate_sni_icon()
           | icon: %Info{
-              data: {:pixmap, pixmap}
+              data: {:pixmap, [pixmap]}
             }
         }
 

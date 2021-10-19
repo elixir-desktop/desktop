@@ -4,13 +4,21 @@ defmodule Desktop.Pixmap do
   such as :wxIcon, :wxImage, :wxBitmap
   """
 
-  def from_wx_icon(icon) do
+  alias Desktop.Wx
+
+  def from_wx_icon(icon, opts \\ []) do
+    env = Keyword.get(opts, :env, nil)
+
+    if env != nil do
+      :wx.set_env(env)
+    end
+
     width = :wxIcon.getWidth(icon)
     height = :wxIcon.getHeight(icon)
     bitmap = :wxBitmap.new(width, height)
 
     if :wxBitmap.copyFromIcon(bitmap, icon) do
-      ret = from_wx_bitmap(bitmap)
+      ret = from_wx_bitmap(bitmap, opts)
       :wxBitmap.destroy(bitmap)
       ret
     else
@@ -19,25 +27,45 @@ defmodule Desktop.Pixmap do
     end
   end
 
-  def from_wx_icon(icon, env) do
-    :wx.set_env(env)
-    from_wx_icon(icon)
+  defp from_wx_bitmap(bitmap, opts) do
+    pixmap_from_wx_bitmap(bitmap, opts)
   end
 
-  defp from_wx_bitmap(bitmap) do
+  defp pixmap_from_wx_bitmap(bitmap, opts) do
     width = :wxBitmap.getWidth(bitmap)
     height = :wxBitmap.getHeight(bitmap)
     image = :wxBitmap.convertToImage(bitmap)
 
-    rgb = :wxImage.getData(image)
-    alpha = :wxImage.getAlpha(image)
+    # Rescaling happens in place, meaning it changes the memory data
+    # inside the wxImage ref
+    resize_width = Keyword.get(opts, :width, width)
+    resize_height = Keyword.get(opts, :height, height)
+    rescale? = Keyword.get(opts, :rescale, false)
+
+    {width, height, image} =
+      if rescale? and (width != resize_width or height != resize_height) do
+        rescale_image(image, resize_width, resize_height)
+      else
+        {width, height, image}
+      end
+
+    argb = argb_from_wx_image(image)
 
     :wxImage.destroy(image)
 
-    argb = to_argb(alpha, rgb)
+    {:ok, {width, height, argb}}
+  end
 
-    pixmap_data = [{width, height, argb}]
-    {:ok, pixmap_data}
+  defp rescale_image(image, width, height) do
+    image = :wxImage.rescale(image, width, height, quality: Wx.wxIMAGE_QUALITY_HIGH())
+    {width, height, image}
+  end
+
+  defp argb_from_wx_image(image) do
+    rgb = :wxImage.getData(image)
+    alpha = :wxImage.getAlpha(image)
+
+    to_argb(alpha, rgb)
   end
 
   defp to_argb(<<>>, <<>>) do
