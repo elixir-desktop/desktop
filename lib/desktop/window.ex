@@ -127,27 +127,31 @@ defmodule Desktop.Window do
         {:style, Wx.wxDEFAULT_FRAME_STYLE()}
       ])
 
-    :wxFrame.connect(frame, :close_window, callback: &close_window/2, userData: self())
+    :wxFrame.connect(frame, :close_window,
+      callback: &close_window/2,
+      userData: self()
+    )
+
     :wxFrame.setSizer(frame, :wxBoxSizer.new(Wx.wxHORIZONTAL()))
 
-    # This one-line version will not show right on MacOS:
-    # icon = :wxIcon.new(Path.join(:code.priv_dir(app), icon))
-
-    # This 5-line version does show right though:
-    image = :wxImage.new(Path.join(:code.priv_dir(app), icon))
-    bitmap = :wxBitmap.new(image)
-    icon = :wxIcon.new()
-    :wxIcon.copyFromBitmap(icon, bitmap)
-    :wxBitmap.destroy(bitmap)
+    {:ok, icon} = Desktop.Image.new_icon(app, icon)
 
     :wxTopLevelWindow.setIcon(frame, icon)
 
     if menubar do
-      # if OS.type() == MacOS do
-      #   :wxMenuBar.oSXGetAppleMenu(:wxMenuBar.new())
-      # else
-      {:ok, pid} = Menu.start_link(menubar, env, :wxMenuBar.new())
-      :wxFrame.setMenuBar(frame, Menu.menubar(pid))
+      ## if OS.type() == MacOS do
+      ##   :wxMenuBar.oSXGetAppleMenu(:wxMenuBar.new())
+      ## else
+
+      {:ok, menu_pid} =
+        Menu.start_link(
+          module: menubar,
+          app: app,
+          env: env,
+          wx: :wxMenuBar.new()
+        )
+
+      :wxFrame.setMenuBar(frame, Menu.menubar(menu_pid))
     else
       # MacOS osMenu
       if OS.type() == MacOS do
@@ -157,12 +161,21 @@ defmodule Desktop.Window do
 
     taskbar =
       if icon_menu do
-        {:ok, pid} = Menu.start_link(icon_menu, env, {:taskbar, icon})
+        sni_link = Desktop.Env.sni()
+        adapter = if sni_link == nil, do: nil, else: Menu.Adapter.DBus
 
-        :wxTaskBarIcon.connect(Menu.taskbar(pid), :taskbar_left_down, skip: true)
-        :wxTaskBarIcon.connect(Menu.taskbar(pid), :taskbar_right_down, skip: true)
+        {:ok, menu_pid} =
+          Menu.start_link(
+            module: icon_menu,
+            app: app,
+            adapter: adapter,
+            env: env,
+            sni: sni_link,
+            icon: icon,
+            wx: {:taskbar, icon}
+          )
 
-        pid
+        menu_pid
       end
 
     timer =
@@ -369,22 +382,6 @@ defmodule Desktop.Window do
   end
 
   @doc false
-  def handle_event(
-        wx(event: {:wxTaskBarIcon, :taskbar_left_down}),
-        menu = %Window{taskbar: taskbar}
-      ) do
-    Menu.popup_menu(taskbar)
-    {:noreply, menu}
-  end
-
-  def handle_event(
-        wx(event: {:wxTaskBarIcon, :taskbar_right_down}),
-        menu = %Window{taskbar: taskbar}
-      ) do
-    Menu.popup_menu(taskbar)
-    {:noreply, menu}
-  end
-
   def handle_event(wx(event: {:wxWebView, :webview_newwindow, _, _, _target, url}), ui) do
     :wx_misc.launchDefaultBrowser(url)
     {:noreply, ui}
