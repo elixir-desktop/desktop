@@ -197,8 +197,8 @@ defmodule Desktop.Menu.Adapter.DBus do
     case Pixmap.from_wx_icon(wx_icon,
            env: Desktop.Env.wx_env(),
            rescale: true,
-           width: 64,
-           height: 64
+           width: 22,
+           height: 22
          ) do
       {:ok, pixmap} ->
         icon = %{
