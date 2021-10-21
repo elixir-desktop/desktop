@@ -14,10 +14,17 @@ defmodule Desktop.Env do
   @impl true
   def init(_arg) do
     wx = :wx.new([])
-    sni = init_sni()
-
     Desktop.Fallback.wx_subscribe()
-    {:ok, %Env{wx_env: :wx.get_env(), wx: wx, map: %{}, waiters: %{}, windows: [], sni: sni}}
+
+    {:ok,
+     %Env{
+       wx_env: :wx.get_env(),
+       wx: wx,
+       map: %{},
+       waiters: %{},
+       windows: [],
+       sni: :not_initialized
+     }}
   end
 
   @impl true
@@ -31,6 +38,11 @@ defmodule Desktop.Env do
   end
 
   @impl true
+  def handle_call(:sni, _from, state = %Env{sni: :not_initialized}) do
+    sni = init_sni()
+    {:reply, sni, %Env{state | sni: sni}}
+  end
+
   def handle_call(:sni, _from, state = %Env{sni: sni}) do
     {:reply, sni, state}
   end
