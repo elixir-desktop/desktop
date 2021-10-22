@@ -14,41 +14,35 @@ defmodule Desktop.Image do
     end
   end
 
-  def new_icon(image = {:wx_ref, _, :wxImage, _}) do
-    bitmap = :wxBitmap.new(image)
+  def new_icon(image) do
+    case :wx.getObjectType(image) do
+      :wxImage ->
+        bitmap = :wxBitmap.new(image)
 
-    ret = new_icon(bitmap)
-    destroy(bitmap)
-    ret
-  end
+        ret = new_icon(bitmap)
+        destroy(bitmap)
+        ret
 
-  def new_icon(bitmap = {:wx_ref, _, :wxBitmap, _}) do
-    icon = :wxIcon.new()
+      :wxBitmap ->
+        icon = :wxIcon.new()
 
-    case :wxIcon.copyFromBitmap(icon, bitmap) do
-      :ok ->
-        {:ok, icon}
+        case :wxIcon.copyFromBitmap(icon, image) do
+          :ok ->
+            {:ok, icon}
 
-      error ->
-        destroy(icon)
-        error
+          error ->
+            destroy(icon)
+            error
+        end
+
+      :wxIcon ->
+        image
     end
   end
 
-  def new_icon(icon = {:wx_ref, _, :wxIcon, _}) do
-    icon
-  end
-
-  def destroy(src = {:wx_ref, _, :wxImage, _}) do
-    :wxImage.destroy(src)
-  end
-
-  def destroy(src = {:wx_ref, _, :wxBitmap, _}) do
-    :wxBitmap.destroy(src)
-  end
-
-  def destroy(src = {:wx_ref, _, :wxIcon, _}) do
-    :wxIcon.destroy(src)
+  def destroy(image) do
+    module = :wx.getObjectType(image)
+    module.destroy(image)
   end
 
   defp get_abs_path(_, abs_path = "/" <> _) do

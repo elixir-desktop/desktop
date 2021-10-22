@@ -193,7 +193,9 @@ defmodule Desktop.Menu.Adapter.DBus do
     {:ok, icon}
   end
 
-  defp generate_icon(wx_icon = {:wx_ref, _, :wxIcon, _}) do
+  defp generate_icon(wx_icon) do
+    :wxIcon = :wx.getObjectType(wx_icon)
+
     case Pixmap.from_wx_icon(wx_icon,
            env: Desktop.Env.wx_env(),
            rescale: true,
