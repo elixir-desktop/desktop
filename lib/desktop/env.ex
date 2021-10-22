@@ -1,4 +1,15 @@
 defmodule Desktop.Env do
+  @moduledoc """
+    Env holds any needed :wx / Desktop application state. Currently
+    it keeps track of
+      * The open Dekstop.Window(s),
+      * OS Application events (such as when a file is dragged on the application icon)
+      * The :wx environment
+      * The dbus connection (sni) on linux
+
+    Also it has a global connect() method to allow binding of :wx event callbacks using
+    this long lived process as reference.
+  """
   alias Desktop.Env
   use GenServer
 
