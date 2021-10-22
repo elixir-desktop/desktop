@@ -334,6 +334,12 @@ defmodule Desktop.Menu.Adapter.Wx do
           submenu
         )
 
+      [_ | _] = items ->
+        Enum.reduce(items, parent_menu, fn item, parent_menu ->
+          create_menu_item(evt_handler, parent_menu, item)
+          parent_menu
+        end)
+
       _ ->
         nil
     end
