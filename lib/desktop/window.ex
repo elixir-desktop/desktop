@@ -112,9 +112,10 @@ defmodule Desktop.Window do
     size = options[:size] || {600, 500}
     app = options[:app]
     icon = options[:icon] || "icon.png"
-    menubar = options[:menubar]
-    icon_menu = options[:icon_menu]
-    hidden = if OS.mobile?(), do: false, else: options[:hidden] || false
+    # not supported on mobile atm
+    menubar = unless OS.mobile?(), do: options[:menubar]
+    icon_menu = unless OS.mobile?, do: options[:icon_menu]
+    hidden = unless OS.mobile?(), do: options[:hidden]
     url = options[:url]
 
     env = Desktop.Env.wx_env()
