@@ -44,9 +44,13 @@ defmodule Desktop.Menu.Adapter.DBus do
   end
 
   def update_dom(adapter = %__MODULE__{menubar: _menubar, sni: sni}, dom) do
-    {children, _} = create_menu_items(1, dom, adapter)
-
-    root = %Item{id: 0, children: children}
+    IO.inspect("Update DOM start", label: "[#{System.os_time(:millisecond)}]")
+    # ID 1 is reserved for visible separator
+    # ID 2 is reserved for hidden separator
+    {children, _} = create_menu_items(3, dom, adapter)
+    IO.inspect("Created menu struct", label: "[#{System.os_time(:millisecond)}]")
+    # root = %Item{id: 0, type: :root, children: children}
+    root = Item.root(children)
 
     callbacks = [
       {:show,
@@ -58,9 +62,9 @@ defmodule Desktop.Menu.Adapter.DBus do
     ]
 
     menubar = %Menu{root: root, callbacks: callbacks}
-
+    IO.inspect("Updating menu over ExSni", label: "[#{System.os_time(:millisecond)}]")
     ExSni.update_menu(sni, nil, menubar)
-
+    IO.inspect("Updated menu over ExSni", label: "[#{System.os_time(:millisecond)}]")
     %{adapter | menubar: menubar}
   end
 
@@ -118,13 +122,15 @@ defmodule Desktop.Menu.Adapter.DBus do
   end
 
   defp create_menu_item(id, {:hr, _, _}, _opts) do
-    {%Item{id: id, type: "separator"}, id}
+    # Separator is always visible. Has ID 1
+    # {%Item{id: 1, type: :separator}, id}
+    {Item.separator(), id}
   end
 
   defp create_menu_item(id, {:menu, params, children}, adapter) do
-    item = create_standard_item(id, Map.get(params, :label, ""), params, adapter)
     {children, last_id} = create_menu_items(id + 1, children, adapter)
-    item = %{item | children: children}
+    item = create_submenu_item(id, params, children, adapter)
+    # item = %{item | children: children}
     {item, last_id}
   end
 
@@ -132,46 +138,80 @@ defmodule Desktop.Menu.Adapter.DBus do
     create_menu_items(id, children, adapter)
   end
 
+  defp create_submenu_item(id, params, children, %{menu_pid: menu_pid}) do
+    # %Item{
+    #   id: id,
+    #   type: :menu,
+    #   label: Map.get(params, :label, ""),
+    #   callbacks: build_callbacks(menu_pid, params)
+    # }
+
+    children
+    |> Item.menu()
+    |> Item.set_label(Map.get(params, :label, ""))
+    |> Item.set_id(id)
+    |> Item.set_callbacks(build_callbacks(menu_pid, params))
+  end
+
   defp create_standard_item(id, label, params, %{menu_pid: menu_pid}) do
-    toggle_type =
-      case Map.get(params, :type, nil) do
-        "checkbox" -> :checkmark
-        "radio" -> :radio
-        _ -> nil
-      end
+    # item_type =
+    #   case Map.get(params, :type, nil) do
+    #     "checkbox" -> Item.checkbox(label)
+    #     "radio" -> Item.radio(label)
+    #     _ -> Item.standard(label)
+    #   end
 
-    toggle_state =
-      case Map.get(params, :checked, nil) do
-        "checked" -> :on
-        _ -> :off
-      end
+    params
+    |> Map.get(:type, nil)
+    |> case do
+      "checkbox" -> Item.checkbox(label)
+      "radio" -> Item.radio(label)
+      _ -> Item.standard(label)
+    end
+    |> Item.set_id(id)
+    |> Item.set_checked(param_checked?(Map.get(params, :checked, false)))
+    |> Item.set_callbacks(build_callbacks(menu_pid, params))
 
-    callbacks =
-      if menu_pid != nil do
-        Enum.reduce(params, [], fn param, acc ->
-          case param do
-            {:onclick, event} ->
-              [
-                {"clicked",
-                 fn _data, _timestamp ->
-                   spawn_link(Desktop.Menu, :trigger_event, [menu_pid, event])
-                 end}
-                | acc
-              ]
+    # %Item{
+    #   id: id,
+    #   type: item_type,
+    #   label: label,
+    #   checked: param_checked?(Map.get(params, :checked, false)),
+    #   callbacks: build_callbacks(menu_pid, params)
+    # }
+  end
 
-            _ ->
-              acc
-          end
-        end)
-      end
+  defp build_callbacks(menu_pid, params) do
+    if menu_pid != nil do
+      Enum.reduce(params, [], fn param, acc ->
+        case param do
+          {:onclick, event} ->
+            [
+              {"clicked",
+               fn _data, _timestamp ->
+                 IO.inspect("On Menu Item click", label: "[#{System.os_time(:millisecond)}]")
+                 spawn_link(Desktop.Menu, :trigger_event, [menu_pid, event])
+               end}
+              | acc
+            ]
 
-    %Item{
-      id: id,
-      label: label,
-      toggle_type: toggle_type,
-      toggle_state: toggle_state,
-      callbacks: callbacks
-    }
+          _ ->
+            acc
+        end
+      end)
+    end
+  end
+
+  defp param_checked?(value) when is_binary(value) do
+    case String.downcase(value) do
+      "checked" -> true
+      "true" -> true
+      _ -> false
+    end
+  end
+
+  defp param_checked?(_) do
+    false
   end
 
   defp generate_icon(nil) do

@@ -21,20 +21,26 @@ defmodule Desktop.Menu.Parser do
 
   def parse(string) do
     string = unicode(string)
+    IO.inspect("Parse XML started", label: "[#{System.os_time(:millisecond)}]")
 
-    try do
-      {xml, []} = :xmerl_scan.string(string, encoding: :ref)
+    ret =
+      try do
+        {xml, []} = :xmerl_scan.string(string, encoding: :ref)
 
-      # 'simple-form' is what xmerl documentation calls a tree of tuples:
-      # {tag, attributes = %{key => value}, content = []}
-      # simple_form(xmlElement(xml, :content))
-      simple_form(xml)
-    catch
-      :exit, error ->
-        Logger.error("Failed to parse document #{inspect(error)}")
+        # 'simple-form' is what xmerl documentation calls a tree of tuples:
+        # {tag, attributes = %{key => value}, content = []}
+        # simple_form(xmlElement(xml, :content))
+        simple_form(xml)
+      catch
+        :exit, error ->
+          Logger.error("Failed to parse document #{inspect(error)}")
 
-        []
-    end
+          []
+      end
+
+    IO.inspect("Parse XML ended", label: "[#{System.os_time(:millisecond)}]")
+
+    ret
   end
 
   defp unicode(string) do
