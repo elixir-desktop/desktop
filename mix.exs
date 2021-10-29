@@ -16,6 +16,7 @@ defmodule Desktop.MixProject do
       elixir: "~> 1.10",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: Mix.compilers(),
+      aliases: aliases(),
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       docs: docs(),
@@ -51,6 +52,16 @@ defmodule Desktop.MixProject do
 
   def extra_applications(_mobile) do
     []
+  end
+
+  defp aliases() do
+    [
+      lint: [
+        "compile --warnings-as-errors",
+        "format --check-formatted",
+        "credo --ignore refactor"
+      ]
+    ]
   end
 
   # Run "mix help deps" to learn about dependencies.

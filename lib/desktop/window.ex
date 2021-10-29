@@ -114,7 +114,7 @@ defmodule Desktop.Window do
     icon = options[:icon] || "icon.png"
     # not supported on mobile atm
     menubar = unless OS.mobile?(), do: options[:menubar]
-    icon_menu = unless OS.mobile?, do: options[:icon_menu]
+    icon_menu = unless OS.mobile?(), do: options[:icon_menu]
     hidden = unless OS.mobile?(), do: options[:hidden]
     url = options[:url]
 
@@ -218,6 +218,37 @@ defmodule Desktop.Window do
   """
   def show(pid, url \\ nil) do
     GenServer.cast(pid, {:show, url})
+  end
+
+  @doc """
+  Hide the Window if visible (noop on mobile platforms)
+
+    * `pid` - The pid or atom of the Window
+
+  ## Examples
+
+      iex> Desktop.Window.hide(pid)
+      :ok
+
+  """
+  def hide(pid) do
+    GenServer.cast(pid, :hide)
+  end
+
+  @doc """
+  Returns true if the window is hidden. Always returns false
+  on mobile platforms.
+
+    * `pid` - The pid or atom of the Window
+
+  ## Examples
+
+      iex> Desktop.Window.is_hidden?(pid)
+      false
+
+  """
+  def is_hidden?(pid) do
+    GenServer.call(pid, :is_hidden?)
   end
 
   @doc """
@@ -491,19 +522,15 @@ defmodule Desktop.Window do
     {:noreply, %Window{ui | title: title}}
   end
 
-  @impl true
-  @doc false
   def handle_cast({:iconize, iconize}, ui = %Window{frame: frame}) do
     :wxTopLevelWindow.iconize(frame, iconize: iconize)
     {:noreply, ui}
   end
 
-  @impl true
   def handle_cast(:rebuild_webview, ui) do
     {:noreply, %Window{ui | webview: Fallback.webview_rebuild(ui)}}
   end
 
-  @impl true
   def handle_cast(
         {:show_notification, message, id, type, title, callback, timeout},
         ui = %Window{notifications: noties, title: window_title}
@@ -520,7 +547,6 @@ defmodule Desktop.Window do
     {:noreply, %Window{ui | notifications: noties}}
   end
 
-  @impl true
   def handle_cast({:show, url}, ui = %Window{home_url: home, last_url: last}) do
     new_url = prepare_url(url || last || home)
     Logger.info("Showing #{new_url}")
@@ -529,13 +555,31 @@ defmodule Desktop.Window do
   end
 
   @impl true
-  @doc false
-  def handle_call(:webview, _from, ui = %Window{webview: webview}) do
-    {:reply, webview, ui}
+  def handle_cast(:hide, ui = %Window{frame: frame}) do
+    if frame do
+      :wxWindow.hide(frame)
+    end
+
+    {:noreply, ui}
   end
 
   @impl true
   @doc false
+  def handle_call(:is_hidden?, _from, ui = %Window{frame: frame}) do
+    ret =
+      if frame do
+        not :wxWindow.isShown(frame)
+      else
+        false
+      end
+
+    {:reply, ret, ui}
+  end
+
+  def handle_call(:webview, _from, ui = %Window{webview: webview}) do
+    {:reply, webview, ui}
+  end
+
   def handle_call(:frame, _from, ui = %Window{frame: frame}) do
     {:reply, frame, ui}
   end
