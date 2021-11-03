@@ -123,7 +123,6 @@ defmodule Desktop.Menu.Adapter.DBus do
 
   defp create_menu_item(id, {:hr, _, _}, _opts) do
     # Separator is always visible. Has ID 1
-    # {%Item{id: 1, type: :separator}, id}
     {Item.separator(), id}
   end
 
@@ -139,28 +138,16 @@ defmodule Desktop.Menu.Adapter.DBus do
   end
 
   defp create_submenu_item(id, params, children, %{menu_pid: menu_pid}) do
-    # %Item{
-    #   id: id,
-    #   type: :menu,
-    #   label: Map.get(params, :label, ""),
-    #   callbacks: build_callbacks(menu_pid, params)
-    # }
-
     children
     |> Item.menu()
     |> Item.set_label(Map.get(params, :label, ""))
     |> Item.set_id(id)
+    |> Item.set_uid(Map.get(params, :id, ""))
+    |> Item.set_enabled(!param_disabled?(Map.get(params, :disabled, false)))
     |> Item.set_callbacks(build_callbacks(menu_pid, params))
   end
 
   defp create_standard_item(id, label, params, %{menu_pid: menu_pid}) do
-    # item_type =
-    #   case Map.get(params, :type, nil) do
-    #     "checkbox" -> Item.checkbox(label)
-    #     "radio" -> Item.radio(label)
-    #     _ -> Item.standard(label)
-    #   end
-
     params
     |> Map.get(:type, nil)
     |> case do
@@ -169,16 +156,10 @@ defmodule Desktop.Menu.Adapter.DBus do
       _ -> Item.standard(label)
     end
     |> Item.set_id(id)
+    |> Item.set_uid(Map.get(params, :id, ""))
     |> Item.set_checked(param_checked?(Map.get(params, :checked, false)))
+    |> Item.set_enabled(!param_disabled?(Map.get(params, :disabled, false)))
     |> Item.set_callbacks(build_callbacks(menu_pid, params))
-
-    # %Item{
-    #   id: id,
-    #   type: item_type,
-    #   label: label,
-    #   checked: param_checked?(Map.get(params, :checked, false)),
-    #   callbacks: build_callbacks(menu_pid, params)
-    # }
   end
 
   defp build_callbacks(menu_pid, params) do
@@ -211,6 +192,18 @@ defmodule Desktop.Menu.Adapter.DBus do
   end
 
   defp param_checked?(_) do
+    false
+  end
+
+  defp param_disabled?(value) when is_binary(value) do
+    case String.downcase(value) do
+      "disabled" -> true
+      "true" -> true
+      _ -> false
+    end
+  end
+
+  defp param_disabled?(_) do
     false
   end
 
