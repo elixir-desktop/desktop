@@ -139,25 +139,23 @@ defmodule Desktop.Window do
 
     :wxTopLevelWindow.setIcon(frame, icon)
 
-    if menubar do
-      ## if OS.type() == MacOS do
-      ##   :wxMenuBar.oSXGetAppleMenu(:wxMenuBar.new())
-      ## else
+    wx_menubar =
+      if menubar do
+        {:ok, menu_pid} =
+          Menu.start_link(
+            module: menubar,
+            app: app,
+            env: env,
+            wx: :wxMenuBar.new()
+          )
 
-      {:ok, menu_pid} =
-        Menu.start_link(
-          module: menubar,
-          app: app,
-          env: env,
-          wx: :wxMenuBar.new()
-        )
-
-      :wxFrame.setMenuBar(frame, Menu.menubar(menu_pid))
-    else
-      # MacOS osMenu
-      if OS.type() == MacOS do
-        :wxMenu.connect(:wxMenuBar.oSXGetAppleMenu(:wxMenuBar.new()), :command_menu_selected)
+        wx_menubar = Menu.menubar(menu_pid)
+        :wxFrame.setMenuBar(frame, wx_menubar)
+        wx_menubar
       end
+
+    if OS.type() == MacOS do
+      update_apple_menu(window_title, frame, wx_menubar || :wxMenuBar.new())
     end
 
     taskbar =
@@ -419,6 +417,14 @@ defmodule Desktop.Window do
     {:noreply, ui}
   end
 
+  def handle_event(wx(id: id, event: wxCommand(type: :command_menu_selected)), ui) do
+    if id == Wx.wxID_EXIT() do
+      quit()
+    end
+
+    {:noreply, ui}
+  end
+
   def handle_event(wx(obj: obj, event: wxCommand(type: :notification_message_click)), ui) do
     notification(ui, obj, :click)
     {:noreply, ui}
@@ -607,5 +613,22 @@ defmodule Desktop.Window do
         end
     end
     |> URI.to_string()
+  end
+
+  defp update_apple_menu(title, frame, menubar) do
+    menu = :wxMenuBar.oSXGetAppleMenu(menubar)
+    :wxMenu.setTitle(menu, title)
+
+    # Remove all items except for Quit since we don't yet handle the standard items
+    # like "Hide <app>", "Hide Others", "Show All", etc
+    for item <- :wxMenu.getMenuItems(menu) do
+      if :wxMenuItem.getId(item) == Wx.wxID_EXIT() do
+        :wxMenuItem.setText(item, "Quit #{title}\tCtrl+Q")
+      else
+        :wxMenu.delete(menu, item)
+      end
+    end
+
+    :wxFrame.connect(frame, :command_menu_selected)
   end
 end

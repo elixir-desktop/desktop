@@ -10,6 +10,7 @@
   get(wxICON_QUESTION) -> ?wxICON_QUESTION;
   get(wxICON_WARNING) -> ?wxICON_WARNING;
   get(wxID_ANY) -> ?wxID_ANY;
+  get(wxID_EXIT) -> ?wxID_EXIT;
   get(wxIMAGE_QUALITY_HIGH) -> ?wxIMAGE_QUALITY_HIGH;
   get(wxITEM_CHECK) -> ?wxITEM_CHECK;
   get(wxITEM_NORMAL) -> ?wxITEM_NORMAL;
