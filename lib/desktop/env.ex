@@ -14,7 +14,7 @@ defmodule Desktop.Env do
   use GenServer
   require Logger
 
-  defstruct [:wx_env, :wx, :map, :waiters, :windows, :sni]
+  defstruct [:wx_env, :wx, :map, :waiters, :windows, :sni, :events, :subs]
 
   @doc false
   @spec start_link() :: :ignore | {:error, any} | {:ok, pid}
@@ -35,21 +35,30 @@ defmodule Desktop.Env do
        map: %{},
        waiters: %{},
        windows: [],
-       sni: :not_initialized
+       sni: :not_initialized,
+       events: [],
+       subs: []
      }}
   end
 
   @impl true
+  def handle_call({:subscribe, pid}, _from, d = %Env{events: events, subs: subs}) do
+    for e <- events do
+      send(pid, e)
+    end
+
+    Process.monitor(pid)
+    {:reply, :ok, %Env{d | subs: [pid | subs], events: []}}
+  end
+
   def handle_call(:wx_env, _from, d = %Env{wx_env: env}) do
     {:reply, env, d}
   end
 
-  @impl true
   def handle_call(:wx, _from, d = %Env{wx: wx}) do
     {:reply, wx, d}
   end
 
-  @impl true
   def handle_call(:sni, _from, state = %Env{sni: :not_initialized}) do
     sni = init_sni()
     {:reply, sni, %Env{state | sni: sni}}
@@ -59,25 +68,21 @@ defmodule Desktop.Env do
     {:reply, sni, state}
   end
 
-  @impl true
   def handle_call({:get, key, default}, _from, d = %Env{map: map}) do
     {:reply, Map.get(map, key, default), d}
   end
 
-  @impl true
   def handle_call({:pop, key, default}, _from, d = %Env{map: map}) do
     {value, map} = Map.pop(map, key, default)
     {:reply, value, %Env{d | map: map}}
   end
 
-  @impl true
   def handle_call({:put, key, value}, _from, d = %Env{map: map, waiters: waiters}) do
     {froms, waiters} = Map.pop(waiters, key, [])
     Enum.each(froms, fn from -> GenServer.reply(from, value) end)
     {:reply, Map.get(map, key), %Env{d | map: Map.put(map, key, value), waiters: waiters}}
   end
 
-  @impl true
   def handle_call({:await, key}, from, d = %Env{map: map, waiters: waiters}) do
     if Map.has_key?(map, key) do
       {:reply, Map.get(map, key), d}
@@ -87,7 +92,6 @@ defmodule Desktop.Env do
     end
   end
 
-  @impl true
   def handle_call({:connect, object, command, callback, id}, _from, d) do
     opts = [{:callback, fn _, _ -> callback.() end}]
     opts = if id == nil, do: opts, else: [{:id, id} | opts]
@@ -116,15 +120,24 @@ defmodule Desktop.Env do
     {:noreply, state}
   end
 
-  @impl true
-  def handle_info({mac_event, list}, state = %Env{}) when is_list(list) do
-    Logger.info("Ignoring MacOS event: #{mac_event} #{inspect(list)}")
-    {:noreply, state}
+  def handle_info({_mac_event, list} = e, state = %Env{subs: subs, events: events})
+      when is_list(list) do
+    if subs == [] do
+      {:noreply, %Env{state | events: events ++ [e]}}
+    else
+      for sub <- subs do
+        send(sub, e)
+      end
+
+      {:noreply, state}
+    end
   end
 
-  @impl true
-  def handle_info({:DOWN, _ref, :process, pid, _reason}, state = %Env{windows: windows}) do
-    {:noreply, %Env{state | windows: windows -- [pid]}}
+  def handle_info(
+        {:DOWN, _ref, :process, pid, _reason},
+        state = %Env{subs: subs, windows: windows}
+      ) do
+    {:noreply, %Env{state | windows: windows -- [pid], subs: subs -- [pid]}}
   end
 
   def sni() do
@@ -157,6 +170,20 @@ defmodule Desktop.Env do
 
   def await(key) do
     GenServer.call(__MODULE__, {:await, key})
+  end
+
+  @doc """
+    Wrapper around wx.subscribe()
+
+    Will send to the calling process events in the form:
+
+    * `{:print_file, [filename]}`
+    * `{:open_file, [filename]}`
+    * `{:open_url, [filename]}`
+    * `{:new_file, []}`
+  """
+  def subscribe() do
+    GenServer.call(__MODULE__, {:subscribe, self()})
   end
 
   defp init_sni() do
