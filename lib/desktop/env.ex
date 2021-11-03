@@ -12,6 +12,7 @@ defmodule Desktop.Env do
   """
   alias Desktop.Env
   use GenServer
+  require Logger
 
   defstruct [:wx_env, :wx, :map, :waiters, :windows, :sni]
 
@@ -117,7 +118,7 @@ defmodule Desktop.Env do
 
   @impl true
   def handle_info({mac_event, list}, state = %Env{}) when is_list(list) do
-    IO.puts("Ignoring event: #{mac_event} #{inspect(list)}")
+    Logger.info("Ignoring MacOS event: #{mac_event} #{inspect(list)}")
     {:noreply, state}
   end
 
