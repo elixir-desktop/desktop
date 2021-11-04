@@ -168,11 +168,14 @@ defmodule Desktop.Menu.Adapter.DBus do
         case param do
           {:onclick, event} ->
             [
-              {"clicked",
-               fn _data, _timestamp ->
-                 IO.inspect("On Menu Item click", label: "[#{System.os_time(:millisecond)}]")
-                 spawn_link(Desktop.Menu, :trigger_event, [menu_pid, event])
-               end}
+              {
+                "clicked",
+                fn _data, _timestamp ->
+                  spawn_link(Desktop.Menu, :trigger_event, [menu_pid, event])
+                end,
+                # Store on<event> attr pair after the callback for use in diffing
+                {"onclick", event}
+              }
               | acc
             ]
 
