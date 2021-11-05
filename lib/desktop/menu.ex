@@ -203,12 +203,7 @@ defmodule Desktop.Menu do
 
   @impl true
   def handle_call({:trigger_event, event}, _from, menu = %{module: module}) do
-    IO.inspect("[Menu::handle_call::trigger_event]", label: "[#{System.os_time(:millisecond)}]")
     assigns = build_assigns(menu)
-
-    IO.inspect("[Menu::handle_call::trigger_event] invoking module :handle_event",
-      label: "[#{System.os_time(:millisecond)}]"
-    )
 
     menu =
       case invoke_module_func(module, :handle_event, [event, assigns]) do
@@ -216,10 +211,6 @@ defmodule Desktop.Menu do
         {:ok, {:noreply, assigns}} -> maybe_update_dom(menu, assigns)
         _ -> menu
       end
-
-    IO.inspect("[Menu::handle_call::trigger_event] invoked module :handle_event",
-      label: "[#{System.os_time(:millisecond)}]"
-    )
 
     {:reply, build_assigns(menu), menu}
   end

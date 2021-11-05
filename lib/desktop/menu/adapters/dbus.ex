@@ -44,12 +44,10 @@ defmodule Desktop.Menu.Adapter.DBus do
   end
 
   def update_dom(adapter = %__MODULE__{menubar: _menubar, sni: sni}, dom) do
-    IO.inspect("Update DOM start", label: "[#{System.os_time(:millisecond)}]")
     # ID 1 is reserved for visible separator
     # ID 2 is reserved for hidden separator
     {children, _} = create_menu_items(3, dom, adapter)
-    IO.inspect("Created menu struct", label: "[#{System.os_time(:millisecond)}]")
-    # root = %Item{id: 0, type: :root, children: children}
+
     root = Item.root(children)
 
     callbacks = [
@@ -62,9 +60,9 @@ defmodule Desktop.Menu.Adapter.DBus do
     ]
 
     menubar = %Menu{root: root, callbacks: callbacks}
-    IO.inspect("Updating menu over ExSni", label: "[#{System.os_time(:millisecond)}]")
+
     ExSni.update_menu(sni, nil, menubar)
-    IO.inspect("Updated menu over ExSni", label: "[#{System.os_time(:millisecond)}]")
+
     %{adapter | menubar: menubar}
   end
 
