@@ -273,9 +273,14 @@ defmodule Desktop.Menu do
     assigns = build_assigns(menu)
 
     case invoke_module_func(module, :mount, [assigns]) do
-      {:ok, {:ok, assigns}} -> maybe_update_dom(menu, assigns)
-      {:ok, {:noreply, assigns}} -> maybe_update_dom(menu, assigns)
-      _ -> menu
+      {:ok, {:ok, assigns}} ->
+        case update_dom(%{menu | assigns: assigns}) do
+          {:ok, _updated?, menu} -> menu
+          _error -> menu
+        end
+
+      _ ->
+        menu
     end
   end
 
