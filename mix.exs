@@ -73,7 +73,8 @@ defmodule Desktop.MixProject do
       {:credo, "~> 1.5", only: [:dev, :test], runtime: false},
 
       # DBus SNI
-      {:ex_sni, "~> 0.1.1"},
+      {:ex_sni, "~> 0.2"},
+      # {:ex_sni, path: "../ex_sni"},
 
       # Phoenix & Plug
       {:plug, "> 1.0.0"},
