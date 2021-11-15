@@ -188,8 +188,8 @@ defmodule Desktop.Env do
 
   defp init_sni() do
     # Disabled until the DBUS_MENU works stable
-    # if Desktop.OS.type() == Linux do
-    if System.get_env("USE_DBUS_MENU", nil) do
+    if Desktop.OS.type() == Linux do
+      # if System.get_env("USE_DBUS_MENU", nil) do
       case ExSni.start_link() do
         {:ok, pid} ->
           if ExSni.is_supported?(pid) do
