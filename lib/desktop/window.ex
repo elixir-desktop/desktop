@@ -202,6 +202,21 @@ defmodule Desktop.Window do
   end
 
   @doc """
+  Returns the url currently shown of the Window.
+
+    * `pid` - The pid or atom of the Window
+
+  ## Examples
+
+      iex> Desktop.Window.url(pid)
+      http://localhost:1234/main
+
+  """
+  def url(pid) do
+    GenServer.call(pid, :url)
+  end
+
+  @doc """
   Show the Window if not visible with the given url.
 
     * `pid` - The pid or atom of the Window
@@ -577,6 +592,16 @@ defmodule Desktop.Window do
         not :wxWindow.isShown(frame)
       else
         false
+      end
+
+    {:reply, ret, ui}
+  end
+
+  def handle_call(:url, _from, ui) do
+    ret =
+      case Fallback.webview_url(ui) do
+        url when is_list(url) -> List.to_string(url)
+        other -> other
       end
 
     {:reply, ret, ui}

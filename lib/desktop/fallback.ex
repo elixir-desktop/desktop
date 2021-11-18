@@ -72,6 +72,14 @@ defmodule Desktop.Fallback do
       call(:wxWebView, :isShownOnScreen, [webview])
   end
 
+  def webview_url(%Desktop.Window{webview: webview, last_url: last_url}) do
+    if webview?() do
+      call(:wxWebView, :getCurrentURL, [webview])
+    else
+      last_url
+    end
+  end
+
   def webview_show(
         %Desktop.Window{webview: webview, frame: frame, last_url: last},
         url,
