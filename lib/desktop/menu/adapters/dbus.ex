@@ -44,9 +44,7 @@ defmodule Desktop.Menu.Adapter.DBus do
   end
 
   def update_dom(adapter = %__MODULE__{menubar: _menubar, sni: sni}, dom) do
-    # ID 1 is reserved for visible separator
-    # ID 2 is reserved for hidden separator
-    {children, _} = create_menu_items(3, dom, adapter)
+    children = create_menu_items(dom, adapter)
 
     root = Item.root(children)
 
@@ -101,51 +99,47 @@ defmodule Desktop.Menu.Adapter.DBus do
     end
   end
 
-  defp create_menu_items(next_id, [], _adapter) do
-    {[], next_id}
+  defp create_menu_items([], _adapter) do
+    []
   end
 
-  defp create_menu_items(next_id, {:menu, _, children}, adapter) do
-    create_menu_items(next_id, children, adapter)
+  defp create_menu_items({:menu, _, children}, adapter) do
+    create_menu_items(children, adapter)
   end
 
-  defp create_menu_items(next_id, [child | children], adapter) do
-    {item, last_id} = create_menu_item(next_id, child, adapter)
-    {items, last_id} = create_menu_items(last_id + 1, children, adapter)
-    {[item | items], last_id}
+  defp create_menu_items([child | children], adapter) do
+    item = create_menu_item(child, adapter)
+    items = create_menu_items(children, adapter)
+    [item | items]
   end
 
-  defp create_menu_item(id, {:item, params, [label]}, adapter) do
-    {create_standard_item(id, label, params, adapter), id}
+  defp create_menu_item({:item, params, [label]}, adapter) do
+    create_standard_item(label, params, adapter)
   end
 
-  defp create_menu_item(id, {:hr, _, _}, _opts) do
-    # Separator is always visible. Has ID 1
-    {Item.separator(), id}
+  defp create_menu_item({:hr, _, _}, _opts) do
+    Item.separator()
   end
 
-  defp create_menu_item(id, {:menu, params, children}, adapter) do
-    {children, last_id} = create_menu_items(id + 1, children, adapter)
-    item = create_submenu_item(id, params, children, adapter)
-    # item = %{item | children: children}
-    {item, last_id}
+  defp create_menu_item({:menu, params, children}, adapter) do
+    children = create_menu_items(children, adapter)
+    create_submenu_item(params, children, adapter)
   end
 
-  defp create_menu_item(id, {:menubar, _params, children}, adapter) do
-    create_menu_items(id, children, adapter)
+  defp create_menu_item({:menubar, _params, children}, adapter) do
+    create_menu_items(children, adapter)
   end
 
-  defp create_submenu_item(id, params, children, %{menu_pid: menu_pid}) do
+  defp create_submenu_item(params, children, %{menu_pid: menu_pid}) do
     children
     |> Item.menu()
     |> Item.set_label(Map.get(params, :label, ""))
-    |> Item.set_id(id)
     |> Item.set_uid(Map.get(params, :id, ""))
     |> Item.set_enabled(!param_disabled?(Map.get(params, :disabled, false)))
     |> Item.set_callbacks(build_callbacks(menu_pid, params))
   end
 
-  defp create_standard_item(id, label, params, %{menu_pid: menu_pid}) do
+  defp create_standard_item(label, params, %{menu_pid: menu_pid}) do
     params
     |> Map.get(:type, nil)
     |> case do
@@ -153,7 +147,6 @@ defmodule Desktop.Menu.Adapter.DBus do
       "radio" -> Item.radio(label)
       _ -> Item.standard(label)
     end
-    |> Item.set_id(id)
     |> Item.set_uid(Map.get(params, :id, ""))
     |> Item.set_checked(param_checked?(Map.get(params, :checked, false)))
     |> Item.set_enabled(!param_disabled?(Map.get(params, :disabled, false)))
