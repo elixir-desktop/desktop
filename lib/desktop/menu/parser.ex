@@ -15,6 +15,12 @@ defmodule Desktop.Menu.Parser do
     |> List.to_string()
   end
 
+  def escape_attribute(string) do
+    unicode(string)
+    |> :xmerl_lib.export_attribute()
+    |> List.to_string()
+  end
+
   def parse({:safe, string}) do
     parse(string)
   end
