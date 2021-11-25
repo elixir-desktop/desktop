@@ -1,7 +1,5 @@
 defmodule Desktop.Menu.Adapter.Wx do
-  @moduledoc """
-  WX Menu Adapter that creates menus and icons using :wx
-  """
+  @moduledoc false
   alias Desktop.{Wx, OS}
   alias Desktop.Wx.TaskBarIcon
 

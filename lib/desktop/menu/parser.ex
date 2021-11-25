@@ -1,7 +1,5 @@
 defmodule Desktop.Menu.Parser do
-  @moduledoc """
-  Parser that converts a XML string into a Menu DOM struct
-  """
+  @moduledoc false
   require Record
   require Logger
 

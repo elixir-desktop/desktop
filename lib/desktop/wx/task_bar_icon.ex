@@ -1,7 +1,5 @@
 defmodule Desktop.Wx.TaskBarIcon do
-  @moduledoc """
-  TaskBarIcon module for Desktop, based on :wxTaskBarIcon
-  """
+  @moduledoc false
   require Logger
 
   alias Desktop.OS

@@ -1,8 +1,5 @@
 defmodule Desktop.Menu.Adapter.DBus do
-  @moduledoc """
-  DBus Menu adapter that creates and handles
-  menus and tray icons created over DBus.
-  """
+  @moduledoc false
 
   require Logger
 

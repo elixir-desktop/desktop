@@ -1,8 +1,5 @@
 defmodule Desktop.Pixmap do
-  @moduledoc """
-  Module that generates pixmaps out of wx objects
-  such as :wxIcon, :wxImage, :wxBitmap
-  """
+  @moduledoc false
 
   alias Desktop.Wx
 

@@ -1,4 +1,5 @@
 defprotocol Desktop.Menu.Adapter do
+  @moduledoc false
   @fallback_to_any true
 
   @spec create(t(), dom :: any()) :: t()
