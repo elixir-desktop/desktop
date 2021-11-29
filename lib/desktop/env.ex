@@ -187,21 +187,45 @@ defmodule Desktop.Env do
   end
 
   defp init_sni() do
-    # Disabled until the DBUS_MENU works stable
-    if Desktop.OS.type() == Linux do
-      # if System.get_env("USE_DBUS_MENU", nil) do
-      case ExSni.start_link() do
-        {:ok, pid} ->
-          if ExSni.is_supported?(pid) do
-            pid
-          else
-            ExSni.close(pid)
-            nil
-          end
+    # We're protecting the main application from any possible
+    # side effects of the SNI startup using a monitored (not linked) process:
+    {task, ref} = spawn_monitor(fn -> exit(do_init_sni()) end)
 
-        _ ->
-          nil
-      end
+    receive do
+      {:DOWN, ^ref, :process, ^task, {:ok, pid}} ->
+        pid
+
+      {:DOWN, ^ref, :process, ^task, :not_supported} ->
+        nil
+
+      {:DOWN, ^ref, :process, ^task, reason} ->
+        Logger.error("ExSNI.start crashed: #{inspect(reason)}")
+        nil
+    end
+  end
+
+  defp do_init_sni() do
+    cond do
+      Desktop.OS.type() != Linux ->
+        :not_supported
+
+      System.get_env("USE_DBUS_MENU", nil) == "false" ->
+        :not_supported
+
+      true ->
+        case ExSni.start_link() do
+          {:ok, pid} ->
+            if ExSni.is_supported?(pid) do
+              Process.unlink(pid)
+              {:ok, pid}
+            else
+              ExSni.close(pid)
+              :not_supported
+            end
+
+          error ->
+            error
+        end
     end
   end
 end
