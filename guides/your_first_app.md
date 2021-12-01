@@ -1,6 +1,6 @@
 # Your first Desktop App
 
-To initialize a Desktop Application you will need to add this to your application:
+To convert a barebones Phoenix Live View example to a Desktop Application you will need to add this to your application:
 
 1. Add a Desktop.Window child to your supervision tree on startup. E.g. in `application.ex`
 

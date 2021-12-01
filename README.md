@@ -33,7 +33,7 @@ Checkout the Todo sample application for reference of a starting point. https://
 
 ## Gettings Started
 
-Check out the [Getting Started Guide](./guides/getting_started.md)
+Check out the [Getting your Environment Ready Guide](./guides/getting_started.md) and [Your first Desktop App](./guides/your_first_app.md)
 
 ## Contributing and raising Issues
 

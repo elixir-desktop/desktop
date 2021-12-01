@@ -1,4 +1,4 @@
-# Getting your Environment Setup
+# Getting your Environment Ready
 
 ## General notes
 

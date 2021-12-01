@@ -94,7 +94,8 @@ defmodule Desktop.MixProject do
       extras: [
         "LICENSE.md": [title: "License"],
         "README.md": [title: "Overview"],
-        "guides/getting_started.md": [title: "Getting Started"]
+        "guides/getting_started.md": [title: "Getting your Environment Ready"],
+        "guides/your_first_app.md": [title: "Your first Desktop App"]
       ],
       main: "readme",
       source_ref: "v#{@version}",
