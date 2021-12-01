@@ -14,18 +14,13 @@ defmodule Desktop.Pixmap do
     height = :wxIcon.getHeight(icon)
     bitmap = :wxBitmap.new(width, height)
 
-    if :wxBitmap.copyFromIcon(bitmap, icon) do
-      ret = from_wx_bitmap(bitmap, opts)
-      :wxBitmap.destroy(bitmap)
-      ret
-    else
-      :wxBitmap.destroy(bitmap)
-      {:error, "Failed to copy bitmap from icon"}
+    if not :wxBitmap.copyFromIcon(bitmap, icon) do
+      raise "Failed to copy bitmap from icon #{inspect({width, height})}"
     end
-  end
 
-  defp from_wx_bitmap(bitmap, opts) do
-    pixmap_from_wx_bitmap(bitmap, opts)
+    ret = pixmap_from_wx_bitmap(bitmap, opts)
+    :wxBitmap.destroy(bitmap)
+    ret
   end
 
   defp pixmap_from_wx_bitmap(bitmap, opts) do
@@ -50,7 +45,7 @@ defmodule Desktop.Pixmap do
 
     :wxImage.destroy(image)
 
-    {:ok, {width, height, argb}}
+    {width, height, argb}
   end
 
   defp rescale_image(image, width, height) do

@@ -111,7 +111,7 @@ defmodule Desktop.Window do
     window_title = options[:title] || Atom.to_string(options[:id])
     size = options[:size] || {600, 500}
     app = options[:app]
-    icon = options[:icon] || "icon.png"
+    icon = options[:icon]
     # not supported on mobile atm
     menubar = unless OS.mobile?(), do: options[:menubar]
     icon_menu = unless OS.mobile?(), do: options[:icon_menu]
@@ -135,7 +135,11 @@ defmodule Desktop.Window do
 
     :wxFrame.setSizer(frame, :wxBoxSizer.new(Wx.wxHORIZONTAL()))
 
-    {:ok, icon} = Desktop.Image.new_icon(app, icon)
+    {:ok, icon} =
+      case icon do
+        nil -> {:ok, :wxArtProvider.getIcon("wxART_EXECUTABLE_FILE")}
+        filename -> Desktop.Image.new_icon(app, filename)
+      end
 
     :wxTopLevelWindow.setIcon(frame, icon)
 

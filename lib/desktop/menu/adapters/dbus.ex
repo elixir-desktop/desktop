@@ -90,10 +90,7 @@ defmodule Desktop.Menu.Adapter.DBus do
   # Private functions
 
   defp set_sni_icon(sni, icon) do
-    with {:ok, dbus_icon} <- generate_icon(icon),
-         {:ok, icon} <- ExSni.update_icon(sni, dbus_icon) do
-      {:ok, icon}
-    end
+    ExSni.update_icon(sni, generate_icon(icon))
   end
 
   defp create_menu_items([], _adapter) do
@@ -199,47 +196,39 @@ defmodule Desktop.Menu.Adapter.DBus do
   end
 
   defp generate_icon(nil) do
-    {:ok, nil}
+    nil
   end
 
   defp generate_icon(icon = %Icon{}) do
-    {:ok, icon}
+    icon
   end
 
   defp generate_icon(icon_name) when is_binary(icon_name) do
-    icon = %{
+    %{
       generate_sni_icon()
       | icon: %Info{
           name: icon_name
         }
     }
-
-    {:ok, icon}
   end
 
   defp generate_icon(wx_icon) do
     :wxIcon = :wx.getObjectType(wx_icon)
 
-    case Pixmap.from_wx_icon(wx_icon,
-           env: Desktop.Env.wx_env(),
-           rescale: true,
-           width: 22,
-           height: 22
-         ) do
-      {:ok, pixmap} ->
-        icon = %{
-          generate_sni_icon()
-          | icon: %Info{
-              data: {:pixmap, [pixmap]}
-            }
+    pixmap =
+      Pixmap.from_wx_icon(wx_icon,
+        env: Desktop.Env.wx_env(),
+        rescale: true,
+        width: 22,
+        height: 22
+      )
+
+    %{
+      generate_sni_icon()
+      | icon: %Info{
+          data: {:pixmap, [pixmap]}
         }
-
-        {:ok, icon}
-
-      error ->
-        Logger.warn(error)
-        error
-    end
+    }
   end
 
   defp generate_sni_icon() do

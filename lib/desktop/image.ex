@@ -1,8 +1,21 @@
 defmodule Desktop.Image do
+  require Logger
   @moduledoc false
   def new(app, path) when is_binary(path) do
-    path = get_abs_path(app, path)
-    {:ok, :wxImage.new(path)}
+    image = :wxImage.new(get_abs_path(app, path))
+
+    image =
+      if :wxImage.isOk(image) do
+        image
+      else
+        Logger.error("Could not load image #{get_abs_path(app, path)}")
+        fallback = :wxArtProvider.getBitmap("wxART_ERROR")
+        image = :wxBitmap.convertToImage(fallback)
+        :wxBitmap.destroy(fallback)
+        image
+      end
+
+    {:ok, image}
   end
 
   def new_icon(app, path) do
@@ -34,7 +47,7 @@ defmodule Desktop.Image do
         end
 
       :wxIcon ->
-        image
+        {:ok, image}
     end
   end
 
