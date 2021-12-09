@@ -35,7 +35,9 @@ defmodule Desktop.Menu.Parser do
       simple_form(xml)
     catch
       :exit, error ->
-        Logger.error("Failed to parse document #{inspect(error)}")
+        filename = Path.absname("parse_error.xml")
+        File.write(filename, string)
+        Logger.error("Failed to parse document. Dumped #{filename} #{inspect(error)}")
 
         []
     end
