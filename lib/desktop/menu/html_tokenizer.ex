@@ -389,7 +389,7 @@ defmodule Desktop.Menu.HTMLTokenizer do
 
   ## handle_attr_value_as_expr
 
-  defp handle_attr_value_as_expr(text, line, column, acc, %{braces: []} = state) do
+  defp handle_attr_value_as_expr(text, line, column, acc, state = %{braces: []}) do
     case handle_interpolation(text, line, column, [], state) do
       {:ok, value, new_line, new_column, rest, state} ->
         acc = put_attr_value(acc, {:expr, value, %{line: line, column: column}})
@@ -410,7 +410,7 @@ defmodule Desktop.Menu.HTMLTokenizer do
     handle_interpolation(rest, line + 1, state.column_offset, ["\n" | buffer], state)
   end
 
-  defp handle_interpolation("}" <> rest, line, column, buffer, %{braces: []} = state) do
+  defp handle_interpolation("}" <> rest, line, column, buffer, state = %{braces: []}) do
     value = buffer_to_string(buffer)
     {:ok, value, line, column + 1, rest, state}
   end
@@ -476,7 +476,7 @@ defmodule Desktop.Menu.HTMLTokenizer do
     %{state | braces: [pos | state.braces]}
   end
 
-  defp pop_brace(%{braces: [pos | braces]} = state) do
+  defp pop_brace(state = %{braces: [pos | braces]}) do
     {pos, %{state | braces: braces}}
   end
 
