@@ -9,6 +9,13 @@
 
 Building native-like Elixir apps for Window, MacOS, Linux, iOS and Android using Phoenix LiveView!
 
+## Changes in 1.4
+
+- Support for `~H` sigil with `<item onclick={...}>`  
+- Changed Menu XML escaping to LiveView automatic escaping logic from LiveView HTML tokenizer & engine.
+- Removed `Menu.escape_attribute/1` and `Menu.escape/1`
+- Dropped `:xmerl` dependency 
+
 ## Changes in 1.3
 
 - Added `Env.subscribe/1` to listen to MacOS application events such as `{:open_url, url}` when a url associated with the application is clicked.

@@ -1,7 +1,7 @@
 defmodule Desktop.MixProject do
   use Mix.Project
 
-  @version "1.3.4"
+  @version "1.4.0"
   @url "https://github.com/elixir-desktop/desktop"
 
   def project do
@@ -39,8 +39,7 @@ defmodule Desktop.MixProject do
         :logger,
         :sasl,
         :ssl,
-        :tools,
-        :xmerl
+        :tools
         | extra_applications(Mix.target())
       ]
     ]
@@ -77,6 +76,8 @@ defmodule Desktop.MixProject do
       # {:ex_sni, path: "../ex_sni"},
 
       # Phoenix & Plug
+      {:phoenix, "> 1.0.0"},
+      {:phoenix_live_view, "> 0.15.0"},
       {:plug, "> 1.0.0"},
       {:gettext, "> 0.10.0"}
     ]

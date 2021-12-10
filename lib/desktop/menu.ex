@@ -94,16 +94,6 @@ defmodule Desktop.Menu do
 
   A separator item
 
-  # Escaping
-
-  Within the XML document it will be neccesary to escape dynamic content. Within for normal text content the `escape(text)` function is safe
-  to use. For xml attributes `escape_attribute(value)` can be used:
-
-  ```
-    <menu label="escape_attribute(@menu_label)">
-        <item onclick="open"><%= escape(@user_input) %></item>
-    </menu>
-  ```
   """
 
   use GenServer
@@ -143,27 +133,92 @@ defmodule Desktop.Menu do
 
     Module.put_attribute(__CALLER__.module, :is_menu_server, Keyword.get(opts, :server, true))
 
+    # Phoenix.LiveView.HTMLEngine vs. Phoenix.HTML.Engine
     quote do
       @behaviour Desktop.Menu
-      import Desktop.Menu, only: [assign: 2, escape: 1, escape_attribute: 1]
+      import Desktop.Menu, only: [assign: 2]
       import Phoenix.HTML, only: [sigil_e: 2, sigil_E: 2]
+      import Phoenix.LiveView.Helpers, only: [sigil_L: 2, sigil_H: 2]
       alias Desktop.Menu
 
-      if not Keyword.get(unquote(opts), :skip_render, false) do
-        require EEx
-        @template Path.basename(__ENV__.file, ".ex") <> ".eex"
-        EEx.function_from_file(:def, :render, "#{__DIR__}/#{@template}", [:assigns])
-        defoverridable render: 1
-      end
+      @before_compile Desktop.Menu
     end
   end
 
-  def escape(string) do
-    Parser.escape(string)
+  defmacro __before_compile__(env) do
+    render? = Module.defines?(env.module, {:render, 1})
+    root = Path.dirname(env.file)
+    filename = template_filename(env)
+    templates = Phoenix.Template.find_all(root, filename)
+
+    case {render?, templates} do
+      {true, [template | _]} ->
+        IO.warn(
+          "ignoring template #{inspect(template)} because the Menu " <>
+            "#{inspect(env.module)} defines a render/1 function",
+          Macro.Env.stacktrace(env)
+        )
+
+        :ok
+
+      {true, []} ->
+        :ok
+
+      {false, [template]} ->
+        ext = template |> Path.extname() |> String.trim_leading(".") |> String.to_atom()
+        engine = Map.fetch!(Phoenix.Template.engines(), ext)
+        ast = engine.compile(template, filename)
+
+        quote do
+          @file unquote(template)
+          @external_resource unquote(template)
+          def render(var!(assigns)) when is_map(var!(assigns)) do
+            unquote(ast)
+          end
+        end
+
+      {false, [_ | _]} ->
+        IO.warn(
+          "multiple templates were found for #{inspect(env.module)}: #{inspect(templates)}",
+          Macro.Env.stacktrace(env)
+        )
+
+        :ok
+
+      {false, []} ->
+        template = Path.join(root, filename <> ".heex")
+
+        message = ~s'''
+        render/1 was not implemented for #{inspect(env.module)}.
+
+        Make sure to either explicitly define a render/1 clause with a Menu template:
+
+            def render(assigns) do
+              ~H"""
+              ...
+              """
+            end
+
+        Or create a file at #{inspect(template)} with the Menu template.
+        '''
+
+        IO.warn(message, Macro.Env.stacktrace(env))
+
+        quote do
+          @external_resource unquote(template)
+          def render(_assigns) do
+            raise unquote(message)
+          end
+        end
+    end
   end
 
-  def escape_attribute(string) do
-    Parser.escape_attribute(string)
+  defp template_filename(env) do
+    env.module
+    |> Module.split()
+    |> List.last()
+    |> Macro.underscore()
+    |> Kernel.<>(".html")
   end
 
   def assign(assigns = %{}) do

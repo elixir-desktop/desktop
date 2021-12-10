@@ -349,6 +349,6 @@ defmodule Desktop.Menu.Adapter.Wx do
   end
 
   defp is_true(value) do
-    value != nil and value != "false" and value != "0"
+    value != nil and value != "false" and value != "0" and value != ""
   end
 end
