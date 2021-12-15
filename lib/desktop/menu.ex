@@ -112,7 +112,7 @@ defmodule Desktop.Menu do
     :last_render
   ]
 
-  @type t() :: %__MODULE__{
+  @type t() :: %Menu{
           __adapter__: any(),
           app: nil,
           assigns: %{},
@@ -136,7 +136,7 @@ defmodule Desktop.Menu do
     # Phoenix.LiveView.HTMLEngine vs. Phoenix.HTML.Engine
     quote do
       @behaviour Desktop.Menu
-      import Desktop.Menu, only: [assign: 2]
+      import Desktop.Menu, only: [assign: 2, connected?: 1]
       import Phoenix.HTML, only: [sigil_e: 2, sigil_E: 2]
       import Phoenix.LiveView.Helpers, only: [sigil_L: 2, sigil_H: 2]
       alias Desktop.Menu
@@ -221,32 +221,24 @@ defmodule Desktop.Menu do
     |> Kernel.<>(".html")
   end
 
-  def assign(assigns = %{}) do
-    assigns
+  def connected?(_menu), do: true
+  def assign(menu, properties \\ [])
+
+  def assign(menu, properties) when is_list(properties) do
+    assign(menu, Map.new(properties))
   end
 
-  def assign(assigns = %{}, properties) when is_list(properties) do
-    assign(assigns, Map.new(properties))
+  def assign(menu = %Menu{assigns: assigns}, properties) when is_map(properties) do
+    %Menu{menu | assigns: Map.merge(assigns, properties)}
   end
 
-  def assign(assigns = %{}, properties) when is_map(properties) do
-    assigns
-    |> Map.merge(properties)
+  def assign(menu, property, value) when is_atom(property) do
+    assign(menu, %{property => value})
   end
 
-  def assign(assigns = %{}, property, value) when is_atom(property) do
-    assigns
-    |> Map.put(property, value)
-  end
-
-  def assign_new(assigns = %{}, property, value) when is_atom(property) do
-    assigns
-    |> Map.put_new(property, value)
-  end
-
-  def assign_new(assigns = %{}, property, fun) when is_function(fun) do
-    assigns
-    |> Map.put_new_lazy(property, fun)
+  def assign_new(menu = %Menu{assigns: assigns}, property, fun)
+      when is_atom(property) and is_function(fun) do
+    %Menu{menu | assigns: Map.put_new_lazy(assigns, property, fun)}
   end
 
   # GenServer implementation
@@ -266,7 +258,7 @@ defmodule Desktop.Menu do
   def start_link(init_opts \\ [], opts \\ [])
 
   def start_link(init_opts, opts) do
-    GenServer.start_link(__MODULE__, init_opts, opts)
+    GenServer.start_link(Menu, init_opts, opts)
   end
 
   @impl true
@@ -310,10 +302,6 @@ defmodule Desktop.Menu do
     {:ok, menu}
   end
 
-  # def mount(menu_pid) do
-  #   GenServer.cast(menu_pid, :mount)
-  # end
-
   def trigger_event(menu_pid, event) do
     GenServer.call(menu_pid, {:trigger_event, event})
   end
@@ -326,7 +314,7 @@ defmodule Desktop.Menu do
     GenServer.call(menu_pid, :menubar)
   end
 
-  def get_icon(%{__menu__: menu_pid}) when is_pid(menu_pid) do
+  def get_icon(%Menu{pid: menu_pid}) when is_pid(menu_pid) do
     get_icon(menu_pid)
   end
 
@@ -334,13 +322,13 @@ defmodule Desktop.Menu do
     GenServer.call(menu_pid, :get_icon)
   end
 
-  def set_icon(%{__menu__: menu_pid}, icon) when is_pid(menu_pid) do
+  def set_icon(%Menu{pid: menu_pid}, icon) when is_pid(menu_pid) do
     set_icon(menu_pid, icon)
   end
 
   def set_icon(menu_pid, icon) when is_pid(menu_pid) do
     if menu_pid == self() do
-      spawn_link(__MODULE__, :set_icon, [menu_pid, icon])
+      spawn_link(Menu, :set_icon, [menu_pid, icon])
     else
       GenServer.call(menu_pid, {:set_icon, icon})
     end
@@ -366,16 +354,15 @@ defmodule Desktop.Menu do
 
   @impl true
   def handle_call({:trigger_event, event}, _from, menu = %{module: module}) do
-    assigns = build_assigns(menu)
-
     menu =
-      case invoke_module_func(module, :handle_event, [event, assigns]) do
-        {:ok, {:ok, assigns}} -> maybe_update_dom(menu, assigns)
-        {:ok, {:noreply, assigns}} -> maybe_update_dom(menu, assigns)
+      with {:ok, {:noreply, menu}} <- invoke_module_func(module, :handle_event, [event, menu]),
+           {:ok, _updated?, menu} <- update_dom(menu) do
+        menu
+      else
         _ -> menu
       end
 
-    {:reply, build_assigns(menu), menu}
+    {:reply, menu.assigns, menu}
   end
 
   @impl true
@@ -432,12 +419,10 @@ defmodule Desktop.Menu do
     end
   end
 
-  defp do_mount(menu = %__MODULE__{module: module}) do
-    assigns = build_assigns(menu)
-
-    case invoke_module_func(module, :mount, [assigns]) do
-      {:ok, {:ok, assigns}} ->
-        case update_dom(%{menu | assigns: assigns}) do
+  defp do_mount(menu = %Menu{module: module}) do
+    case invoke_module_func(module, :mount, [menu]) do
+      {:ok, {:ok, menu}} ->
+        case update_dom(menu) do
           {:ok, _updated?, menu} -> menu
           _error -> menu
         end
@@ -447,42 +432,17 @@ defmodule Desktop.Menu do
     end
   end
 
-  defp proxy_handle_info(msg, menu = %__MODULE__{module: module}) do
-    assigns = build_assigns(menu)
-
-    case invoke_module_func(module, :handle_info, [msg, assigns]) do
-      {:ok, {:ok, assigns}} -> maybe_update_dom(menu, assigns)
-      {:ok, {:noreply, assigns}} -> maybe_update_dom(menu, assigns)
+  defp proxy_handle_info(msg, menu = %Menu{module: module}) do
+    with {:ok, {:noreply, menu}} <- invoke_module_func(module, :handle_info, [msg, menu]),
+         {:ok, _updated?, menu} <- update_dom(menu) do
+      menu
+    else
       _ -> menu
     end
   end
 
-  defp maybe_update_dom(menu, assigns = %{__menu__: _}) do
-    maybe_update_dom(menu, Map.delete(assigns, :__menu__))
-  end
-
-  defp maybe_update_dom(menu = %{assigns: assigns}, assigns) do
-    menu
-  end
-
-  defp maybe_update_dom(menu = %{}, assigns) do
-    case update_dom(%{menu | assigns: assigns}) do
-      {:ok, _updated?, menu} ->
-        menu
-
-      _error ->
-        menu
-    end
-  end
-
-  defp maybe_update_dom(menu, _) do
-    menu
-  end
-
   @spec update_dom(menu :: t()) :: {:ok, updated :: boolean(), menu :: t()} | {:error, binary()}
-  defp update_dom(
-         menu = %__MODULE__{__adapter__: adapter, module: module, dom: dom, assigns: assigns}
-       ) do
+  defp update_dom(menu = %Menu{__adapter__: adapter, module: module, dom: dom, assigns: assigns}) do
     with {:ok, new_dom} <- invoke_render(module, assigns) do
       if new_dom != dom do
         adapter = Adapter.update_dom(adapter, new_dom)
@@ -513,11 +473,6 @@ defmodule Desktop.Menu do
     else
       return -> {:ok, return}
     end
-  end
-
-  defp build_assigns(%__MODULE__{assigns: assigns, pid: menu_pid}) do
-    assigns
-    |> Map.merge(%{__menu__: menu_pid})
   end
 
   defp is_module_server?(module) do
