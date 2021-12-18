@@ -60,9 +60,9 @@ defmodule Desktop.Menu.Parser do
     if tag not in @known_tags do
       """
         Found unexpected tag "<#{tag}>" on line #{meta.line} col #{meta.column}.
-      
+
         Only the following tags are supported:
-      
+
         <#{Enum.join(@known_tags, "> <")}>
       """
       |> error(meta)

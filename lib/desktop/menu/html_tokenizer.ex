@@ -223,17 +223,17 @@ defmodule Desktop.Menu.HTMLTokenizer do
   defp handle_maybe_tag_open_end(<<>>, line, column, _acc, state) do
     message = """
     expected closing `>` or `/>`
-    
+
     Make sure the tag is properly closed. This may also happen if
     there is an EEx interpolation inside a tag, which is not supported.
     Instead of
-    
+
         <a href="<%= @url %>">Text</a>
-    
+
     do
-    
+
         <a href={@url}>Text</a>
-    
+
     """
 
     raise ParseError, file: state.file, line: line, column: column, description: message
@@ -368,19 +368,19 @@ defmodule Desktop.Menu.HTMLTokenizer do
   defp handle_attr_value_quote(<<>>, delim, line, column, _buffer, _acc, state) do
     message = """
     expected closing `#{<<delim>>}` for attribute value
-    
+
     Make sure the attribute is properly closed. This may also happen if
     there is an EEx interpolation inside a tag, which is not supported.
     Instead of
-    
+
         <div <%= @some_attributes %>>
         </div>
-    
+
     do
-    
+
         <div {@some_attributes}>
         </div>
-    
+
     Where @some_attributes must be a keyword list or a map.
     """
 
