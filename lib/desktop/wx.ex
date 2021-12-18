@@ -19,7 +19,7 @@ defmodule Desktop.Wx do
       -module(desktop_wx).
       -include_lib("wx/include/wx.hrl").
       -export([get/1]).
-
+    
       #{gets}.
     """
   )

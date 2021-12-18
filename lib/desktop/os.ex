@@ -2,7 +2,7 @@ defmodule Desktop.OS do
   @moduledoc """
     The OS module provides shortcuts and helper functions
     to access OS specific information.
-
+  
     Most significant one should use OS.type() to differentiate
     between the currently supported environments:
     - Android
@@ -10,7 +10,7 @@ defmodule Desktop.OS do
     - MacOS
     - Windows
     - Linux
-
+  
   """
 
   @doc """
