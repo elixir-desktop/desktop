@@ -16,7 +16,11 @@ defmodule Desktop.Fallback do
       webview =
         if OS.type() == Windows do
           if call(:wxWebView, :isBackendAvailable, ['wxWebViewEdge']) do
-            call(:wxWebView, :new, [frame, -1, [backend: 'wxWebViewEdge']])
+            call(:wxWebView, :new, [
+              frame,
+              -1,
+              [backend: 'wxWebViewEdge', style: Desktop.Wx.wxNO_BORDER()]
+            ])
             |> configure_webview()
           else
             Logger.warning("""
@@ -44,7 +48,7 @@ defmodule Desktop.Fallback do
             win
           end
         else
-          call(:wxWebView, :new, [frame, -1])
+          call(:wxWebView, :new, [frame, -1, [style: Desktop.Wx.wxNO_BORDER()]])
           |> configure_webview()
         end
 
