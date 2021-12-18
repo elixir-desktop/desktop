@@ -46,9 +46,9 @@ defmodule Desktop.Window do
       title can be set later using `set_title/2`.
 
     * `:size` - the initial windows size in pixels {width, height}.
-  
+
     * `:min_size` - the minimum windows size in pixels {width, height}.
-  
+
     * `:hidden` - whether the window should be initially hidden defaults to false,
                   but is ignored on mobile platforms
 
@@ -480,9 +480,7 @@ defmodule Desktop.Window do
     case Enum.find(noties, fn {_, {wx_ref, _callback}} -> wx_ref == obj end) do
       nil ->
         Logger.error(
-          "Received unhandled notification event #{inspect(obj)}: #{inspect(action)} (#{
-            inspect(noties)
-          })"
+          "Received unhandled notification event #{inspect(obj)}: #{inspect(action)} (#{inspect(noties)})"
         )
 
       {_, {_ref, nil}} ->
