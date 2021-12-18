@@ -47,6 +47,8 @@ defmodule Desktop.Window do
 
     * `:size` - the initial windows size in pixels {width, height}.
 
+    * `:min_size` - the minimum windows size in pixels {width, height}.
+
     * `:hidden` - whether the window should be initially hidden defaults to false,
                   but is ignored on mobile platforms
 
@@ -110,6 +112,7 @@ defmodule Desktop.Window do
   def init(options) do
     window_title = options[:title] || Atom.to_string(options[:id])
     size = options[:size] || {600, 500}
+    min_size = options[:min_size]
     app = options[:app]
     icon = options[:icon]
     # not supported on mobile atm
@@ -132,6 +135,10 @@ defmodule Desktop.Window do
       callback: &close_window/2,
       userData: self()
     )
+
+    if min_size do
+      :wxFrame.setMinSize(frame, min_size)
+    end
 
     :wxFrame.setSizer(frame, :wxBoxSizer.new(Wx.wxHORIZONTAL()))
 
