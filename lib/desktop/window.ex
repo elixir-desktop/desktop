@@ -1,23 +1,23 @@
 defmodule Desktop.Window do
   @moduledoc ~S"""
   Defines a Desktop Window.
-
+  
   The window hosts a Phoenix Endpoint and displays its content.
   It should be part of a supervision tree and is the main interface
   to interact with your application.
-
+  
   In total the window is doing:
-
+  
     * Displaying the endpoint content
-
+  
     * Hosting and starting an optional menu bar
-
+  
     * Controlling a taskbar icon if present
-
+  
   ## The Window
-
+  
   You can add the Window to your own Supervision tree:
-
+  
       children = [{
         Desktop.Window,
         [
@@ -31,44 +31,44 @@ defmodule Desktop.Window do
           url: fn -> YourAppWeb.Router.Helpers.live_url(YourAppWeb.Endpoint, YourAppWeb.YourAppLive) end
         ]
       }]
-
-
+  
+  
   ### Window configuration
-
+  
   In order to change the appearance of the application window these options can be defined:
-
+  
     * `:app` - your app name within which the Window is running.
-
+  
     * `:id` - an atom identifying the window. Can later be used to control the
       window using the functions of this module.
-
+  
     * `:title` - the window title that will be show initially. The window
       title can be set later using `set_title/2`.
-
+  
     * `:size` - the initial windows size in pixels {width, height}.
   
     * `:min_size` - the minimum windows size in pixels {width, height}.
   
     * `:hidden` - whether the window should be initially hidden defaults to false,
                   but is ignored on mobile platforms
-
+  
         Possible values are:
-
+  
         * `false` - Show the window on startup (default)
         * `true` - Don't show the window on startup
-
+  
     * `:icon` - an icon file name that will be used as taskbar and
       window icon. Supported formats are png files
-
+  
     * `:menubar` - an optional MenuBar module that will be rendered
       as the windows menu bar when given.
-
+  
     * `:icon_menu` - an optional MenuBar module that will be rendered
       as menu onclick on the taskbar icon.
-
+  
     * `:url` - a callback to the initial (default) url to show in the
       window.
-
+  
   """
 
   alias Desktop.{OS, Window, Wx, Menu, Fallback}
@@ -214,14 +214,14 @@ defmodule Desktop.Window do
 
   @doc """
   Returns the url currently shown of the Window.
-
+  
     * `pid` - The pid or atom of the Window
-
+  
   ## Examples
-
+  
       iex> Desktop.Window.url(pid)
       http://localhost:1234/main
-
+  
   """
   def url(pid) do
     GenServer.call(pid, :url)
@@ -229,16 +229,16 @@ defmodule Desktop.Window do
 
   @doc """
   Show the Window if not visible with the given url.
-
+  
     * `pid` - The pid or atom of the Window
     * `url` - The endpoint url to show. If non is provided
       the url callback will be used to get one.
-
+  
   ## Examples
-
+  
       iex> Desktop.Window.show(pid, "/")
       :ok
-
+  
   """
   def show(pid, url \\ nil) do
     GenServer.cast(pid, {:show, url})
@@ -246,14 +246,14 @@ defmodule Desktop.Window do
 
   @doc """
   Hide the Window if visible (noop on mobile platforms)
-
+  
     * `pid` - The pid or atom of the Window
-
+  
   ## Examples
-
+  
       iex> Desktop.Window.hide(pid)
       :ok
-
+  
   """
   def hide(pid) do
     GenServer.cast(pid, :hide)
@@ -262,14 +262,14 @@ defmodule Desktop.Window do
   @doc """
   Returns true if the window is hidden. Always returns false
   on mobile platforms.
-
+  
     * `pid` - The pid or atom of the Window
-
+  
   ## Examples
-
+  
       iex> Desktop.Window.is_hidden?(pid)
       false
-
+  
   """
   def is_hidden?(pid) do
     GenServer.call(pid, :is_hidden?)
@@ -277,15 +277,15 @@ defmodule Desktop.Window do
 
   @doc """
   Set the windows title
-
+  
     * `pid` - The pid or atom of the Window
     * `title` - The new windows title
-
+  
   ## Examples
-
+  
       iex> Desktop.Window.set_title(pid, "New Window Title")
       :ok
-
+  
   """
   def set_title(pid, title) do
     GenServer.cast(pid, {:set_title, title})
@@ -293,7 +293,7 @@ defmodule Desktop.Window do
 
   @doc """
   Iconize or restore the window
-
+  
     * `pid` - The pid or atom of the Window
     * `restore` - Optional defaults to false whether the
                   window should be restored
@@ -306,14 +306,14 @@ defmodule Desktop.Window do
   Rebuild the webview. This function is a troubleshooting
   function at this time. On Windows it's sometimes necessary
   to rebuild the WebView2 frame.
-
+  
     * `pid` - The pid or atom of the Window
-
+  
   ## Examples
-
+  
       iex> Desktop.Window.rebuild_webview(pid)
       :ok
-
+  
   """
   def rebuild_webview(pid) do
     GenServer.cast(pid, :rebuild_webview)
@@ -323,15 +323,15 @@ defmodule Desktop.Window do
   Fetch the underlying :wxWebView instance object. Call
   this if you have to use more advanced :wxWebView functions
   directly on the object.
-
+  
     * `pid` - The pid or atom of the Window
-
+  
   ## Examples
-
+  
       iex> :wx.set_env(Desktop.Env.wx_env())
       iex> :wxWebView.isContextMenuEnabled(Desktop.Window.webview(pid))
       false
-
+  
   """
   def webview(pid) do
     GenServer.call(pid, :webview)
@@ -340,15 +340,15 @@ defmodule Desktop.Window do
   @doc """
   Fetch the underlying :wxFrame instance object. This represents
   the window which the webview is drawn into.
-
+  
     * `pid` - The pid or atom of the Window
-
+  
   ## Examples
-
+  
       iex> :wx.set_env(Desktop.Env.wx_env())
       iex> :wxWindow.show(Desktop.Window.frame(pid), show: false)
       false
-
+  
   """
   def frame(pid) do
     GenServer.call(pid, :frame)
@@ -356,47 +356,47 @@ defmodule Desktop.Window do
 
   @doc """
   Show a desktop notification
-
+  
     * `pid` - The pid or atom of the Window
-
+  
     * `text` - The text content to show in the notification
-
+  
     * `opts` - Additional notification options
-
+  
       Valid keys are:
-
+  
         * `:id` - An id for the notification, this is important if you
           want control, the visibility of the notification. The default
           value when none is provided is `:default`
-
+  
         * `:type` - One of `:info` `:error` `:warn` these will change
           how the notification will be displayed. The default is `:info`
-
+  
         * `:title` - An alternative title for the notificaion,
           when none is provided the current window title is used.
-
+  
         * `:timeout` - A timeout hint specifying how long the notification
           should be displayed.
-
+  
           Possible values are:
-
+  
             * `:auto` - This is the default and let's the OS decide
-
+  
             * `:never` - Indicates that notification should not be hidden
               automatically
-
+  
             * ms - A time value in milliseconds, how long the notification
               should be shown
-
+  
         * `:callback` - A function to be executed when the user clicks on the
           notification.
-
+  
   ## Examples
-
+  
       iex> :wx.set_env(Desktop.Env.wx_env())
       iex> :wxWebView.isContextMenuEnabled(Desktop.Window.webview(pid))
       false
-
+  
   """
   def show_notification(pid, text, opts \\ []) do
     id = Keyword.get(opts, :id, :default)
@@ -480,9 +480,7 @@ defmodule Desktop.Window do
     case Enum.find(noties, fn {_, {wx_ref, _callback}} -> wx_ref == obj end) do
       nil ->
         Logger.error(
-          "Received unhandled notification event #{inspect(obj)}: #{inspect(action)} (#{
-            inspect(noties)
-          })"
+          "Received unhandled notification event #{inspect(obj)}: #{inspect(action)} (#{inspect(noties)})"
         )
 
       {_, {_ref, nil}} ->

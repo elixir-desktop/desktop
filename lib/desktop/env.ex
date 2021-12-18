@@ -6,7 +6,7 @@ defmodule Desktop.Env do
       * OS Application events (such as when a file is dragged on the application icon)
       * The :wx environment
       * The dbus connection (sni) on linux
-
+  
     Also it has a global connect() method to allow binding of :wx event callbacks using
     this long lived process as reference.
   """
@@ -174,9 +174,9 @@ defmodule Desktop.Env do
 
   @doc """
     Wrapper around wx.subscribe()
-
+  
     Will send to the calling process events in the form:
-
+  
     * `{:print_file, [filename]}`
     * `{:open_file, [filename]}`
     * `{:open_url, [filename]}`
