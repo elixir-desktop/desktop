@@ -59,7 +59,10 @@ defmodule Desktop.OS do
       Process.sleep(300)
 
       if windows?() do
-        System.stop(0)
+        System.halt(0)
+        # With System.stop(0) shutdown of the WebView takes
+        # a very long time (10+ seconds)
+        # System.stop(0)
       else
         kill_heart()
         System.halt(0)
