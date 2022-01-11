@@ -7,7 +7,7 @@
 [![Last Updated](https://img.shields.io/github/last-commit/elixir-desktop/desktop.svg)](https://github.com/elixir-desktop/desktop/commits/master)
 
 
-Building native-like Elixir apps for Window, MacOS, Linux, iOS and Android using Phoenix LiveView!
+Building native-like Elixir apps for Windows, MacOS, Linux, iOS and Android using Phoenix LiveView!
 
 ## Changes in 1.4
 
