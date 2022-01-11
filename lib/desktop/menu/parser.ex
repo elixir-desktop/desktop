@@ -13,6 +13,12 @@ defmodule Desktop.Menu.Parser do
   def parse(string) when is_list(string) or is_binary(string) do
     string = :unicode.characters_to_binary(string)
 
+    if System.get_env("TRACE_MENU") do
+      {millis, _} = :erlang.statistics(:wall_clock)
+      trace = "=== TRACE #{millis} ===\n" <> String.trim(string) <> "\n"
+      File.write("menu_trace.xml", trace, [:append])
+    end
+
     try do
       HTMLTokenizer.tokenize(string, "generated", 0, [])
       # 'simple-form' is what xmerl documentation calls a tree of tuples:
