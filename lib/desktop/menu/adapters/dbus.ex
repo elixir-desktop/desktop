@@ -156,7 +156,7 @@ defmodule Desktop.Menu.Adapter.DBus do
               {
                 "clicked",
                 fn _data, _timestamp ->
-                  spawn_link(Desktop.Menu, :trigger_event, [menu_pid, event])
+                  Desktop.Menu.trigger_event(menu_pid, event)
                 end,
                 # Store on<event> attr pair after the callback for use in diffing
                 {"onclick", event}

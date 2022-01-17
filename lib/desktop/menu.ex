@@ -303,7 +303,7 @@ defmodule Desktop.Menu do
   end
 
   def trigger_event(menu_pid, event) do
-    GenServer.call(menu_pid, {:trigger_event, event})
+    GenServer.cast(menu_pid, {:trigger_event, event})
   end
 
   def popup_menu(menu_pid) do
@@ -339,12 +339,10 @@ defmodule Desktop.Menu do
     {:reply, Adapter.menubar(adapter), menu}
   end
 
-  @impl true
   def handle_call(:get_icon, _from, menu) do
     {:reply, get_adapter_icon(menu), menu}
   end
 
-  @impl true
   def handle_call({:set_icon, icon}, _from, menu) do
     case set_adapter_icon(menu, icon) do
       {:ok, menu} -> {:reply, get_adapter_icon(menu), menu}
@@ -353,7 +351,7 @@ defmodule Desktop.Menu do
   end
 
   @impl true
-  def handle_call({:trigger_event, event}, _from, menu = %{module: module}) do
+  def handle_cast({:trigger_event, event}, menu = %{module: module}) do
     menu =
       with {:ok, {:noreply, menu}} <- invoke_module_func(module, :handle_event, [event, menu]),
            {:ok, _updated?, menu} <- update_dom(menu) do
@@ -362,23 +360,20 @@ defmodule Desktop.Menu do
         _ -> menu
       end
 
-    {:reply, menu.assigns, menu}
+    {:noreply, menu}
   end
 
-  @impl true
   def handle_cast(:popup_menu, menu = %{__adapter__: adapter}) do
     adapter = Adapter.popup_menu(adapter)
     {:noreply, %{menu | __adapter__: adapter}}
   end
 
-  @impl true
   def handle_cast(:recreate_menu, menu = %{__adapter__: adapter, dom: dom}) do
     # This is called from within the Adapter
     adapter = Adapter.recreate_menu(adapter, dom)
     {:noreply, %{menu | __adapter__: adapter}}
   end
 
-  @impl true
   def handle_cast(:mount, menu) do
     {:noreply, do_mount(menu)}
   end
@@ -391,7 +386,6 @@ defmodule Desktop.Menu do
     {:noreply, %{menu | __adapter__: adapter}}
   end
 
-  @impl true
   def handle_info(msg, menu) do
     {:noreply, proxy_handle_info(msg, menu)}
   end

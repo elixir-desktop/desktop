@@ -92,8 +92,7 @@ defmodule Desktop.Menu.Adapter.Wx do
         wx(id: _id, event: wxCommand(type: :command_menu_selected), userData: user_data),
         adapter = %{menu_pid: menu_pid}
       ) do
-    spawn_link(Desktop.Menu, :trigger_event, [menu_pid, user_data])
-
+    Desktop.Menu.trigger_event(menu_pid, user_data)
     {:noreply, adapter}
   end
 
