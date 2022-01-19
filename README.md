@@ -42,11 +42,22 @@ Checkout the Todo sample application for reference of a starting point. https://
 
 Check out the [Getting your Environment Ready Guide](./guides/getting_started.md) and [Your first Desktop App](./guides/your_first_app.md)
 
+## Status / Roadmap
+
+1. Run elixir-desktop on MacOS/Windows/Android ✅
+1. Run elixir-desktop on Android/iOS ✅
+1. Package elixir-desktop based apps for Android/iOS ✅ (see example-app repo for iOS and Android)
+1. Package elixir-destkop based apps in installers for MacOS/Windows/Linux
+1. Update the desktop example app built installers for MacOS/Windows/Linux using GitHub actions
+1. Use a repo of pre-compiled Erlang binaries for Android/iOS/MacOS/Windows/Linux when building Apps, so one call of `mix desktop.deploy` will create installer for all platforms.
+1. Integrate Code Signing for Windows/MacOS
+1. Build a GitHub actions based auto-update flow
+
 ## Contributing and raising Issues
 
-Please checkout the github repo at https://github.com/elixir-desktop/desktop and raise any issues.
+Please checkout the github repo at https://github.com/elixir-desktop/desktop and raise any issues. For questions and comments best to use the Elixir forum: https://elixirforum.com/t/elixir-desktop-android-window-macos-linux-liveview-apps-with-elixir/ or contact me on Slack https://elixir-lang.slack.com/archives/C02429KJJCX
 
-Suggestions about the API and usage are welcome!
+All suggestions are welcome!
 
 Cheers!
 
