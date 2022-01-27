@@ -20,8 +20,7 @@ defmodule Desktop.MixProject do
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       docs: docs(),
-      package: package(),
-      xref: [exclude: [:wxImage, :wxBitmap, :wxArtProvider, :wx, :wxIcon]]
+      package: package()
     ]
   end
 
@@ -71,7 +70,6 @@ defmodule Desktop.MixProject do
       {:oncrash, "~> 0.1"},
       {:debouncer, "~> 0.1"},
       {:credo, "~> 1.5", only: [:dev, :test], runtime: false},
-      {:dialyxir, "~> 1.0", only: [:dev], runtime: false},
 
       # DBus SNI
       {:ex_sni, "~> 0.2"},
