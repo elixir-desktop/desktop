@@ -57,13 +57,10 @@ defmodule Desktop.Menu.HTMLTokenizer do
   end
 
   defp handle_text("<!--" <> rest, line, column, buffer, acc, state) do
-    case handle_comment(rest, line, column + 4, ["<!--" | buffer], state) do
-      {:ok, new_rest, new_live, new_column, new_buffer} ->
-        handle_text(new_rest, new_live, new_column, new_buffer, acc, state)
+    {:ok, new_rest, new_live, new_column, new_buffer} =
+      handle_comment(rest, line, column + 4, ["<!--" | buffer], state)
 
-      {:error, message} ->
-        raise ParseError, file: state.file, line: line, column: column, description: message
-    end
+    handle_text(new_rest, new_live, new_column, new_buffer, acc, state)
   end
 
   defp handle_text("</" <> rest, line, column, buffer, acc, state) do
