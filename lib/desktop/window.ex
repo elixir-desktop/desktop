@@ -73,7 +73,6 @@ defmodule Desktop.Window do
 
   alias Desktop.{OS, Window, Wx, Menu, Fallback}
   require Logger
-  use GenServer
 
   @enforce_keys [:frame]
   defstruct [
@@ -107,7 +106,6 @@ defmodule Desktop.Window do
     {:ok, pid}
   end
 
-  @impl true
   @doc false
   def init(options) do
     window_title = options[:title] || Atom.to_string(options[:id])
@@ -493,7 +491,6 @@ defmodule Desktop.Window do
     end
   end
 
-  @impl true
   @doc false
   def handle_info(:rebuild, ui = %Window{rebuild: rebuild, rebuild_timer: t, webview: webview}) do
     ui =
@@ -530,7 +527,6 @@ defmodule Desktop.Window do
     :ok
   end
 
-  @impl true
   @doc false
   def handle_cast(:close_window, ui = %Window{frame: frame, taskbar: taskbar}) do
     if not :wxFrame.isShown(frame) do
@@ -586,7 +582,6 @@ defmodule Desktop.Window do
     {:noreply, %Window{ui | last_url: new_url}}
   end
 
-  @impl true
   def handle_cast(:hide, ui = %Window{frame: frame}) do
     if frame do
       :wxWindow.hide(frame)
@@ -595,7 +590,6 @@ defmodule Desktop.Window do
     {:noreply, ui}
   end
 
-  @impl true
   @doc false
   def handle_call(:is_hidden?, _from, ui = %Window{frame: frame}) do
     ret =

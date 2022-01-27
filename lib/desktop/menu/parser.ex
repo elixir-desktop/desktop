@@ -150,7 +150,9 @@ defmodule Desktop.Menu.Parser do
     Enum.filter(content, &(not is_binary(&1)))
   end
 
-  defp error(message, meta \\ %{line: 0, column: 0}) do
+  @spec error(binary()) :: no_return()
+  @spec error(binary(), map()) :: no_return()
+  def error(message, meta \\ %{line: 0, column: 0}) do
     raise ParseError, file: "unknown", line: meta.line, column: meta.column, description: message
   end
 
