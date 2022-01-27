@@ -1,6 +1,7 @@
 defmodule Desktop.Image do
   require Logger
   @moduledoc false
+
   def new(app, path) when is_binary(path) do
     image = :wxImage.new(get_abs_path(app, path))
 
@@ -19,10 +20,8 @@ defmodule Desktop.Image do
   end
 
   def new_icon(app, path) do
-    case new(app, path) do
-      {:ok, image} -> new_icon(image)
-      error -> error
-    end
+    {:ok, image} = new(app, path)
+    new_icon(image)
   end
 
   def new_icon(image) do
@@ -36,15 +35,8 @@ defmodule Desktop.Image do
 
       :wxBitmap ->
         icon = :wxIcon.new()
-
-        case :wxIcon.copyFromBitmap(icon, image) do
-          :ok ->
-            {:ok, icon}
-
-          error ->
-            destroy(icon)
-            error
-        end
+        :ok = :wxIcon.copyFromBitmap(icon, image)
+        {:ok, icon}
 
       :wxIcon ->
         {:ok, image}
