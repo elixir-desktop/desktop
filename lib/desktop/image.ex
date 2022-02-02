@@ -1,6 +1,7 @@
 defmodule Desktop.Image do
   require Logger
   @moduledoc false
+
   def new(app, path) when is_binary(path) do
     image = :wxImage.new(get_abs_path(app, path))
 

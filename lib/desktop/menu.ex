@@ -125,7 +125,7 @@ defmodule Desktop.Menu do
   @callback mount(assigns :: map()) :: {:ok, map()}
   @callback handle_event(event_name :: String.t(), assigns :: map()) :: {:noreply, map()}
   @callback handle_info(any(), assigns :: map()) :: {:noreply, map()}
-  @callback render(Keyword.t()) :: Phoenix.LiveView.Rendered
+  @callback render(Keyword.t()) :: Phoenix.LiveView.Rendered.t()
 
   @doc false
   defmacro __using__(opts) do
