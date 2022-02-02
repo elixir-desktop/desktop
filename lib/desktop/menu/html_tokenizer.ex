@@ -57,10 +57,10 @@ defmodule Desktop.Menu.HTMLTokenizer do
   end
 
   defp handle_text("<!--" <> rest, line, column, buffer, acc, state) do
-    {:ok, new_rest, new_live, new_column, new_buffer} =
-      handle_comment(rest, line, column + 4, ["<!--" | buffer], state)
-
-    handle_text(new_rest, new_live, new_column, new_buffer, acc, state)
+    case handle_comment(rest, line, column + 4, ["<!--" | buffer], state) do
+      {:ok, new_rest, new_live, new_column, new_buffer} ->
+        handle_text(new_rest, new_live, new_column, new_buffer, acc, state)
+    end
   end
 
   defp handle_text("</" <> rest, line, column, buffer, acc, state) do
@@ -128,11 +128,6 @@ defmodule Desktop.Menu.HTMLTokenizer do
         acc = [{:tag_open, name, [], %{line: line, column: column - 1}} | acc]
         handle_maybe_tag_open_end(rest, line, new_column, acc, state)
 
-      {:warn, name, new_column, rest, message} ->
-        acc = [{:tag_open, name, [], %{line: line, column: column - 1}} | acc]
-        warn(message, state.file, line)
-        handle_maybe_tag_open_end(rest, line, new_column, acc, state)
-
       {:error, message} ->
         raise ParseError, file: state.file, line: line, column: column, description: message
     end
@@ -145,11 +140,6 @@ defmodule Desktop.Menu.HTMLTokenizer do
       {:ok, name, new_column, rest} ->
         acc = [{:tag_close, name, %{line: line, column: column - 2}} | acc]
         handle_tag_close_end(rest, line, new_column, acc, state)
-
-      {:warn, name, new_column, rest, message} ->
-        acc = [{:tag_open, name, [], %{line: line, column: column - 1}} | acc]
-        warn(message, state.file, line)
-        handle_maybe_tag_open_end(rest, line, new_column, acc, state)
 
       {:error, message} ->
         raise ParseError, file: state.file, line: line, column: column, description: message
@@ -475,10 +465,5 @@ defmodule Desktop.Menu.HTMLTokenizer do
 
   defp pop_brace(state = %{braces: [pos | braces]}) do
     {pos, %{state | braces: braces}}
-  end
-
-  defp warn(message, file, line) do
-    stacktrace = Macro.Env.stacktrace(%{__ENV__ | file: file, line: line, module: nil})
-    IO.warn(message, stacktrace)
   end
 end

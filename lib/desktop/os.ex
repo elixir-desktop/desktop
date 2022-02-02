@@ -55,19 +55,22 @@ defmodule Desktop.OS do
   end
 
   def shutdown() do
-    spawn(fn ->
-      Process.sleep(300)
+    spawn(&halt/0)
+  end
 
-      if windows?() do
-        System.halt(0)
-        # With System.stop(0) shutdown of the WebView takes
-        # a very long time (10+ seconds)
-        # System.stop(0)
-      else
-        kill_heart()
-        System.halt(0)
-      end
-    end)
+  @spec halt() :: no_return()
+  defp halt() do
+    Process.sleep(300)
+
+    if windows?() do
+      System.halt(0)
+      # With System.stop(0) shutdown of the WebView takes
+      # a very long time (10+ seconds)
+      # System.stop(0)
+    else
+      kill_heart()
+      System.halt(0)
+    end
   end
 
   def restart() do

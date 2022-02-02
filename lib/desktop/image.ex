@@ -28,10 +28,10 @@ defmodule Desktop.Image do
     case :wx.getObjectType(image) do
       :wxImage ->
         bitmap = :wxBitmap.new(image)
-
-        ret = new_icon(bitmap)
+        icon = :wxIcon.new()
+        :ok = :wxIcon.copyFromBitmap(icon, bitmap)
         destroy(bitmap)
-        ret
+        {:ok, icon}
 
       :wxBitmap ->
         icon = :wxIcon.new()
