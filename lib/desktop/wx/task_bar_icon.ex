@@ -141,7 +141,7 @@ defmodule Desktop.Wx.TaskBarIcon do
       else
         # Pre-OTP24 custom version for backwards compat.
         try do
-          :wxTaskBarIcon.new(fn_create_popup)
+          apply(:wxTaskBarIcon, :new, [fn_create_popup])
         catch
           :error, :function_clause ->
             Logger.error("No MacOS compatible :wxTaskBarIcon found! Please use at least OTP24")

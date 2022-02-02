@@ -19,32 +19,23 @@ defmodule Desktop.Image do
   end
 
   def new_icon(app, path) do
-    case new(app, path) do
-      {:ok, image} -> new_icon(image)
-      error -> error
-    end
+    {:ok, image} = new(app, path)
+    new_icon(image)
   end
 
   def new_icon(image) do
     case :wx.getObjectType(image) do
       :wxImage ->
         bitmap = :wxBitmap.new(image)
-
-        ret = new_icon(bitmap)
+        icon = :wxIcon.new()
+        :ok = :wxIcon.copyFromBitmap(icon, bitmap)
         destroy(bitmap)
-        ret
+        {:ok, icon}
 
       :wxBitmap ->
         icon = :wxIcon.new()
-
-        case :wxIcon.copyFromBitmap(icon, image) do
-          :ok ->
-            {:ok, icon}
-
-          error ->
-            destroy(icon)
-            error
-        end
+        :ok = :wxIcon.copyFromBitmap(icon, image)
+        {:ok, icon}
 
       :wxIcon ->
         {:ok, image}
