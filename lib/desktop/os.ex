@@ -62,15 +62,13 @@ defmodule Desktop.OS do
   defp halt() do
     Process.sleep(300)
 
-    if windows?() do
-      System.halt(0)
-      # With System.stop(0) shutdown of the WebView takes
-      # a very long time (10+ seconds)
-      # System.stop(0)
-    else
-      kill_heart()
-      System.halt(0)
-    end
+    # With System.stop(0) shutdown of the WebView takes
+    # a very long time (10+ seconds), and wxWidgets cleanup
+    # often crashes on macOS
+    # System.stop(0)
+
+    kill_heart()
+    System.halt(0)
   end
 
   def restart() do
@@ -104,7 +102,13 @@ defmodule Desktop.OS do
 
       if port != nil do
         {:os_pid, heart_pid} = Port.info(port, :os_pid)
-        System.cmd("kill", ["-9", "#{heart_pid}"], stderr_to_stdout: true)
+
+        if windows?() do
+          System.cmd("taskkill", ["/f", "/pid", "#{heart_pid}"], stderr_to_stdout: true)
+        else
+          System.cmd("kill", ["-9", "#{heart_pid}"], stderr_to_stdout: true)
+        end
+
         # kill thyself
         kill_beam()
       end
