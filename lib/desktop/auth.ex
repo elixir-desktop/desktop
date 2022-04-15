@@ -9,11 +9,22 @@ defmodule Desktop.Auth do
   alias Desktop.OS
   @behaviour Plug
 
-  @key :crypto.strong_rand_bytes(32)
+  defp key() do
+    # key should stay the same during application run,
+    # but be different on each instance
+    case :persistent_term.get({__MODULE__, :key}, nil) do
+      nil ->
+        key = :crypto.strong_rand_bytes(32)
+        :persistent_term.put({__MODULE__, :key}, key)
+        key
+
+      key ->
+        key
+    end
+  end
+
   def login_key() do
-    @key
-    |> Base.encode32()
-    |> String.trim_trailing("=")
+    Base.encode32(key(), padding: false)
   end
 
   def init([]), do: []
