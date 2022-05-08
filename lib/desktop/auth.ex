@@ -41,7 +41,7 @@ defmodule Desktop.Auth do
   defp require_auth(conn) do
     conn = fetch_query_params(conn)
 
-    if OS.mobile?() or login_key() == conn.query_params["k"] do
+    if OS.mobile?() or Plug.Crypto.secure_compare(login_key(), conn.query_params["k"]) do
       put_session(conn, :user, true)
     else
       conn
