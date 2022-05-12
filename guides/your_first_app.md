@@ -1,6 +1,18 @@
 # Your first Desktop App
 
+If you prefer to start with a working Desktop sample application, please refer to https://github.com/elixir-desktop/desktop-example-app
+
 To convert a barebones Phoenix Live View example to a Desktop Application you will need to add this to your application:
+
+1. Add the `desktop` dependency to your project's dependencies in `mix.exs`
+
+    ```elixir
+    def deps do
+    [
+        {:desktop, "~> 1.4"}
+    ]
+    end
+    ```
 
 1. Add a Desktop.Window child to your supervision tree on startup. E.g. in `application.ex`
 
