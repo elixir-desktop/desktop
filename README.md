@@ -11,10 +11,10 @@ Building native-like Elixir apps for Windows, MacOS, Linux, iOS and Android usin
 
 ## Changes in 1.4
 
-- Support for `~H` sigil with `<item onclick={...}>`  
+- Support for `~H` sigil with `<item onclick={...}>`
 - Changed Menu XML escaping to LiveView automatic escaping logic from LiveView HTML tokenizer & engine.
 - Removed `Menu.escape_attribute/1` and `Menu.escape/1`
-- Dropped `:xmerl` dependency 
+- Dropped `:xmerl` dependency
 
 ## Changes in 1.3
 
@@ -34,11 +34,11 @@ Building native-like Elixir apps for Windows, MacOS, Linux, iOS and Android usin
 
 ## Example
 
-Checkout the Todo sample application for reference of a starting point. https://github.com/elixir-desktop/desktop-example-app
+Checkout the Todo sample application for a starting point. https://github.com/elixir-desktop/desktop-example-app
 
 ![MacOS build](https://raw.githubusercontent.com/elixir-desktop/desktop-example-app/main/nodeploy/macos_todo.png "MacOS build")
 
-## Gettings Started
+## Getting Started
 
 Check out the [Getting your Environment Ready Guide](./guides/getting_started.md) and [Your first Desktop App](./guides/your_first_app.md)
 
@@ -53,7 +53,7 @@ Check out the [Getting your Environment Ready Guide](./guides/getting_started.md
 1. Integrate Code Signing for Windows/MacOS
 1. Build a GitHub actions based auto-update flow
 
-## Contributing and raising Issues
+## Contributing and Raising Issues
 
 Please checkout the github repo at https://github.com/elixir-desktop/desktop and raise any issues. For questions and comments best to use the Elixir forum: https://elixirforum.com/t/elixir-desktop-android-window-macos-linux-liveview-apps-with-elixir/ or contact me on Slack https://elixir-lang.slack.com/archives/C02429KJJCX
 
