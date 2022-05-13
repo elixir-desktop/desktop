@@ -9,48 +9,11 @@ defmodule Desktop.Fallback do
   """
 
   def webview_new(frame) do
-    if is_module?(:wxWebView) do
-      sizer = :wxFrame.getSizer(frame)
-      :wxSizer.clear(sizer, delete_windows: true)
-
-      webview =
-        if OS.type() == Windows do
-          if call(:wxWebView, :isBackendAvailable, ['wxWebViewEdge']) do
-            call(:wxWebView, :new, [
-              frame,
-              -1,
-              [backend: 'wxWebViewEdge', style: Desktop.Wx.wxNO_BORDER()]
-            ])
-            |> configure_webview()
-          else
-            Logger.warning("""
-            Missing support for wxWebViewEdge.
-            Check your OTP install for edge support and download it here:
-            https://go.microsoft.com/fwlink/p/?LinkId=2124703
-            """)
-
-            win = :wxHtmlWindow.new(frame, [])
-
-            :wxHtmlWindow.setPage(win, """
-              <html>
-                <body>
-                  <h1>Missing Edge Runtime</h1>
-                  <p>This demo requires the edge runtime to be installed</p>
-                  <p>Please download it <a href="https://go.microsoft.com/fwlink/p/?LinkId=2124703">here</a> and try again</p>
-                  <p>
-                    <a href="https://go.microsoft.com/fwlink/p/?LinkId=2124703">https://go.microsoft.com/fwlink/p/?LinkId=2124703</a>
-                  </p>
-                </body>
-              </html>
-            """)
-
-            :wxHtmlWindow.connect(win, :command_html_link_clicked, skip: true)
-            win
-          end
-        else
-          call(:wxWebView, :new, [frame, -1, [style: Desktop.Wx.wxNO_BORDER()]])
-          |> configure_webview()
-        end
+    with :ok <- check_has_webview(),
+         sizer <- clear_windows(frame),
+         {:ok, webview} <- webview_new_by_os_type(frame, OS.type()) do
+      call(:wxWebView, :connect, [webview, :webview_newwindow])
+      call(:wxWebView, :enableContextMenu, [webview, [enable: false]])
 
       :wxBoxSizer.add(sizer, webview, proportion: 1, flag: Wx.wxEXPAND())
       :wxSizer.layout(sizer)
@@ -58,16 +21,63 @@ defmodule Desktop.Fallback do
       :wxFrame.refresh(frame)
       webview
     else
-      Logger.warning(
-        "Missing support for wxWebView - upgrade to OTP/24. Will show OS browser instead"
-      )
+      {:error, reason} ->
+        Logger.warning(reason)
+        nil
     end
   end
 
-  defp configure_webview(webview) do
-    call(:wxWebView, :connect, [webview, :webview_newwindow])
-    call(:wxWebView, :enableContextMenu, [webview, [enable: false]])
-    webview
+  defp check_has_webview() do
+    if is_module?(:wxWebView) do
+      :ok
+    else
+      {:error, "Missing support for wxWebView - upgrade to OTP/24. Will show OS browser instead"}
+    end
+  end
+
+  defp clear_windows(frame) do
+    sizer = :wxFrame.getSizer(frame)
+    :wxSizer.clear(sizer, delete_windows: true)
+    sizer
+  end
+
+  defp webview_new_by_os_type(frame, Windows) do
+    if call(:wxWebView, :isBackendAvailable, ['wxWebViewEdge']) do
+      {:ok,
+       call(:wxWebView, :new, [
+         frame,
+         -1,
+         [backend: 'wxWebViewEdge', style: Desktop.Wx.wxNO_BORDER()]
+       ])}
+    else
+      win = :wxHtmlWindow.new(frame, [])
+
+      :wxHtmlWindow.setPage(win, """
+        <html>
+          <body>
+            <h1>Missing Edge Runtime</h1>
+            <p>This demo requires the edge runtime to be installed</p>
+            <p>Please download it <a href="https://go.microsoft.com/fwlink/p/?LinkId=2124703">here</a> and try again</p>
+            <p>
+              <a href="https://go.microsoft.com/fwlink/p/?LinkId=2124703">https://go.microsoft.com/fwlink/p/?LinkId=2124703</a>
+            </p>
+          </body>
+        </html>
+      """)
+
+      :wxHtmlWindow.connect(win, :command_html_link_clicked, skip: true)
+
+      {:error,
+       """
+       Missing support for wxWebViewEdge.
+       Check your OTP install for edge support and download it here:
+       https://go.microsoft.com/fwlink/p/?LinkId=2124703
+       """}
+    end
+  end
+
+  defp webview_new_by_os_type(frame, _) do
+    {:ok, call(:wxWebView, :new, [frame, -1, [style: Desktop.Wx.wxNO_BORDER()]])}
   end
 
   def webview_can_fix(nil), do: false
