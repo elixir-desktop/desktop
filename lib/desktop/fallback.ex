@@ -77,7 +77,11 @@ defmodule Desktop.Fallback do
   end
 
   defp webview_new_by_os_type(frame, _) do
-    {:ok, call(:wxWebView, :new, [frame, -1, [style: Desktop.Wx.wxNO_BORDER()]])}
+    try do
+      {:ok, call(:wxWebView, :new, [frame, -1, [style: Desktop.Wx.wxNO_BORDER()]])}
+    rescue
+      _ -> {:error, "Your erlang-wx is missing wxWebView support. Will show OS browser instead"}
+    end
   end
 
   def webview_can_fix(nil), do: false
