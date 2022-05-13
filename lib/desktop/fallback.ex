@@ -70,18 +70,22 @@ defmodule Desktop.Fallback do
     webview
   end
 
+  def webview_can_fix(nil), do: false
+
   def webview_can_fix(webview) do
     is_module?(:wxWebView) and OS.type() == Windows and
       call(:wxWebView, :isBackendAvailable, ['wxWebViewEdge']) and
       call(:wxWebView, :isShownOnScreen, [webview])
   end
 
-  def webview_url(%Desktop.Window{webview: webview, last_url: last_url}) do
-    if webview?() do
-      call(:wxWebView, :getCurrentURL, [webview])
-    else
-      last_url
-    end
+  def webview_url(%Desktop.Window{webview: nil, last_url: last_url}), do: last_url
+
+  def webview_url(%Desktop.Window{webview: webview}) do
+    call(:wxWebView, :getCurrentURL, [webview])
+  end
+
+  def webview_show(%Desktop.Window{webview: nil}, url, _) do
+    :wx_misc.launchDefaultBrowser(url)
   end
 
   def webview_show(
@@ -89,40 +93,34 @@ defmodule Desktop.Fallback do
         url,
         only_open
       ) do
-    if webview?() do
-      if last == nil or not only_open do
-        call(:wxWebView, :loadURL, [webview, url])
-      end
-
-      if :wxTopLevelWindow.isIconized(frame) do
-        :wxTopLevelWindow.iconize(frame, iconize: false)
-      end
-
-      if not :wxWindow.isShown(frame) do
-        :wxWindow.show(frame, show: true)
-        :wxTopLevelWindow.centerOnScreen(frame)
-      end
-
-      OS.raise_frame(frame)
-    else
-      :wx_misc.launchDefaultBrowser(url)
+    if last == nil or not only_open do
+      call(:wxWebView, :loadURL, [webview, url])
     end
+
+    if :wxTopLevelWindow.isIconized(frame) do
+      :wxTopLevelWindow.iconize(frame, iconize: false)
+    end
+
+    if not :wxWindow.isShown(frame) do
+      :wxWindow.show(frame, show: true)
+      :wxTopLevelWindow.centerOnScreen(frame)
+    end
+
+    OS.raise_frame(frame)
   end
 
-  def webview_rebuild(%Desktop.Window{webview: webview, frame: frame, last_url: url}) do
-    if webview?() do
-      # url = call(:wxWebView, :getCurrentURL, [webview])
-      webview = webview_new(frame)
-      Logger.info("Rebuilding WebView on Windows with url: #{inspect(url)}")
+  def webview_rebuild(%Desktop.Window{webview: nil}), do: nil
 
-      if url != nil do
-        call(:wxWebView, :loadURL, [webview, url])
-      end
+  def webview_rebuild(%Desktop.Window{frame: frame, last_url: url}) do
+    # url = call(:wxWebView, :getCurrentURL, [webview])
+    webview = webview_new(frame)
+    Logger.info("Rebuilding WebView on Windows with url: #{inspect(url)}")
 
-      webview
-    else
-      webview
+    if url != nil do
+      call(:wxWebView, :loadURL, [webview, url])
     end
+
+    webview
   end
 
   def notification_new(title, type) do
@@ -191,10 +189,5 @@ defmodule Desktop.Fallback do
     if Kernel.function_exported?(module, method, length(args)) do
       apply(module, method, args)
     end
-  end
-
-  defp webview?() do
-    is_module?(:wxWebView) and
-      (OS.type() != Windows or call(:wxWebView, :isBackendAvailable, ['wxWebViewEdge']))
   end
 end
