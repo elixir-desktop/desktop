@@ -327,11 +327,7 @@ defmodule Desktop.Menu do
   end
 
   def set_icon(menu_pid, icon) when is_pid(menu_pid) do
-    if menu_pid == self() do
-      spawn_link(Menu, :set_icon, [menu_pid, icon])
-    else
-      GenServer.call(menu_pid, {:set_icon, icon})
-    end
+    GenServer.cast(menu_pid, {:set_icon, icon})
   end
 
   @impl true
@@ -343,14 +339,15 @@ defmodule Desktop.Menu do
     {:reply, get_adapter_icon(menu), menu}
   end
 
-  def handle_call({:set_icon, icon}, _from, menu) do
-    case set_adapter_icon(menu, icon) do
-      {:ok, menu} -> {:reply, get_adapter_icon(menu), menu}
-      error -> {:reply, error, menu}
+  @impl true
+  def handle_cast({:set_icon, icon}, menu) do
+    with {:ok, menu} <- set_adapter_icon(menu, icon) do
+      {:noreply, menu}
+    else
+      _error -> {:noreply, menu}
     end
   end
 
-  @impl true
   def handle_cast({:trigger_event, event}, menu = %{module: module}) do
     menu =
       with {:ok, {:noreply, menu}} <- invoke_module_func(module, :handle_event, [event, menu]),
