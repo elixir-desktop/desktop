@@ -105,6 +105,7 @@ defmodule Desktop.Menu do
   defstruct [
     :__adapter__,
     :app,
+    :prev_assigns,
     :assigns,
     :module,
     :dom,
@@ -115,6 +116,7 @@ defmodule Desktop.Menu do
   @type t() :: %Menu{
           __adapter__: any(),
           app: nil,
+          prev_assigns: %{},
           assigns: %{},
           module: module,
           dom: any(),
@@ -350,9 +352,8 @@ defmodule Desktop.Menu do
 
   def handle_cast({:trigger_event, event}, menu = %{module: module}) do
     menu =
-      with {:ok, {:noreply, menu}} <- invoke_module_func(module, :handle_event, [event, menu]),
-           {:ok, _updated?, menu} <- update_dom(menu) do
-        menu
+      with {:ok, {:noreply, menu}} <- invoke_module_func(module, :handle_event, [event, menu]) do
+        update_dom(menu)
       else
         _ -> menu
       end
@@ -412,35 +413,38 @@ defmodule Desktop.Menu do
 
   defp do_mount(menu = %Menu{module: module}) do
     case invoke_module_func(module, :mount, [menu]) do
-      {:ok, {:ok, menu}} ->
-        case update_dom(menu) do
-          {:ok, _updated?, menu} -> menu
-          _error -> menu
-        end
-
-      _ ->
-        menu
+      {:ok, {:ok, menu}} -> update_dom(menu)
+      _ -> menu
     end
   end
 
   defp proxy_handle_info(msg, menu = %Menu{module: module}) do
-    with {:ok, {:noreply, menu}} <- invoke_module_func(module, :handle_info, [msg, menu]),
-         {:ok, _updated?, menu} <- update_dom(menu) do
-      menu
+    with {:ok, {:noreply, menu}} <- invoke_module_func(module, :handle_info, [msg, menu]) do
+      update_dom(menu)
     else
       _ -> menu
     end
   end
 
-  @spec update_dom(menu :: t()) :: {:ok, updated :: boolean(), menu :: t()} | {:error, binary()}
-  defp update_dom(menu = %Menu{__adapter__: adapter, module: module, dom: dom, assigns: assigns}) do
-    with {:ok, new_dom} <- invoke_render(module, assigns) do
-      if new_dom != dom do
-        adapter = Adapter.update_dom(adapter, new_dom)
-        {:ok, true, %{menu | __adapter__: adapter, dom: new_dom, last_render: DateTime.utc_now()}}
-      else
-        {:ok, false, menu}
-      end
+  @spec update_dom(menu :: t()) :: menu :: t()
+  defp update_dom(
+         menu = %Menu{
+           __adapter__: adapter,
+           module: module,
+           dom: dom,
+           assigns: assigns,
+           prev_assigns: prev_assigns
+         }
+       ) do
+    menu = %{menu | prev_assigns: assigns}
+
+    with true <- assigns != prev_assigns,
+         {:ok, new_dom} <- invoke_render(module, assigns),
+         true <- new_dom != dom do
+      adapter = Adapter.update_dom(adapter, new_dom)
+      %{menu | __adapter__: adapter, dom: new_dom, last_render: DateTime.utc_now()}
+    else
+      _ -> menu
     end
   end
 
