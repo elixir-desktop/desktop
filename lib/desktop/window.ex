@@ -274,6 +274,22 @@ defmodule Desktop.Window do
   end
 
   @doc """
+  Returns true if the window is active. Always returns true
+  on mobile platforms.
+
+    * `pid` - The pid or atom of the Window
+
+  ## Examples
+
+      iex> Desktop.Window.is_active?(pid)
+      false
+
+  """
+  def is_active?(pid) do
+    GenServer.call(pid, :is_active?)
+  end
+
+  @doc """
   Set the windows title
 
     * `pid` - The pid or atom of the Window
@@ -597,6 +613,19 @@ defmodule Desktop.Window do
         not :wxWindow.isShown(frame)
       else
         false
+      end
+
+    {:reply, ret, ui}
+  end
+
+  @doc false
+  def handle_call(:is_active?, _from, ui = %Window{frame: frame}) do
+    ret =
+      if frame do
+        :wxTopLevelWindow.isActive(frame)
+      else
+        # true on mobile platforms
+        true
       end
 
     {:reply, ret, ui}
