@@ -3,27 +3,58 @@ on: ["push", "pull_request"]
 
 jobs:
   test_and_build:
-    name: "Compile & Lint"
-    runs-on: "ubuntu-latest"
+    name: >-
+      Test on
+      Elixir ${{ matrix.elixir }} and Erlang/OTP ${{ matrix.otp }}
+      ${{ matrix.update-deps && 'with the latest dependencies' }}
+    runs-on: "ubuntu-22.04"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Test on all supported releases. Compatibility matrix from
+          # https://hexdocs.pm/elixir/compatibility-and-deprecations.html
+          #
+          # These pin to the lowest supported OTP for each elixir release.
+          - { elixir: '1.15', otp: '24' }
+          - { elixir: '1.16', otp: '24' }
+          - { elixir: '1.17', otp: '25' }
+          - { elixir: '1.18', otp: '25' }
+          - { elixir: '1.18', otp: '25', update-deps: true }
     steps:
     - name: Setup elixir
       uses: erlef/setup-beam@v1
       with:
-        otp-version: 24.3.3
-        elixir-version: 1.16.3
+        otp-version: ${{ matrix.otp }}
+        elixir-version: ${{ matrix.elixir }}
 
-    - uses: actions/checkout@v1
-    - run: mix deps.get
+    - uses: actions/checkout@v3
 
-    - uses: actions/cache@v2
+    - name: Setup dependency cache
+      uses: actions/cache@v3
       id: mix-cache
+      with:
+        path: |
+          deps
+        key: mix-${{ hashFiles('mix.lock') }}
+
+    - name: Setup binary cache
+      uses: actions/cache@v3
       with:
         path: |
           ./_build
           ./priv/plts
-        key: deps-${{ hashFiles('**/mix.lock') }}
+        key: ${{ matrix.elixir }}-${{ matrix.otp }}
 
-    - if: steps.mix-cache.outputs.cache-hit != 'true'
+    - name: Unlock dependencies to get latest
+      if: ${{ matrix.update-deps }}
+      run: mix deps.unlock --all
+
+    - name: Fetch dependencies
+      run: mix deps.get
+
+    - name: Rebuild dependencies
+      if: steps.mix-cache.outputs.cache-hit != 'true'
       run: |
         mkdir -p priv/plts
         mix local.rebar --force
@@ -31,5 +62,13 @@ jobs:
         mix deps.compile
         mix dialyzer --plt
 
-    - run: |
-        mix lint
+    - name: Run linters
+      run: mix lint
+
+#    - name: Install wx support packages
+#      run: sudo apt install -y libwxgtk3.0-gtk3-0v5
+
+# FIXME: tests currently require an X display.
+#    - name: Run test
+#      run: |
+#        mix test

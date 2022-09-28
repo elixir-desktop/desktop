@@ -14,7 +14,7 @@ defmodule Desktop.MixProject do
       version: @version,
       source_url: @url,
       description: @description,
-      elixir: "~> 1.11",
+      elixir: "~> 1.14",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: Mix.compilers(),
       aliases: aliases(),
