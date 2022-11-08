@@ -154,21 +154,21 @@ defmodule Desktop.Menu.Adapter.Wx do
   end
 
   defp create_taskbar_icon(fn_create_popup, icon) do
-    with {:ok, taskbar_icon = %TaskBarIcon{wx_taskbar_icon: wx_taskbar_icon}} <-
-           TaskBarIcon.create(fn_create_popup) do
-      TaskBarIcon.connect(taskbar_icon)
-      TaskBarIcon.set_icon(taskbar_icon, icon)
+    case TaskBarIcon.create(fn_create_popup) do
+      {:ok, taskbar_icon = %TaskBarIcon{wx_taskbar_icon: wx_taskbar_icon}} ->
+        TaskBarIcon.connect(taskbar_icon)
+        TaskBarIcon.set_icon(taskbar_icon, icon)
 
-      if OS.type() == Windows do
-        # This links the taskbar icon and the application itself on Windows
-        if Code.ensure_loaded?(:wxNotificationMessage) &&
-             Kernel.function_exported?(:wxNotificationMessage, :useTaskBarIcon, 1) do
-          :wxNotificationMessage.useTaskBarIcon(wx_taskbar_icon)
+        if OS.type() == Windows do
+          # This links the taskbar icon and the application itself on Windows
+          if Code.ensure_loaded?(:wxNotificationMessage) &&
+               Kernel.function_exported?(:wxNotificationMessage, :useTaskBarIcon, 1) do
+            :wxNotificationMessage.useTaskBarIcon(wx_taskbar_icon)
+          end
         end
-      end
 
-      taskbar_icon
-    else
+        taskbar_icon
+
       error ->
         Logger.warning("Failed to create TaskBar Icon: #{inspect(error)}")
         nil

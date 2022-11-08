@@ -57,8 +57,12 @@ defmodule Desktop.Window do
         * `false` - Show the window on startup (default)
         * `true` - Don't show the window on startup
 
-    * `:icon` - an icon file name that will be used as taskbar and
-      window icon. Supported formats are png files
+    * `:icon` - an icon file name that will be used as window and
+      taskbar icon (unless another `:taskbar_icon` is specified).
+      Supported formats are png files
+
+    * `:taskbar_icon` - an icon file name that will be used as taskbar icon.
+      Supported formats are png files
 
     * `:menubar` - an optional MenuBar module that will be rendered
       as the windows menu bar when given.
@@ -113,6 +117,7 @@ defmodule Desktop.Window do
     min_size = options[:min_size]
     app = options[:app]
     icon = options[:icon]
+    taskbar_icon = options[:taskbar_icon]
     # not supported on mobile atm
     menubar = unless OS.mobile?(), do: options[:menubar]
     icon_menu = unless OS.mobile?(), do: options[:icon_menu]
@@ -170,7 +175,13 @@ defmodule Desktop.Window do
     taskbar =
       if icon_menu do
         sni_link = Desktop.Env.sni()
-        adapter = if sni_link == nil, do: nil, else: Menu.Adapter.DBus
+        adapter = if sni_link != nil, do: Menu.Adapter.DBus
+
+        {:ok, taskbar_icon} =
+          case taskbar_icon do
+            nil -> {:ok, icon}
+            filename -> Desktop.Image.new_icon(app, filename)
+          end
 
         {:ok, menu_pid} =
           Menu.start_link(
@@ -179,8 +190,8 @@ defmodule Desktop.Window do
             adapter: adapter,
             env: env,
             sni: sni_link,
-            icon: icon,
-            wx: {:taskbar, icon}
+            icon: taskbar_icon,
+            wx: {:taskbar, taskbar_icon}
           )
 
         menu_pid
@@ -494,9 +505,7 @@ defmodule Desktop.Window do
     case Enum.find(noties, fn {_, {wx_ref, _callback}} -> wx_ref == obj end) do
       nil ->
         Logger.error(
-          "Received unhandled notification event #{inspect(obj)}: #{inspect(action)} (#{
-            inspect(noties)
-          })"
+          "Received unhandled notification event #{inspect(obj)}: #{inspect(action)} (#{inspect(noties)})"
         )
 
       {_, {_ref, nil}} ->

@@ -343,18 +343,16 @@ defmodule Desktop.Menu do
 
   @impl true
   def handle_cast({:set_icon, icon}, menu) do
-    with {:ok, menu} <- set_adapter_icon(menu, icon) do
-      {:noreply, menu}
-    else
+    case set_adapter_icon(menu, icon) do
+      {:ok, menu} -> {:noreply, menu}
       _error -> {:noreply, menu}
     end
   end
 
   def handle_cast({:trigger_event, event}, menu = %{module: module}) do
     menu =
-      with {:ok, {:noreply, menu}} <- invoke_module_func(module, :handle_event, [event, menu]) do
-        update_dom(menu)
-      else
+      case invoke_module_func(module, :handle_event, [event, menu]) do
+        {:ok, {:noreply, menu}} -> update_dom(menu)
         _ -> menu
       end
 
@@ -419,9 +417,8 @@ defmodule Desktop.Menu do
   end
 
   defp proxy_handle_info(msg, menu = %Menu{module: module}) do
-    with {:ok, {:noreply, menu}} <- invoke_module_func(module, :handle_info, [msg, menu]) do
-      update_dom(menu)
-    else
+    case invoke_module_func(module, :handle_info, [msg, menu]) do
+      {:ok, {:noreply, menu}} -> update_dom(menu)
       _ -> menu
     end
   end
