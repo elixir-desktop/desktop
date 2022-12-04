@@ -215,33 +215,33 @@ defmodule Desktop.Menu.Adapter.Wx do
     :wx.set_env(Desktop.Env.wx_env())
 
     :wx.batch(fn ->
-      menues = create_menu_items(nil, dom)
+      menus = create_menu_items(nil, dom)
 
-      # Enum.each(menues, fn {menu, _label} ->
+      # Enum.each(menus, fn {menu, _label} ->
       #   :wxMenu.connect(
       #     menu,
       #     :menu_close
       #   )
       # end)
 
-      update_menubar(menubar, menues)
+      update_menubar(menubar, menus)
     end)
 
     adapter
   end
 
-  defp update_menubar(adapter = %__MODULE__{menubar: menubar}, menues) do
+  defp update_menubar(adapter = %__MODULE__{menubar: menubar}, menus) do
     :wx.batch(fn ->
-      update_menubar(menubar, menues)
+      update_menubar(menubar, menus)
     end)
 
     adapter
   end
 
-  defp update_menubar(menubar, menues) do
+  defp update_menubar(menubar, menus) do
     menubar
     |> do_reset_menubar()
-    |> do_update_menubar(menues)
+    |> do_update_menubar(menus)
   end
 
   defp do_reset_menubar(menubar) do
@@ -262,9 +262,9 @@ defmodule Desktop.Menu.Adapter.Wx do
     menubar
   end
 
-  defp do_update_menubar(menubar, [{menu, label} | menues]) do
+  defp do_update_menubar(menubar, [{menu, label} | menus]) do
     :wxMenuBar.append(menubar, menu, label)
-    do_update_menubar(menubar, menues)
+    do_update_menubar(menubar, menus)
   end
 
   defp create_menu_items(_evt_handler, []) do

@@ -2,7 +2,7 @@ defmodule Desktop.Menu do
   @moduledoc """
   Menu module used to create and handle menus in Desktop
 
-  Menues are defined similiar to Live View using a callback module an XML:
+  Menus are defined similar to Live View using a callback module an XML:
 
   ```
     defmodule ExampleMenuBar do
@@ -53,13 +53,13 @@ defmodule Desktop.Menu do
   # Template
 
   As in live view the template can either be embedded in the `def render(assigns)`
-  method or it can be side loaded as a .eex file next to the menues .ex file.
+  method or it can be side loaded as a .eex file next to the menus .ex file.
 
   # XML Structure
 
   These items are defined:
 
-  ## `<menubar>...menues...</menubar>`
+  ## `<menubar>...menus...</menubar>`
 
   For an application (window) menubar this must be the root element. When
   passing a menubar to `Desktop.Window` start parameters this has to be the root element.

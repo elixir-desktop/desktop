@@ -19,7 +19,7 @@ Building native-like Elixir apps for Windows, MacOS, Linux, iOS and Android usin
 ## Changes in 1.3
 
 - Added `Env.subscribe/1` to listen to MacOS application events such as `{:open_url, url}` when a url associated with the application is clicked.
-- Using (experimantal) dbus support to render the systray icon on linux
+- Using (experimental) dbus support to render the systray icon on linux
 - Added `Menu.escape_attribute/1`
 - Added `Window.url/1`
 - Added `Window.hide/1` and `Window.is_hidden/`
