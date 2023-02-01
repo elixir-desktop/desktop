@@ -57,20 +57,25 @@ defmodule Desktop do
     # Preferring a full match 'xx_xx' == 'yy_yy'
     best_match = Enum.find(known_locales, fn l -> String.downcase(l) == language_code end)
 
-    if best_match != nil do
-      put_default_locale(best_match)
-    else
-      # Looking for a prefix match 'xx' == 'yy'
-      prefix = binary_part(language_code, 0, 2)
+    cond do
+      best_match != nil ->
+        put_default_locale(best_match)
 
-      prefix_match =
-        Enum.find(known_locales, fn l -> String.starts_with?(String.downcase(l), prefix) end)
+        # We have seen windows return an empty string for language_code
+      byte_size(language_code) >= 2 ->
+        # Looking for a prefix match 'xx' == 'yy'
+        prefix = binary_part(language_code, 0, 2)
 
-      if prefix_match != nil do
-        put_default_locale(prefix_match)
-      else
+        prefix_match =
+          Enum.find(known_locales, fn l -> String.starts_with?(String.downcase(l), prefix) end)
+
+        if prefix_match != nil do
+          put_default_locale(prefix_match)
+        end
+
+      true ->
         # we're giving up, not updating the default locale
-      end
+        nil
     end
   end
 
@@ -89,7 +94,8 @@ defmodule Desktop do
       _ ->
         :wx.set_env(Desktop.Env.wx_env())
         locale = :wxLocale.new(:wxLocale.getSystemLanguage())
-        # this is in the form "xx_XX"
+        # This is in the form "xx_XX"
+        # we have seen windows returns an empty string though...
         :wxLocale.getCanonicalName(locale) |> List.to_string() |> String.downcase()
     end
   end
