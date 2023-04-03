@@ -76,7 +76,7 @@ nvm install v12.16.1
 
 **Using custom WxWidgets**
 
-On macOS good wxWidgets support is pretty recent. You might want to try a newer e.g. master version when you spot visual issues in the native Menues or Taskbar Icon behaviour:
+On macOS good wxWidgets support is pretty recent. You might want to try a newer e.g. master version when you spot visual issues in the native Menus or Taskbar Icon behaviour:
 
 ```bash
 mkdir ~/projects && cd ~/projects
