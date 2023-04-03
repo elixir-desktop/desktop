@@ -7,10 +7,10 @@ jobs:
     runs-on: "ubuntu-latest"
     steps:
     - name: Setup elixir
-      uses: erlef/setup-beam
+      uses: erlef/setup-beam@1.15.3
       with:
-        otp-version: "24.3.3"
-        elixir-version: "1.11.4"
+        otp-version: 24.3.3
+        elixir-version: 1.11.4
     - uses: actions/checkout@v1
     - run: |
         mix local.hex --force
