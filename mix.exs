@@ -23,8 +23,6 @@ defmodule Desktop.MixProject do
       package: package(),
       dialyzer: [
         plt_add_apps: [:ex_unit, :mix],
-        ignore_warnings: "dialyzer_ignore.exs",
-        list_unused_filters: true,
         plt_file: {:no_warn, "priv/plts/dialyzer.plt"}
       ]
     ]

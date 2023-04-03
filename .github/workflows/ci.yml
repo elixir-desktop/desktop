@@ -19,7 +19,7 @@ jobs:
         path: |
           ./_build
           ./priv/plts
-        key: deps-${{ hashFiles('**/mix.lock', '**/mix.exs') }}
+        key: deps-${{ hashFiles('**/mix.lock') }}
 
     - if: steps.mix-cache.outputs.cache-hit != 'true'
       run: |
