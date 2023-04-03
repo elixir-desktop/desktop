@@ -12,6 +12,7 @@ jobs:
         otp-version: 24.3.3
         elixir-version: 1.11.4
 
+    - uses: actions/checkout@v1
     - uses: actions/cache@v2
       id: mix-cache
       with:
@@ -29,6 +30,5 @@ jobs:
         mix deps.compile
         mix dialyzer --plt
 
-    - uses: actions/checkout@v1
     - run: |
         mix lint
