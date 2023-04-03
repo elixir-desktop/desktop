@@ -11,10 +11,24 @@ jobs:
       with:
         otp-version: 24.3.3
         elixir-version: 1.11.4
+
+    - uses: actions/cache@v2
+      id: mix-cache
+      with:
+        path: |
+          ./_build
+          ./priv/plts
+        key: deps-${{ hashFiles('**/mix.lock', '**/mix.exs') }}
+
+    - if: steps.mix-cache.outputs.cache-hit != 'true'
+      run: |
+        mkdir -p priv/plts
+        mix local.rebar --force
+        mix local.hex --force
+        mix deps.get
+        mix deps.compile
+        mix dialyzer --plt
+
     - uses: actions/checkout@v1
     - run: |
-        mix local.hex --force
-        mix local.rebar --force
-        mix deps.get
         mix lint
-        # mix test
