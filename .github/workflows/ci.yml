@@ -3,11 +3,11 @@ on: ["push", "pull_request"]
 
 jobs:
   test_and_build:
-    name: "Build mix release"
+    name: "Compile & Lint"
     runs-on: "ubuntu-latest"
     steps:
     - name: Setup elixir
-      uses: erlef/setup-beam@1.15.3
+      uses: erlef/setup-beam@v1
       with:
         otp-version: 24.3.3
         elixir-version: 1.11.4
