@@ -1,23 +1,61 @@
 name: "CI"
-on: ["push", "pull_request"]
+on:
+ - push
+ - pull_request
 
 jobs:
   test_and_build:
-    name: "Build mix release"
-    runs-on: "ubuntu-latest"
+    runs-on: "ubuntu-20.04"
+    name: >-
+      Test on
+      Elixir ${{ matrix.elixir }} and Erlang/OTP ${{ matrix.otp }}
+      ${{ matrix.update-deps && 'with the latest dependencies' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Test on all supported releases.
+          - { elixir: '1.11', otp: '24' }
+          - { elixir: '1.12', otp: '24' }
+          - { elixir: '1.13', otp: '24' }
+          - { elixir: '1.13', otp: '25' }
+          - { elixir: '1.14', otp: '24' }
+          - { elixir: '1.14', otp: '25' }
+          - { elixir: '1.14', otp: '25', update-deps: true }
     steps:
-    - run: |
-        wget https://packages.erlang-solutions.com/erlang-solutions_2.0_all.deb && sudo dpkg -i erlang-solutions_2.0_all.deb
-        sudo apt-get update
-        sudo apt-get install --allow-downgrades esl-erlang=1:24.3.3-1 inotify-tools
-        mkdir $HOME/elixir && cd $HOME/elixir
-        wget https://github.com/elixir-lang/elixir/releases/download/v1.11.4/Precompiled.zip
-        unzip Precompiled.zip
-        echo "$HOME/elixir/bin" >> $GITHUB_PATH
-    - uses: actions/checkout@v1
-    - run: |
-        mix local.hex --force
-        mix local.rebar --force
-        mix deps.get
-        mix lint
-        # mix test
+    - uses: actions/checkout@v3
+
+    - name: Setup dependency cache
+      uses: actions/cache@v3
+      with:
+        path: |
+          deps
+        key: mix-${{ hashFiles('mix.lock') }}
+
+    - name: Setup binary cache
+      uses: actions/cache@v3
+      with:
+        path: |
+          _build
+          priv/plts
+        key: ${{ matrix.elixir }}-${{ matrix.otp }}
+
+    - name: Setup beam
+      uses: erlef/setup-beam@v1
+      with:
+        elixir-version: ${{ matrix.elixir }}
+        otp-version: ${{ matrix.otp }}
+
+    - name: Unlock dependencies to get latest
+      if: ${{ matrix.update-deps }}
+      run: mix deps.unlock --all
+
+    - name: Fetch dependencies
+      run: mix deps.get
+
+    - name: Run linters
+      run: mix lint
+
+    # TODO: Tests should pass on the main branch.
+    # - name: Run tests
+    #  run: mix test

@@ -13,7 +13,8 @@ defmodule Desktop.MixProject do
       description: """
       Write Desktop Apps with Elixir.
       """,
-      elixir: "~> 1.10",
+      elixir: "~> 1.11",
+      # TODO: Also requires otp: "~> 24"
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: Mix.compilers(),
       aliases: aliases(),
