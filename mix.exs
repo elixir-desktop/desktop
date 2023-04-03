@@ -1,7 +1,7 @@
 defmodule Desktop.MixProject do
   use Mix.Project
 
-  @version "1.4.3"
+  @version "1.4.4"
   @url "https://github.com/elixir-desktop/desktop"
 
   def project do
@@ -11,7 +11,7 @@ defmodule Desktop.MixProject do
       version: @version,
       source_url: @url,
       description: """
-      Write Desktop Apps with Elixir.
+      Write Windows, Linux, MacOS, Android, iOS Apps with Elixir.
       """,
       elixir: "~> 1.10",
       elixirc_paths: elixirc_paths(Mix.env()),
