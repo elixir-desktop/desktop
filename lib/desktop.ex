@@ -61,7 +61,7 @@ defmodule Desktop do
       best_match != nil ->
         put_default_locale(best_match)
 
-        # We have seen windows return an empty string for language_code
+      # We have seen windows return an empty string for language_code
       byte_size(language_code) >= 2 ->
         # Looking for a prefix match 'xx' == 'yy'
         prefix = binary_part(language_code, 0, 2)
@@ -108,4 +108,7 @@ defmodule Desktop do
     # :persistent_term.put(@key, locale)
     Application.put_env(:gettext, :default_locale, locale)
   end
+
+  @live_view_version elem(:application.get_key(:phoenix_live_view, :vsn), 1) |> List.to_string()
+  def live_view_version(), do: @live_view_version
 end

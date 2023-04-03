@@ -6,12 +6,17 @@ defmodule Desktop.Endpoint do
       defoverridable url: 0
 
       def url do
+        # Checking for pre LiveView 0.18.0
         url =
-          Phoenix.Config.cache(
-            __MODULE__,
-            :__phoenix_url__,
-            &Phoenix.Endpoint.Supervisor.url/1
-          )
+          if Version.compare(Desktop.live_view_version(), "0.18.0") == :lt do
+            Phoenix.Config.cache(
+              __MODULE__,
+              :__phoenix_url__,
+              fn a -> apply(Phoenix.Endpoint.Supervisor, :url, [a]) end
+            )
+          else
+            :persistent_term.get({Phoenix.Endpoint, __MODULE__}, nil).url
+          end
 
         endpoint = Module.safe_concat(__MODULE__, HTTP)
         String.replace(url, ":0", ":#{:ranch.get_port(endpoint)}")

@@ -135,15 +135,28 @@ defmodule Desktop.Menu do
 
     Module.put_attribute(__CALLER__.module, :is_menu_server, Keyword.get(opts, :server, true))
 
-    # Phoenix.LiveView.HTMLEngine vs. Phoenix.HTML.Engine
-    quote do
-      @behaviour Desktop.Menu
-      import Desktop.Menu, only: [assign: 2, connected?: 1]
-      import Phoenix.HTML, only: [sigil_e: 2, sigil_E: 2]
-      import Phoenix.LiveView.Helpers, only: [sigil_L: 2, sigil_H: 2]
-      alias Desktop.Menu
+    # Checking for pre LiveView 0.18.0
+    if Version.compare(Desktop.live_view_version(), "0.18.0") == :lt do
+      quote do
+        @behaviour Desktop.Menu
+        import Desktop.Menu, only: [assign: 2, connected?: 1]
+        import Phoenix.HTML, only: [sigil_e: 2, sigil_E: 2]
+        import Phoenix.LiveView.Helpers, only: [sigil_L: 2, sigil_H: 2]
+        alias Desktop.Menu
 
-      @before_compile Desktop.Menu
+        @before_compile Desktop.Menu
+      end
+    else
+      quote do
+        @behaviour Desktop.Menu
+        import Desktop.Menu, only: [assign: 2, connected?: 1]
+        import Phoenix.HTML, only: [sigil_e: 2, sigil_E: 2]
+        import Phoenix.LiveView.Helpers, only: [sigil_L: 2]
+        import Phoenix.Component, only: [sigil_H: 2]
+        alias Desktop.Menu
+
+        @before_compile Desktop.Menu
+      end
     end
   end
 
