@@ -120,6 +120,25 @@ defmodule Desktop.Env do
     {:noreply, state}
   end
 
+  @doc """
+    Reconnect is a mobile Bridge specific event issued
+    when the Server Sockets need to be re-restablished
+  """
+  def handle_info(:reconnect, state = %Env{}) do
+    # There seems to be an iOS bug where listening ports
+    # are "zombied" after hibernation and not restarted
+    # correctly. To rectify this situation we're re-creating them
+    # all here
+
+    for endpoint <- endpoints() do
+      IO.inspect({:reconnect, endpoint})
+      :ranch.suspend_listener(endpoint)
+      :ranch.resume_listener(endpoint)
+    end
+
+    {:noreply, state}
+  end
+
   def handle_info({_mac_event, list} = e, state = %Env{subs: subs, events: events})
       when is_list(list) do
     if subs == [] do
@@ -138,6 +157,23 @@ defmodule Desktop.Env do
         state = %Env{subs: subs, windows: windows}
       ) do
     {:noreply, %Env{state | windows: windows -- [pid], subs: subs -- [pid]}}
+  end
+
+  def endpoints() do
+    case :ets.whereis(:ranch_server) do
+      :undefined ->
+        []
+
+      tid ->
+        :ets.tab2list(tid)
+        |> Map.new()
+        |> Map.keys()
+        |> Enum.filter(fn
+          {:addr, _endpoint} -> true
+          _ -> false
+        end)
+        |> Enum.map(fn {:addr, endpoint} -> endpoint end)
+    end
   end
 
   def sni() do
