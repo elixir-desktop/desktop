@@ -9,6 +9,9 @@
 
 Building native-like Elixir apps for Windows, MacOS, Linux, iOS and Android using Phoenix LiveView!
 
+## Changes in 1.5
+- Support for iOS hibernation and wakeup
+
 ## Changes in 1.4
 
 - Support for `~H` sigil with `<item onclick={...}>`
