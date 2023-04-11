@@ -1,7 +1,7 @@
 defmodule Desktop.MixProject do
   use Mix.Project
 
-  @version "1.5.0"
+  @version "1.5.1"
   @url "https://github.com/elixir-desktop/desktop"
 
   def project do
@@ -89,7 +89,7 @@ defmodule Desktop.MixProject do
     ]
 
     if Mix.target() in [:android, :ios] do
-      desktop ++ [{:wx, "~> 1.0", hex: :bridge, targets: [:android, :ios]}]
+      desktop ++ [{:wx, "~> 1.1", hex: :bridge, targets: [:android, :ios]}]
     else
       desktop
     end
