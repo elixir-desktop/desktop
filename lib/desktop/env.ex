@@ -1,14 +1,14 @@
 defmodule Desktop.Env do
   @moduledoc """
-    Env holds any needed :wx / Desktop application state. Currently
-    it keeps track of
-      * The open Desktop.Window(s),
-      * OS Application events (such as when a file is dragged on the application icon)
-      * The :wx environment
-      * The dbus connection (sni) on linux
+  Env holds any needed :wx / Desktop application state. Currently
+  it keeps track of
+  * The open Desktop.Window(s),
+  * OS Application events (such as when a file is dragged on the application icon)
+  * The :wx environment
+  * The dbus connection (sni) on linux
 
-    Also it has a global connect() method to allow binding of :wx event callbacks using
-    this long lived process as reference.
+  Also it has a global connect() method to allow binding of :wx event callbacks using
+  this long lived process as reference.
   """
   alias Desktop.Env
   use GenServer
@@ -120,10 +120,8 @@ defmodule Desktop.Env do
     {:noreply, state}
   end
 
-  @doc """
-    Reconnect is a mobile Bridge specific event issued
-    when the Server Sockets need to be re-restablished
-  """
+  # Reconnect is a mobile Bridge specific event issued
+  # when the Server Sockets need to be re-restablished
   def handle_info(:reconnect, state = %Env{}) do
     # There seems to be an iOS bug where listening ports
     # are "zombied" after hibernation and not restarted
@@ -159,6 +157,7 @@ defmodule Desktop.Env do
     {:noreply, %Env{state | windows: windows -- [pid], subs: subs -- [pid]}}
   end
 
+  @doc false
   def endpoints() do
     case :ets.whereis(:ranch_server) do
       :undefined ->
@@ -176,34 +175,56 @@ defmodule Desktop.Env do
     end
   end
 
+  @doc """
+  Returns the raw ExSni handle if used under linux to talk to DBus.
+  """
   def sni() do
     GenServer.call(__MODULE__, :sni)
   end
 
+  @doc """
+  Returns the wx object. This is what has been created by the application using `:wx.new/1`. You
+  typically need a reference to this to execute raw `:wx` commands.
+  """
   def wx() do
     GenServer.call(__MODULE__, :wx)
   end
 
+  @doc """
+  Gets the Desktop process's current raw `:wx` environment.
+  Can be sent to other processes to allow them use this process wx environment.
+
+  ## Example
+
+      iex> :wx.set_env(Desktop.Env.wx_env())
+      iex> :wxWebView.isContextMenuEnabled(Desktop.Window.webview(pid))
+      false
+  """
   def wx_env() do
     GenServer.call(__MODULE__, :wx_env)
   end
 
+  @doc false
   def connect(object, command, callback, id \\ nil) do
     GenServer.call(__MODULE__, {:connect, object, command, callback, id})
   end
 
+  @doc false
   def put(key, value) do
     GenServer.call(__MODULE__, {:put, key, value})
   end
 
+  @doc false
   def get(key, default \\ nil) do
     GenServer.call(__MODULE__, {:get, key, default})
   end
 
+  @doc false
   def pop(key, default \\ nil) do
     GenServer.call(__MODULE__, {:pop, key, default})
   end
 
+  @doc false
   def await(key) do
     GenServer.call(__MODULE__, {:await, key})
   end
