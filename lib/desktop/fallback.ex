@@ -208,7 +208,8 @@ defmodule Desktop.Fallback do
   end
 
   defp call(module, method, args \\ []) do
-    if System.get_env("NO_WX") == nil and Kernel.function_exported?(module, method, length(args)) do
+    if System.get_env("NO_WX") == nil and Code.ensure_loaded?(module) and
+         Kernel.function_exported?(module, method, length(args)) do
       apply(module, method, args)
     end
   end
