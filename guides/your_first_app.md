@@ -9,7 +9,7 @@ To convert a barebones Phoenix Live View example to a Desktop Application you wi
     ```elixir
     def deps do
     [
-        {:desktop, "~> 1.4"}
+        {:desktop, "~> 1.5"}
     ]
     end
     ```
