@@ -187,6 +187,14 @@ defmodule Desktop.Fallback do
     call(:wx, :subscribe_events)
   end
 
+  def wx_new(opts) do
+    call(:wx, :new, [opts])
+  end
+
+  def wx_get_env() do
+    call(:wx, :get_env)
+  end
+
   defp is_module?(module) do
     Code.ensure_compiled(module) == {:module, module}
   end
@@ -200,7 +208,7 @@ defmodule Desktop.Fallback do
   end
 
   defp call(module, method, args \\ []) do
-    if Kernel.function_exported?(module, method, length(args)) do
+    if System.get_env("NO_WX") == nil and Kernel.function_exported?(module, method, length(args)) do
       apply(module, method, args)
     end
   end

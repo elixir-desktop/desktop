@@ -25,12 +25,12 @@ defmodule Desktop.Env do
   @doc false
   @impl true
   def init(_arg) do
-    wx = :wx.new([])
+    wx = Desktop.Fallback.wx_new([])
     Desktop.Fallback.wx_subscribe()
 
     {:ok,
      %Env{
-       wx_env: :wx.get_env(),
+       wx_env: Desktop.Fallback.wx_get_env(),
        wx: wx,
        map: %{},
        waiters: %{},
@@ -129,9 +129,12 @@ defmodule Desktop.Env do
     # all here
 
     for endpoint <- endpoints() do
-      IO.inspect({:reconnect, endpoint})
-      :ranch.suspend_listener(endpoint)
-      :ranch.resume_listener(endpoint)
+      IO.puts("reconnect: #{inspect(endpoint)}")
+
+      if Kernel.function_exported?(:ranch, :suspend_listener, 1) do
+        apply(:ranch, :suspend_listener, [endpoint])
+        apply(:ranch, :resume_listener, [endpoint])
+      end
     end
 
     {:noreply, state}
@@ -202,6 +205,15 @@ defmodule Desktop.Env do
   """
   def wx_env() do
     GenServer.call(__MODULE__, :wx_env)
+  end
+
+  @doc """
+  Shortcut for `:wx.set_env(Desktop.Env.wx_env())`
+  """
+  def wx_use_env() do
+    with env when env != nil <- wx_env() do
+      :wx.set_env(env)
+    end
   end
 
   @doc false
