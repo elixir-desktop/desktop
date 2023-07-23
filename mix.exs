@@ -1,7 +1,7 @@
 defmodule Desktop.MixProject do
   use Mix.Project
 
-  @version "1.5.1"
+  @version "1.5.2"
   @url "https://github.com/elixir-desktop/desktop"
 
   def project do
