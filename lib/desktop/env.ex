@@ -128,12 +128,14 @@ defmodule Desktop.Env do
     # correctly. To rectify this situation we're re-creating them
     # all here
 
-    for endpoint <- endpoints() do
-      IO.puts("reconnect: #{inspect(endpoint)}")
+    if Desktop.OS.type() == IOS do
+      for endpoint <- endpoints() do
+        IO.puts("reconnect: #{inspect(endpoint)}")
 
-      if Kernel.function_exported?(:ranch, :suspend_listener, 1) do
-        apply(:ranch, :suspend_listener, [endpoint])
-        apply(:ranch, :resume_listener, [endpoint])
+        if Kernel.function_exported?(:ranch, :suspend_listener, 1) do
+          apply(:ranch, :suspend_listener, [endpoint])
+          apply(:ranch, :resume_listener, [endpoint])
+        end
       end
     end
 
