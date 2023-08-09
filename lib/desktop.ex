@@ -109,6 +109,6 @@ defmodule Desktop do
     Application.put_env(:gettext, :default_locale, locale)
   end
 
-  @live_view_version elem(:application.get_key(:phoenix_live_view, :vsn), 1) |> List.to_string()
+  @live_view_version Application.spec(:phoenix_live_view, :vsn) |> List.to_string()
   def live_view_version(), do: @live_view_version
 end
