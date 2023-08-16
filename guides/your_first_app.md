@@ -16,7 +16,7 @@ To convert a barebones Phoenix Live View example to a Desktop Application you wi
 
 1. Add a Desktop.Window child to your supervision tree on startup. E.g. in `application.ex`
 
-    ```
+    ```elixir
     children = [{
         # After your other children
         # Starting Desktop.Windows
@@ -32,14 +32,28 @@ To convert a barebones Phoenix Live View example to a Desktop Application you wi
 
 1. In `endpoint.ex` call `use Desktop.Endpoint` instead of `use Phoenix.Endpoint`
 
-    ```
+    ```elixir
     defmodule YourAppWeb.Endpoint do
-    use Desktop.Endpoint, otp_app: :your_app
+      use Desktop.Endpoint, otp_app: :your_app
+      ...
+    end
+    ```
+    
+    1. Consider authenticating requests
+
+    Using the `Desktop.Auth` plug makes sure only request from the app's webview are allowed.
+
+    ```elixir
+    defmodule YourAppWeb.Endpoint do
+      ...
+      plug Desktop.Auth
+      plug YourAppWeb.Router
+    end
     ```
 
 1. In `config.exs` ensure http is configured and the port is set to `0` so it's chosen automatically
 
-    ```
+    ```elixir
     # Configures the endpoint
     config :your_app, YourAppWeb.Endpoint,
         http: [ip: {127, 0, 0, 1}, port: 0],
@@ -50,11 +64,15 @@ To convert a barebones Phoenix Live View example to a Desktop Application you wi
 1. For localization and to autodetect the desktop language (optional), add the detection hook to your application startup. E.g. in `application.ex`:
 
 
-    ```
-    def start(_type, args) do 
+    ```elixir
+      def start(_type, args) do 
         Desktop.identify_default_locale(YourWebApp.Gettext)
 
         children = [
             ...
+        ]
+
+        ...
+      end
     ```
 
