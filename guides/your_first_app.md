@@ -17,20 +17,22 @@ To convert a barebones Phoenix Live View example to a Desktop Application you wi
 1. Add a Desktop.Window child to your supervision tree on startup. E.g. in `application.ex`
 
     ```elixir
-    children = [{
+    children = [
         # After your other children
         # Starting Desktop.Windows
-        Desktop.Window,
-        [
+		{Desktop.Window,
+         [
             app: :your_app,
             id: YourAppWindow,
             url: &YourAppWeb.Endpoint.url/0
-        ]
-    }]
+         ]}
+	]
     Supervisor.start_link()
     ```
 
-1. In `endpoint.ex` call `use Desktop.Endpoint` instead of `use Phoenix.Endpoint`
+	Note: you still need to start your phoenix Endpoint, add `Desktop.Window` in _addition_ to your `Desktop.Window`
+
+1. In `endpoint.ex` call `use Desktop.Endpoint` **instead of** `use Phoenix.Endpoint`
 
     ```elixir
     defmodule YourAppWeb.Endpoint do
@@ -38,10 +40,10 @@ To convert a barebones Phoenix Live View example to a Desktop Application you wi
       ...
     end
     ```
-    
+
     1. Consider authenticating requests
 
-    Using the `Desktop.Auth` plug makes sure only request from the app's webview are allowed.
+    Adding the `Desktop.Auth` plug to your endpoint ensures that only request from the app's webview are allowed.
 
     ```elixir
     defmodule YourAppWeb.Endpoint do
@@ -65,7 +67,7 @@ To convert a barebones Phoenix Live View example to a Desktop Application you wi
 
 
     ```elixir
-      def start(_type, args) do 
+      def start(_type, args) do
         Desktop.identify_default_locale(YourWebApp.Gettext)
 
         children = [
@@ -76,3 +78,6 @@ To convert a barebones Phoenix Live View example to a Desktop Application you wi
       end
     ```
 
+1. Run your application with `mix phx.server`
+
+  The desktop application window should now be visible!
