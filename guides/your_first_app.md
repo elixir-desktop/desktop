@@ -53,7 +53,7 @@ To convert a barebones Phoenix Live View example to a Desktop Application you wi
     end
     ```
 
-1. In `config.exs` ensure http is configured and the port is set to `0` so it's chosen automatically
+1. In your application configuration (by default in `config/dev.exs` and `config/runtime.exs)` ensure http is configured and the port is set to `0` so it's chosen automatically, as well as setting `server: true` so that your Phoenix Endpoint starts automatically (without having to explicitly call `mix phx.server`):
 
     ```elixir
     # Configures the endpoint
@@ -78,6 +78,6 @@ To convert a barebones Phoenix Live View example to a Desktop Application you wi
       end
     ```
 
-1. Run your application with `mix phx.server`
+1. Run your application with `mix run`
 
   The desktop application window should now be visible!
