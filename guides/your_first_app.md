@@ -20,13 +20,13 @@ To convert a barebones Phoenix Live View example to a Desktop Application you wi
     children = [
         # After your other children
         # Starting Desktop.Windows
-		{Desktop.Window,
+        {Desktop.Window,
          [
             app: :your_app,
             id: YourAppWindow,
             url: &YourAppWeb.Endpoint.url/0
          ]}
-	]
+    ]
     Supervisor.start_link()
     ```
 
