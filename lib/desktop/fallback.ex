@@ -11,7 +11,7 @@ defmodule Desktop.Fallback do
   def webview_new(frame) do
     with :ok <- check_has_webview(),
          sizer <- clear_windows(frame),
-         {:ok, webview} <- webview_new_by_os_type(frame, OS.type()) do
+         {:ok, webview} <- do_webview_new(frame) do
       call(:wxWebView, :connect, [webview, :webview_newwindow])
       call(:wxWebView, :enableContextMenu, [webview, [enable: false]])
 
@@ -41,54 +41,69 @@ defmodule Desktop.Fallback do
     sizer
   end
 
-  defp webview_new_by_os_type(frame, Windows) do
-    if call(:wxWebView, :isBackendAvailable, ['wxWebViewEdge']) do
-      {:ok,
-       call(:wxWebView, :new, [
-         frame,
-         -1,
-         [backend: 'wxWebViewEdge', style: Desktop.Wx.wxNO_BORDER()]
-       ])}
-    else
-      win = :wxHtmlWindow.new(frame, [])
-
-      :wxHtmlWindow.setPage(win, """
-        <html>
-          <body>
-            <h1>Missing Edge Runtime</h1>
-            <p>This demo requires the edge runtime to be installed</p>
-            <p>Please download it <a href="https://go.microsoft.com/fwlink/p/?LinkId=2124703">here</a> and try again</p>
-            <p>
-              <a href="https://go.microsoft.com/fwlink/p/?LinkId=2124703">https://go.microsoft.com/fwlink/p/?LinkId=2124703</a>
-            </p>
-          </body>
-        </html>
-      """)
-
-      :wxHtmlWindow.connect(win, :command_html_link_clicked, skip: true)
-
-      {:error,
-       """
-       Missing support for wxWebViewEdge.
-       Check your OTP install for edge support and download it here:
-       https://go.microsoft.com/fwlink/p/?LinkId=2124703
-       """}
+  defp backend_available?(backend) do
+    try do
+      call(:wxWebView, :isBackendAvailable, [String.to_charlist(backend)])
+    rescue
+      _ in ErlangError -> false
     end
   end
 
-  defp webview_new_by_os_type(frame, _) do
+  defp do_webview_new(frame) do
+    cond do
+      backend_available?("wxWebViewChromium") ->
+        do_webview_new(frame, backend: 'wxWebViewChromium')
+
+      backend_available?("wxWebViewEdge") ->
+        do_webview_new(frame, backend: 'wxWebViewEdge')
+
+      OS.type() == Windows ->
+        error_missing_edge(frame)
+
+      true ->
+        do_webview_new(frame, [])
+    end
+  end
+
+  defp do_webview_new(frame, opts) do
     try do
-      {:ok, call(:wxWebView, :new, [frame, -1, [style: Desktop.Wx.wxNO_BORDER()]])}
+      {:ok, call(:wxWebView, :new, [frame, -1, [{:style, Desktop.Wx.wxNO_BORDER()} | opts]])}
     rescue
       _ -> {:error, "Your erlang-wx is missing wxWebView support. Will show OS browser instead"}
     end
+  end
+
+  defp error_missing_edge(frame) do
+    win = :wxHtmlWindow.new(frame, [])
+
+    :wxHtmlWindow.setPage(win, """
+      <html>
+        <body>
+          <h1>Missing Edge Runtime</h1>
+          <p>This demo requires the edge runtime to be installed</p>
+          <p>Please download it <a href="https://go.microsoft.com/fwlink/p/?LinkId=2124703">here</a> and try again</p>
+          <p>
+            <a href="https://go.microsoft.com/fwlink/p/?LinkId=2124703">https://go.microsoft.com/fwlink/p/?LinkId=2124703</a>
+          </p>
+        </body>
+      </html>
+    """)
+
+    :wxHtmlWindow.connect(win, :command_html_link_clicked, skip: true)
+
+    {:error,
+     """
+     Missing support for wxWebViewEdge.
+     Check your OTP install for edge support and download it here:
+     https://go.microsoft.com/fwlink/p/?LinkId=2124703
+     """}
   end
 
   def webview_can_fix(nil), do: false
 
   def webview_can_fix(webview) do
     is_module?(:wxWebView) and OS.type() == Windows and
-      call(:wxWebView, :isBackendAvailable, ['wxWebViewEdge']) and
+      backend_available?("wxWebViewEdge") and
       call(:wxWebView, :isShownOnScreen, [webview])
   end
 
