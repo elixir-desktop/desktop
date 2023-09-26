@@ -50,7 +50,7 @@ Check out the [Getting your Environment Ready Guide](./guides/getting_started.md
 1. Run elixir-desktop on MacOS/Windows/Android ✅
 1. Run elixir-desktop on Android/iOS ✅
 1. Package elixir-desktop based apps for Android/iOS ✅ (see example-app repo for iOS and Android)
-1. Package elixir-destkop based apps in installers for MacOS/Windows/Linux
+1. Package elixir-desktop based apps in installers for MacOS/Windows/Linux
 1. Update the desktop example app built installers for MacOS/Windows/Linux using GitHub actions
 1. Use a repo of pre-compiled Erlang binaries for Android/iOS/MacOS/Windows/Linux when building Apps, so one call of `mix desktop.deploy` will create installer for all platforms.
 1. Integrate Code Signing for Windows/MacOS
