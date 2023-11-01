@@ -114,7 +114,7 @@ defmodule Desktop.Fallback do
   end
 
   def webview_show(%Desktop.Window{webview: nil}, url, _) do
-    :wx_misc.launchDefaultBrowser(url)
+    OS.launch_default_browser(url)
   end
 
   def webview_show(

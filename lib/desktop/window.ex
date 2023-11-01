@@ -464,7 +464,7 @@ defmodule Desktop.Window do
 
   @doc false
   def handle_event(wx(event: {:wxWebView, :webview_newwindow, _, _, _target, url}), ui) do
-    :wx_misc.launchDefaultBrowser(url)
+    OS.launch_default_browser(url)
     {:noreply, ui}
   end
 

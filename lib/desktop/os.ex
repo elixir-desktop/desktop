@@ -133,4 +133,17 @@ defmodule Desktop.OS do
       Path.expand(path)
     end
   end
+
+  @doc """
+  Replacement for the :wx_misc.launchDefaultBrowser function
+  """
+  def launch_default_browser(file) do
+    spawn(fn ->
+      case type() do
+        MacOS -> System.cmd("open", [file], stderr_to_stdout: true, parallelism: true)
+        Linux -> System.cmd("xdg-open", [file], stderr_to_stdout: true, parallelism: true)
+        _other -> :wx_misc.launchDefaultBrowser(file)
+      end
+    end)
+  end
 end
