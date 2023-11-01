@@ -137,6 +137,11 @@ defmodule Desktop.OS do
   @doc """
   Replacement for the :wx_misc.launchDefaultBrowser function
   """
+  def launch_default_browser(file) when is_list(file) do
+    List.to_string(file)
+    |> launch_default_browser()
+  end
+
   def launch_default_browser(file) do
     spawn(fn ->
       case type() do
