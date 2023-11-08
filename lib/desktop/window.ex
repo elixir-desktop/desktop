@@ -87,9 +87,7 @@ defmodule Desktop.Window do
     :webview,
     :home_url,
     :last_url,
-    :title,
-    :rebuild,
-    :rebuild_timer
+    :title
   ]
 
   @doc false
@@ -197,21 +195,13 @@ defmodule Desktop.Window do
         menu_pid
       end
 
-    timer =
-      if OS.type() == Windows do
-        {:ok, timer} = :timer.send_interval(500, :rebuild)
-        timer
-      end
-
     ui = %Window{
       frame: frame,
       webview: Fallback.webview_new(frame),
       notifications: %{},
       home_url: url,
       title: window_title,
-      taskbar: taskbar,
-      rebuild: 0,
-      rebuild_timer: timer
+      taskbar: taskbar
     }
 
     if hidden != true do
@@ -516,32 +506,6 @@ defmodule Desktop.Window do
       {_, {_ref, callback}} ->
         spawn(fn -> callback.(action) end)
     end
-  end
-
-  @doc false
-  def handle_info(:rebuild, ui = %Window{rebuild: rebuild, rebuild_timer: t, webview: webview}) do
-    ui =
-      if Fallback.webview_can_fix(webview) do
-        case rebuild do
-          0 ->
-            %Window{ui | rebuild: 1}
-
-          1 ->
-            :timer.cancel(t)
-            %Window{ui | rebuild: :done, webview: Fallback.webview_rebuild(ui)}
-
-          :done ->
-            ui
-        end
-      else
-        if rebuild == :done do
-          ui
-        else
-          %Window{ui | rebuild: 0}
-        end
-      end
-
-    {:noreply, ui}
   end
 
   def close_window(wx(userData: pid), inev) do
