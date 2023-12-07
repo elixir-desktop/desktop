@@ -13,6 +13,7 @@ defmodule Desktop.Fallback do
          sizer <- clear_windows(frame),
          {:ok, webview} <- do_webview_new(frame) do
       call(:wxWebView, :connect, [webview, :webview_newwindow])
+      call(:wxWebView, :connect, [webview, :webview_error])
       call(:wxWebView, :enableContextMenu, [webview, [enable: false]])
 
       :wxBoxSizer.add(sizer, webview, proportion: 1, flag: Wx.wxEXPAND())

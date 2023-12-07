@@ -458,6 +458,11 @@ defmodule Desktop.Window do
     {:noreply, ui}
   end
 
+  def handle_event(error = wx(event: {:wxWebView, :webview_error, _, _, _target, _url}), ui) do
+    Logger.error("wxWebView error: #{inspect(error)}")
+    {:noreply, ui}
+  end
+
   def handle_event(wx(id: id, event: wxCommand(type: :command_menu_selected)), ui) do
     if id == Wx.wxID_EXIT() do
       quit()
