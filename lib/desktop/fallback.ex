@@ -51,6 +51,9 @@ defmodule Desktop.Fallback do
 
   defp do_webview_new(frame) do
     cond do
+      backend_available?(webview_backend_env()) ->
+        do_webview_new(frame, backend: String.to_charlist(webview_backend_env()))
+
       backend_available?("wxWebViewChromium") ->
         do_webview_new(frame, backend: 'wxWebViewChromium')
 
@@ -66,11 +69,17 @@ defmodule Desktop.Fallback do
   end
 
   defp do_webview_new(frame, opts) do
+    Desktop.Env.put(:webview_backend, Keyword.get(opts, :backend, "default"))
+
     try do
       {:ok, call(:wxWebView, :new, [frame, -1, [{:style, Desktop.Wx.wxNO_BORDER()} | opts]])}
     rescue
       _ -> {:error, "Your erlang-wx is missing wxWebView support. Will show OS browser instead"}
     end
+  end
+
+  def webview_backend_env() do
+    System.get_env("WX_WEBVIEW_BACKEND", "none")
   end
 
   defp error_missing_edge(frame) do

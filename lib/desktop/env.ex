@@ -41,6 +41,13 @@ defmodule Desktop.Env do
      }}
   end
 
+  @doc """
+  Returns the currently used webview backend
+  """
+  def backend() do
+    get(:webview_backend, "nil")
+  end
+
   @impl true
   def handle_call({:subscribe, pid}, _from, d = %Env{events: events, subs: subs}) do
     for e <- events do
