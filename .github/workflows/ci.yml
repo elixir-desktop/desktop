@@ -13,6 +13,8 @@ jobs:
         elixir-version: 1.11.4
 
     - uses: actions/checkout@v1
+    - run: mix deps.get
+
     - uses: actions/cache@v2
       id: mix-cache
       with:
@@ -26,7 +28,6 @@ jobs:
         mkdir -p priv/plts
         mix local.rebar --force
         mix local.hex --force
-        mix deps.get
         mix deps.compile
         mix dialyzer --plt
 

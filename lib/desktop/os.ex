@@ -123,7 +123,7 @@ defmodule Desktop.OS do
   This is a Path.expand variant that normalizes the drive letter
   on windows
   """
-  @spec path_expand(string) :: binary
+  @spec path_expand(IO.chardata()) :: binary
   def path_expand(path) do
     if windows?() do
       path = if is_list(path), do: List.to_string(path), else: path
