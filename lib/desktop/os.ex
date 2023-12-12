@@ -123,12 +123,18 @@ defmodule Desktop.OS do
   This is a Path.expand variant that normalizes the drive letter
   on windows
   """
-  @spec path_expand(binary) :: binary
+  @spec path_expand(string) :: binary
   def path_expand(path) do
     if windows?() do
-      path = Path.expand(path)
-      drv = String.first(path)
-      String.replace_prefix(path, drv <> ":", String.upcase(drv) <> ":")
+      path = if is_list(path), do: List.to_string(path), else: path
+      drv = String.downcase(String.first(path))
+
+      if byte_size(path) == 2 and String.at(path, 1) == ":" do
+        Path.expand(path <> "/")
+      else
+        Path.expand(path)
+      end
+      |> String.replace_prefix(drv <> ":", String.upcase(drv) <> ":")
     else
       Path.expand(path)
     end
