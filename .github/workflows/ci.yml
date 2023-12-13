@@ -10,7 +10,7 @@ jobs:
       uses: erlef/setup-beam@v1
       with:
         otp-version: 24.3.3
-        elixir-version: 1.11.4
+        elixir-version: 1.13.4
 
     - uses: actions/checkout@v1
     - run: mix deps.get
