@@ -13,7 +13,7 @@ defmodule Desktop.Endpoint do
 
         case Keyword.get(config(scheme), :port, 0) do
           0 -> String.replace(url, ":0", ":#{get_dynamic_port(scheme)}")
-          port -> url
+          _port -> url
         end
       end
 
