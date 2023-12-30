@@ -1,7 +1,7 @@
 defmodule Desktop.Endpoint do
   @doc false
   defmacro __using__(opts) do
-    scheme = Keyword.get(opts, :desktop_scheme, :http)
+    {scheme, opts} = Keyword.pop(opts, :desktop_scheme, :http)
 
     quote do
       use Phoenix.Endpoint, unquote(opts)
