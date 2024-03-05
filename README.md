@@ -6,40 +6,13 @@
 [![License](https://img.shields.io/hexpm/l/desktop.svg)](https://github.com/elixir-desktop/desktop/blob/master/LICENSE.md)
 [![Last Updated](https://img.shields.io/github/last-commit/elixir-desktop/desktop.svg)](https://github.com/elixir-desktop/desktop/commits/master)
 
-
 Building native-like Elixir apps for Windows, MacOS, Linux, iOS and Android using Phoenix LiveView!
-
-## Changes in 1.5
-- Support for iOS hibernation and wakeup
-
-## Changes in 1.4
-
-- Support for `~H` sigil with `<item onclick={...}>`
-- Changed Menu XML escaping to LiveView automatic escaping logic from LiveView HTML tokenizer & engine.
-- Removed `Menu.escape_attribute/1` and `Menu.escape/1`
-- Dropped `:xmerl` dependency
-
-## Changes in 1.3
-
-- Added `Env.subscribe/1` to listen to MacOS application events such as `{:open_url, url}` when a url associated with the application is clicked.
-- Using (experimental) dbus support to render the systray icon on linux
-- Added `Menu.escape_attribute/1`
-- Added `Window.url/1`
-- Added `Window.hide/1` and `Window.is_hidden/`
-- Fixed MacOS "Quit" menu item
-- Other fixes
-
-## Changes in 1.2
-
-- Removed the bleeding edge notices because Erlang OTP 24 is now broadly available for Windows/Linux/MacOS
-- Added build support for iOS devices
-- Moved most phoenix dependencies out to allow using Phoenix 1.6 / esbuild
 
 ## Example
 
-Checkout the Todo sample application for a starting point. https://github.com/elixir-desktop/desktop-example-app
+Checkout [the example app](https://github.com/elixir-desktop/desktop-example-app) for a starting point.
 
-![MacOS build](https://raw.githubusercontent.com/elixir-desktop/desktop-example-app/main/nodeploy/macos_todo.png "MacOS build")
+![MacOS build](https://raw.githubusercontent.com/elixir-desktop/desktop-example-app/main/nodeploy/macos_todo.png 'MacOS build')
 
 ## Getting Started
 
@@ -58,8 +31,8 @@ Check out the [Getting your Environment Ready Guide](./guides/getting_started.md
 
 ## Contributing and Raising Issues
 
-* Please checkout the github repo at https://github.com/elixir-desktop/desktop and raise any issues.
-* For questions and comments best to use the [Elixir forum](https://elixirforum.com/t/elixir-desktop-android-window-macos-linux-liveview-apps-with-elixir/) or contact me on [Slack](https://elixir-lang.slack.com/archives/C02429KJJCX).
+- Please checkout [the GitHub repo](https://github.com/elixir-desktop/desktop) and raise any issue.
+- For questions and comments best to use the [Elixir forum](https://elixirforum.com/t/elixir-desktop-android-window-macos-linux-liveview-apps-with-elixir/) or contact me on [Slack](https://elixir-lang.slack.com/archives/C02429KJJCX).
 
 All suggestions are welcome!
 
