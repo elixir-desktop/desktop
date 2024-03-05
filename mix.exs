@@ -1,6 +1,9 @@
 defmodule Desktop.MixProject do
   use Mix.Project
 
+  @description """
+  Building native-like Elixir apps for Windows, MacOS, Linux, iOS and Android using Phoenix LiveView!
+  """
   @version "1.5.2"
   @url "https://github.com/elixir-desktop/desktop"
 
@@ -10,9 +13,7 @@ defmodule Desktop.MixProject do
       name: "Desktop",
       version: @version,
       source_url: @url,
-      description: """
-      Write Windows, Linux, MacOS, Android, iOS Apps with Elixir.
-      """,
+      description: @description,
       elixir: "~> 1.10",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: Mix.compilers(),
