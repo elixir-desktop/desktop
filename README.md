@@ -47,18 +47,19 @@ Check out the [Getting your Environment Ready Guide](./guides/getting_started.md
 
 ## Status / Roadmap
 
-1. Run elixir-desktop on MacOS/Windows/Android ✅
-1. Run elixir-desktop on Android/iOS ✅
-1. Package elixir-desktop based apps for Android/iOS ✅ (see example-app repo for iOS and Android)
-1. Package elixir-desktop based apps in installers for MacOS/Windows/Linux
-1. Update the desktop example app built installers for MacOS/Windows/Linux using GitHub actions
-1. Use a repo of pre-compiled Erlang binaries for Android/iOS/MacOS/Windows/Linux when building Apps, so one call of `mix desktop.deploy` will create installer for all platforms.
-1. Integrate Code Signing for Windows/MacOS
-1. Build a GitHub actions based auto-update flow
+1. ✅ Run elixir-desktop on Windows/MacOS/Linux
+2. ✅ Run elixir-desktop on iOS/Android
+3. ✅ Package elixir-desktop based apps for iOS/Android (see example-app repo for iOS and Android)
+4. Package elixir-desktop based apps in installers for Windows/MacOS/Linux
+5. Update the desktop example app built installers for Windows/MacOS/Linux using GitHub actions
+6. Use a repo of pre-compiled Erlang binaries for Windows/MacOS/Linux/iOS/Android when building Apps, so one call of `mix desktop.deploy` will create installer for all platforms.
+7. Integrate Code Signing for Windows/MacOS
+8. Build a GitHub actions based auto-update flow
 
 ## Contributing and Raising Issues
 
-Please checkout the github repo at https://github.com/elixir-desktop/desktop and raise any issues. For questions and comments best to use the Elixir forum: https://elixirforum.com/t/elixir-desktop-android-window-macos-linux-liveview-apps-with-elixir/ or contact me on Slack https://elixir-lang.slack.com/archives/C02429KJJCX
+* Please checkout the github repo at https://github.com/elixir-desktop/desktop and raise any issues.
+* For questions and comments best to use the [Elixir forum](https://elixirforum.com/t/elixir-desktop-android-window-macos-linux-liveview-apps-with-elixir/) or contact me on [Slack](https://elixir-lang.slack.com/archives/C02429KJJCX).
 
 All suggestions are welcome!
 
