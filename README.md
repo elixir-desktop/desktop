@@ -43,7 +43,7 @@ Checkout the Todo sample application for a starting point. https://github.com/el
 
 ## Getting Started
 
-Check out the [Getting your Environment Ready Guide](./guides/getting_started.md) and [Your first Desktop App](./guides/your_first_app.md)
+Check out the [Getting your Environment Ready Guide](./guides/getting_started.md) and [Your first Desktop App](./guides/your_first_desktop_app.md)
 
 ## Status / Roadmap
 
