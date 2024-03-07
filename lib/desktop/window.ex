@@ -523,13 +523,22 @@ defmodule Desktop.Window do
 
   @doc false
   def handle_cast(:close_window, ui = %Window{frame: frame, taskbar: taskbar}) do
+    # On macOS, there's no way to differentiate between following two events:
+    #
+    # * the window close event
+    # * the application close event
+    #
+    # So, this code assumes that if there's a closet_window event coming in while
+    # the window in not actually shown, then it must be an application close event.
+    #
+    # On other platforms, this code should not have any relevance.
     if not :wxFrame.isShown(frame) do
       OS.shutdown()
     end
 
     if taskbar == nil do
-      :wxFrame.hide(frame)
-      {:stop, :normal, ui}
+      OS.shutdown()
+      {:noreply, ui}
     else
       :wxFrame.hide(frame)
       {:noreply, ui}
