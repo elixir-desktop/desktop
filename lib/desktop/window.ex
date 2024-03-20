@@ -636,27 +636,15 @@ defmodule Desktop.Window do
     {:reply, frame, ui}
   end
 
-  def prepare_url(url) do
-    query = "k=" <> Desktop.Auth.login_key()
+  def prepare_url(url) when is_function(url), do: prepare_url(url.())
+  def prepare_url(nil), do: nil
+  def prepare_url(url) when is_binary(url) do
+    query = %{"k" => Desktop.Auth.login_key()}
+    uri = URI.parse(url)
 
-    case url do
-      nil -> nil
-      fun when is_function(fun) -> append_query(fun.(), query)
-      string when is_binary(string) -> append_query(string, query)
-    end
-  end
-
-  defp append_query(url, query) do
-    case URI.parse(url) do
-      url = %URI{query: nil} ->
-        %URI{url | query: query}
-
-      url = %URI{query: other} ->
-        if String.contains?(other, query) do
-          url
-        else
-          %URI{url | query: other <> "&" <> query}
-        end
+    case uri do
+      %URI{query: nil} -> %URI{uri | query: URI.encode_query(query)}
+      %URI{query: other} -> %URI{uri | query: URI.encode_query(Map.merge(URI.decode_query(other), query))}
     end
     |> URI.to_string()
   end
