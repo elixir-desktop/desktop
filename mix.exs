@@ -4,7 +4,7 @@ defmodule Desktop.MixProject do
   @description """
   Building native-like Elixir apps for Windows, MacOS, Linux, iOS and Android using Phoenix LiveView!
   """
-  @version "1.5.2"
+  @version "1.5.3"
   @url "https://github.com/elixir-desktop/desktop"
 
   def project do
