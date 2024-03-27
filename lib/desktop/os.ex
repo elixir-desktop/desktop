@@ -103,11 +103,7 @@ defmodule Desktop.OS do
       if port != nil do
         {:os_pid, heart_pid} = Port.info(port, :os_pid)
 
-        if windows?() do
-          System.cmd("taskkill", ["/f", "/pid", "#{heart_pid}"], stderr_to_stdout: true)
-        else
-          System.cmd("kill", ["-9", "#{heart_pid}"], stderr_to_stdout: true)
-        end
+        kill_process(heart_pid)
 
         # kill thyself
         kill_beam()
@@ -116,7 +112,15 @@ defmodule Desktop.OS do
   end
 
   defp kill_beam() do
-    System.cmd("kill", ["-9", "#{:os.getpid()}"], stderr_to_stdout: true)
+    kill_process(:os.getpid())
+  end
+
+  def kill_process(pid) do
+    if windows?() do
+      System.cmd("taskkill", ["/f", "/pid", "#{pid}"], stderr_to_stdout: true)
+    else
+      System.cmd("kill", ["-9", "#{pid}"], stderr_to_stdout: true)
+    end
   end
 
   @doc """
