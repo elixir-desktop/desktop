@@ -109,7 +109,7 @@ end
 ## 4. Run it
 
 ```
-$ mix run
+$ mix run --no-halt
 ```
 
 The Desktop app should be visible now!
