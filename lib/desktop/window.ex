@@ -270,8 +270,15 @@ defmodule Desktop.Window do
       false
 
   """
-  def is_hidden?(pid) do
+  def hidden?(pid) do
     GenServer.call(pid, :is_hidden?)
+  end
+
+  @doc false
+  @deprecated "Use hidden?/1 instead"
+  # credo:disable-for-next-line
+  def is_hidden?(pid) do
+    hidden?(pid)
   end
 
   @doc """
@@ -286,8 +293,15 @@ defmodule Desktop.Window do
       false
 
   """
-  def is_active?(pid) do
+  def active?(pid) do
     GenServer.call(pid, :is_active?)
+  end
+
+  @doc false
+  @deprecated "Use active?/1 instead"
+  # credo:disable-for-next-line
+  def is_active?(pid) do
+    active?(pid)
   end
 
   @doc """

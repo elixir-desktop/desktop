@@ -29,7 +29,7 @@ defmodule Desktop.Fallback do
   end
 
   defp check_has_webview() do
-    if is_module?(:wxWebView) do
+    if module?(:wxWebView) do
       :ok
     else
       {:error, "Missing support for wxWebView - upgrade to OTP/24. Will show OS browser instead"}
@@ -112,7 +112,7 @@ defmodule Desktop.Fallback do
   def webview_can_fix(nil), do: false
 
   def webview_can_fix(webview) do
-    is_module?(:wxWebView) and OS.type() == Windows and
+    module?(:wxWebView) and OS.type() == Windows and
       backend_available?("wxWebViewEdge") and
       call(:wxWebView, :isShownOnScreen, [webview])
   end
@@ -163,7 +163,7 @@ defmodule Desktop.Fallback do
   end
 
   def notification_new(title, type) do
-    if is_module?(:wxNotificationMessage) do
+    if module?(:wxNotificationMessage) do
       flag =
         case type do
           :info -> Wx.wxICON_INFORMATION()
@@ -196,7 +196,7 @@ defmodule Desktop.Fallback do
   end
 
   def notification_show(notification, message, timeout, title \\ nil) do
-    if is_module?(:wxNotificationMessage) do
+    if module?(:wxNotificationMessage) do
       if title != nil do
         call(:wxNotificationMessage, :setTitle, [notification, to_charlist(title)])
       end
@@ -220,7 +220,7 @@ defmodule Desktop.Fallback do
     call(:wx, :get_env)
   end
 
-  defp is_module?(module) do
+  defp module?(module) do
     Code.ensure_compiled(module) == {:module, module}
   end
 
