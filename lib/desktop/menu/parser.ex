@@ -162,22 +162,24 @@ defmodule Desktop.Menu.Parser do
   end
 
   defp html_decode(binary) do
-    html_decode(binary, [])
+    String.trim(binary)
+    |> html_decode([])
     |> Enum.reverse()
     |> :erlang.iolist_to_binary()
   end
 
   escapes = [
-    {?<, "&lt;"},
-    {?>, "&gt;"},
-    {?&, "&amp;"},
-    {?", "&quot;"},
-    {?', "&#39;"}
+    {"<", "&lt;"},
+    {">", "&gt;"},
+    {"&", "&amp;"},
+    {"\"", "&quot;"},
+    {"'", "&#39;"},
+    {" ", "&nbsp;"}
   ]
 
   for {insert, match} <- escapes do
     defp html_decode(<<unquote(match)::binary, rest::binary>>, acc) do
-      html_decode(rest, [unquote(insert) | acc])
+      html_decode(unquote(insert) <> rest, acc)
     end
   end
 
