@@ -3,8 +3,8 @@ defmodule Desktop.Menu.HTMLTokenizer do
   # unfortunately the token/4 API changed into token/6 so copying it inplace...
 
   @moduledoc false
-  @space_chars '\s\t\f'
-  @name_stop_chars @space_chars ++ '>/=\r\n'
+  @space_chars ~c"\s\t\f"
+  @name_stop_chars @space_chars ++ ~c">/=\r\n"
 
   defmodule ParseError do
     defexception [:file, :line, :column, :description]

@@ -305,10 +305,10 @@ defmodule Desktop.Menu.Adapter.Wx do
         :wxMenu.append(parent_menu, item)
 
         if attr[:checked] != nil do
-          :wxMenuItem.check(item, check: is_true(attr[:checked]))
+          :wxMenuItem.check(item, check: true?(attr[:checked]))
         end
 
-        if is_true(attr[:disabled]) do
+        if true?(attr[:disabled]) do
           :wxMenu.enable(parent_menu, id, false)
         end
 
@@ -347,7 +347,7 @@ defmodule Desktop.Menu.Adapter.Wx do
     parent_menu
   end
 
-  defp is_true(value) do
+  defp true?(value) do
     value != nil and value != "false" and value != "0" and value != ""
   end
 end

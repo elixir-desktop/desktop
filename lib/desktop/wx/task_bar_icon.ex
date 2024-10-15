@@ -135,7 +135,7 @@ defmodule Desktop.Wx.TaskBarIcon do
     if supports_method?(:new, 1) do
       # Supports :wxTaskBarIcon.new(opts)
 
-      if is_module?(:wxWebView) do
+      if module?(:wxWebView) do
         # Proper OTP24 release
         create_taskbar_icon(createPopupMenu: fn_create_popup)
       else
@@ -186,14 +186,14 @@ defmodule Desktop.Wx.TaskBarIcon do
   end
 
   defp supports_method?(method, arity) do
-    if is_module?(:wxTaskBarIcon) do
+    if module?(:wxTaskBarIcon) do
       Kernel.function_exported?(:wxTaskBarIcon, method, arity)
     else
       false
     end
   end
 
-  defp is_module?(module) do
+  defp module?(module) do
     Code.ensure_loaded?(module)
   end
 end

@@ -638,13 +638,17 @@ defmodule Desktop.Window do
 
   def prepare_url(url) when is_function(url), do: prepare_url(url.())
   def prepare_url(nil), do: nil
+
   def prepare_url(url) when is_binary(url) do
     query = %{"k" => Desktop.Auth.login_key()}
     uri = URI.parse(url)
 
     case uri do
-      %URI{query: nil} -> %URI{uri | query: URI.encode_query(query)}
-      %URI{query: other} -> %URI{uri | query: URI.encode_query(Map.merge(URI.decode_query(other), query))}
+      %URI{query: nil} ->
+        %URI{uri | query: URI.encode_query(query)}
+
+      %URI{query: other} ->
+        %URI{uri | query: URI.encode_query(Map.merge(URI.decode_query(other), query))}
     end
     |> URI.to_string()
   end

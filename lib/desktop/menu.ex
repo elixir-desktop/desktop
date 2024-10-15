@@ -131,7 +131,10 @@ defmodule Desktop.Menu do
 
   @doc false
   defmacro __using__(opts) do
-    Module.register_attribute(__CALLER__.module, :is_menu_server, persist: true, accumulate: false)
+    Module.register_attribute(__CALLER__.module, :is_menu_server,
+      persist: true,
+      accumulate: false
+    )
 
     Module.put_attribute(__CALLER__.module, :is_menu_server, Keyword.get(opts, :server, true))
 
@@ -310,7 +313,7 @@ defmodule Desktop.Menu do
       }
       |> do_mount()
 
-    if is_module_server?(module) do
+    if module_server?(module) do
       Process.register(menu_pid, module)
     end
 
@@ -480,7 +483,7 @@ defmodule Desktop.Menu do
     end
   end
 
-  defp is_module_server?(module) do
+  defp module_server?(module) do
     try do
       case Keyword.get(module.__info__(:attributes), :is_menu_server, false) do
         [true] -> true

@@ -56,10 +56,10 @@ defmodule Desktop.Fallback do
         do_webview_new(frame, backend: String.to_charlist(webview_backend_env()))
 
       backend_available?("wxWebViewChromium") ->
-        do_webview_new(frame, backend: 'wxWebViewChromium')
+        do_webview_new(frame, backend: ~c"wxWebViewChromium")
 
       backend_available?("wxWebViewEdge") ->
-        do_webview_new(frame, backend: 'wxWebViewEdge')
+        do_webview_new(frame, backend: ~c"wxWebViewEdge")
 
       OS.type() == Windows ->
         error_missing_edge(frame)
