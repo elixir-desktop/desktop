@@ -47,36 +47,40 @@ defmodule Desktop do
     ```
   """
   def identify_default_locale(backend) do
-    # this is in the form "xx_XX"
-    language_code = language_code()
-
     # All locales with translations:
-    known_locales = Gettext.known_locales(backend)
+    known_locales = Gettext.known_locales(backend) |> Enum.map(&String.downcase/1)
+    best_match = find_default_locale(language_codes(), known_locales)
 
-    # Looking for a best fit
-    # Preferring a full match 'xx_xx' == 'yy_yy'
-    best_match = Enum.find(known_locales, fn l -> String.downcase(l) == language_code end)
-
-    cond do
-      best_match != nil ->
-        put_default_locale(best_match)
-
-      # We have seen windows return an empty string for language_code
-      byte_size(language_code) >= 2 ->
-        # Looking for a prefix match 'xx' == 'yy'
-        prefix = binary_part(language_code, 0, 2)
-
-        prefix_match =
-          Enum.find(known_locales, fn l -> String.starts_with?(String.downcase(l), prefix) end)
-
-        if prefix_match != nil do
-          put_default_locale(prefix_match)
-        end
-
-      true ->
-        # we're giving up, not updating the default locale
-        nil
+    if best_match != nil do
+      put_default_locale(best_match)
     end
+  end
+
+  defp find_default_locale([locale | locales], known_locales) do
+    find_full_match(locale, known_locales) || find_prefix_match(locale, known_locales) ||
+      find_default_locale(locales, known_locales)
+  end
+
+  defp find_full_match(locale, known_locales) do
+    # locale and known_locales should be lowercase already
+    with <<locale::binary-size(5), _rest::binary>> <- locale do
+      Enum.find(known_locales, fn l -> l == locale end)
+    end
+  end
+
+  defp find_prefix_match(locale, known_locales) do
+    # locale and known_locales should be lowercase already
+    with <<locale::binary-size(2), _rest::binary>> <- locale do
+      Enum.find(known_locales, fn l -> String.starts_with?(l, locale) end)
+    end
+  end
+
+  defp language_codes() do
+    # We're using | as a separator for multiple languages coming from the
+    # iOS/Android bridges
+    String.split(language_code(), "|")
+    |> Enum.map(&String.trim/1)
+    |> Enum.map(&String.downcase/1)
   end
 
   def language_code() do
