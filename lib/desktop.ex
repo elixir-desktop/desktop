@@ -61,6 +61,8 @@ defmodule Desktop do
       find_default_locale(locales, known_locales)
   end
 
+  defp find_default_locale([], _known_locales), do: nil
+
   defp find_full_match(locale, known_locales) do
     # locale and known_locales should be lowercase already
     with <<locale::binary-size(5), _rest::binary>> <- locale do
@@ -81,6 +83,7 @@ defmodule Desktop do
     String.split(language_code(), "|")
     |> Enum.map(&String.trim/1)
     |> Enum.map(&String.downcase/1)
+    |> Enum.map(&String.replace(&1, "-", "_"))
   end
 
   def language_code() do
