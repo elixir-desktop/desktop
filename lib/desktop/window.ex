@@ -621,15 +621,7 @@ defmodule Desktop.Window do
 
   @doc false
   def handle_call(:is_active?, _from, ui = %Window{frame: frame}) do
-    ret =
-      if frame do
-        :wxTopLevelWindow.isActive(frame)
-      else
-        # true on mobile platforms
-        true
-      end
-
-    {:reply, ret, ui}
+    {:reply, :wxTopLevelWindow.isActive(frame), ui}
   end
 
   def handle_call(:url, _from, ui) do
