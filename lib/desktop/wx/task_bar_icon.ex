@@ -10,7 +10,7 @@ defmodule Desktop.Wx.TaskBarIcon do
 
   @type wx_menu() :: any()
   @type wx_taskbar_icon() :: any()
-  @type create_popup() :: (() -> wx_menu())
+  @type create_popup() :: (-> wx_menu())
   @type t() :: %__MODULE__{
           fn_create_popup: nil | create_popup(),
           skip_popup_menu?: boolean(),
