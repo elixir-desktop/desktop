@@ -11,7 +11,9 @@ defmodule Desktop.Menu.Parser do
   end
 
   def parse(string) when is_list(string) or is_binary(string) do
-    string = :unicode.characters_to_binary(string)
+    string =
+      :unicode.characters_to_binary(string)
+      |> String.replace(~r/<!--.+-->/, "")
 
     if System.get_env("TRACE_MENU") do
       {millis, _} = :erlang.statistics(:wall_clock)
