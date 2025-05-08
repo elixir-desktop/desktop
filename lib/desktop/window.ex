@@ -122,15 +122,21 @@ defmodule Desktop.Window do
     hidden = unless OS.mobile?(), do: options[:hidden]
     url = options[:url]
 
-    env = Desktop.Env.wx_env()
+    Desktop.Env.wx_use_env()
     GenServer.cast(Desktop.Env, {:register_window, self()})
-    :wx.set_env(env)
 
     frame =
       :wxFrame.new(Desktop.Env.wx(), Wx.wxID_ANY(), window_title, [
         {:size, size},
         {:style, Wx.wxDEFAULT_FRAME_STYLE()}
       ])
+
+    OnCrash.call(fn reason ->
+      if reason != :normal do
+        Desktop.Env.wx_use_env()
+        :wxFrame.destroy(frame)
+      end
+    end)
 
     :wxFrame.connect(frame, :close_window,
       callback: &close_window/2,
@@ -150,6 +156,7 @@ defmodule Desktop.Window do
       end
 
     :wxTopLevelWindow.setIcon(frame, icon)
+    env = Desktop.Env.wx_env()
 
     wx_menubar =
       if menubar do
