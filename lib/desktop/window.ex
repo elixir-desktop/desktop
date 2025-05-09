@@ -133,6 +133,7 @@ defmodule Desktop.Window do
 
     OnCrash.call(fn reason ->
       if reason != :normal do
+        Logger.error("Window crashed: #{inspect(reason)}")
         Desktop.Env.wx_use_env()
         :wxFrame.destroy(frame)
       end
