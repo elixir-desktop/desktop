@@ -142,7 +142,7 @@ defmodule Desktop.Menu do
     if Version.compare(Desktop.live_view_version(), "0.18.0") == :lt do
       quote do
         @behaviour Desktop.Menu
-        import Desktop.Menu, only: [assign: 2, connected?: 1]
+        import Desktop.Menu, only: [assign: 2, assign: 3, assign_new: 3, connected?: 1]
         import Phoenix.HTML, only: [sigil_e: 2, sigil_E: 2]
         import Phoenix.LiveView.Helpers, only: [sigil_L: 2, sigil_H: 2]
         alias Desktop.Menu
@@ -152,7 +152,7 @@ defmodule Desktop.Menu do
     else
       quote do
         @behaviour Desktop.Menu
-        import Desktop.Menu, only: [assign: 2, assign_new: 3, connected?: 1]
+        import Desktop.Menu, only: [assign: 2, assign: 3, assign_new: 3, connected?: 1]
         import Phoenix.HTML, only: [sigil_e: 2, sigil_E: 2]
         import Phoenix.LiveView.Helpers, only: [sigil_L: 2]
         import Phoenix.Component, only: [sigil_H: 2]
