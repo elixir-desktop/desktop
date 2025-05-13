@@ -152,7 +152,7 @@ defmodule Desktop.Menu do
     else
       quote do
         @behaviour Desktop.Menu
-        import Desktop.Menu, only: [assign: 2, connected?: 1]
+        import Desktop.Menu, only: [assign: 2, assign_new: 3, connected?: 1]
         import Phoenix.HTML, only: [sigil_e: 2, sigil_E: 2]
         import Phoenix.LiveView.Helpers, only: [sigil_L: 2]
         import Phoenix.Component, only: [sigil_H: 2]
@@ -257,6 +257,11 @@ defmodule Desktop.Menu do
   def assign_new(menu = %Menu{assigns: assigns}, property, fun)
       when is_atom(property) and is_function(fun) do
     %Menu{menu | assigns: Map.put_new_lazy(assigns, property, fun)}
+  end
+
+  def assign_new(menu = %Menu{assigns: assigns}, property, value)
+      when is_atom(property) do
+    %Menu{menu | assigns: Map.put_new(assigns, property, value)}
   end
 
   # GenServer implementation
