@@ -208,6 +208,10 @@ defmodule Desktop.Fallback do
     end
   end
 
+  def notification_close(notification) do
+    call(:wxNotificationMessage, :close, [notification])
+  end
+
   def wx_subscribe() do
     call(:wx, :subscribe_events)
   end

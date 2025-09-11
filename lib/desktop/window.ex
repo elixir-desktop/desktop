@@ -430,9 +430,7 @@ defmodule Desktop.Window do
 
   ## Examples
 
-      iex> :wx.set_env(Desktop.Env.wx_env())
-      iex> :wxWebView.isContextMenuEnabled(Desktop.Window.webview(pid))
-      false
+      iex> Desktop.Window.show_notification(pid, "Hello, world!")
 
   """
   def show_notification(pid, text, opts \\ []) do
@@ -457,6 +455,13 @@ defmodule Desktop.Window do
 
     callback = Keyword.get(opts, :callback, nil)
     GenServer.cast(pid, {:show_notification, text, id, type, title, callback, timeout})
+  end
+
+  @doc """
+  Dismiss a notification
+  """
+  def dismiss_notification(pid, id) do
+    GenServer.cast(pid, {:dismiss_notification, id})
   end
 
   @doc """
@@ -598,6 +603,17 @@ defmodule Desktop.Window do
     Fallback.notification_show(n, message, timeout, title || window_title)
     noties = Map.put(noties, id, note)
     {:noreply, %Window{ui | notifications: noties}}
+  end
+
+  def handle_cast({:dismiss_notification, id}, ui = %Window{notifications: noties}) do
+    case Map.pop(noties, id) do
+      {nil, _noties} ->
+        {:noreply, ui}
+
+      {{note, _callback}, noties} ->
+        Fallback.notification_close(note)
+        {:noreply, %Window{ui | notifications: noties}}
+    end
   end
 
   def handle_cast({:show, url}, ui = %Window{home_url: home, last_url: last}) do
