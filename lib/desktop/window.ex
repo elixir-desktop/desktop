@@ -235,6 +235,22 @@ defmodule Desktop.Window do
   end
 
   @doc """
+  Loads the given url into the Window.
+
+    * `pid` - The pid or atom of the Window
+    * `url` - The url to load. If none is provided, the last url will be used.
+
+  ## Examples
+
+      iex> Desktop.Window.load_url(pid, "http://localhost:1234/main")
+      :ok
+
+  """
+  def load_url(pid, url) do
+    GenServer.cast(pid, {:load_url, url})
+  end
+
+  @doc """
   Show the Window if not visible with the given url.
 
     * `pid` - The pid or atom of the Window
@@ -620,6 +636,13 @@ defmodule Desktop.Window do
     new_url = prepare_url(url || last || home)
     Logger.info("Showing #{new_url}")
     Fallback.webview_show(ui, new_url, url == nil)
+    {:noreply, %Window{ui | last_url: new_url}}
+  end
+
+  def handle_cast({:load_url, url}, ui = %Window{home_url: home, last_url: last}) do
+    new_url = prepare_url(url || last || home)
+    Logger.info("Loading #{new_url}")
+    Fallback.webview_load(ui, new_url)
     {:noreply, %Window{ui | last_url: new_url}}
   end
 
