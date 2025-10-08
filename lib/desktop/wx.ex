@@ -1,3 +1,4 @@
+# TODO: less stringy metaprogramming
 defmodule Desktop.Wx do
   @moduledoc """
   Elixir version of the constants found in the wx.hrl file, reduced to what is needed in this sample only.
@@ -25,11 +26,12 @@ defmodule Desktop.Wx do
   )
 
   for wx_constant <- @constants do
-    Module.eval_quoted(
-      __MODULE__,
+    Code.eval_quoted(
       Code.string_to_quoted("""
         def wx#{wx_constant}, do: :desktop_wx.get(:wx#{wx_constant})
-      """)
+      """),
+      [],
+      module: __MODULE__
     )
   end
 end

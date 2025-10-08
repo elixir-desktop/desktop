@@ -17,17 +17,9 @@ defmodule Desktop.Endpoint do
         end
       end
 
-      if Version.match?(:phoenix |> Application.spec(:vsn) |> List.to_string(), "~> 1.7.10") do
-        def get_dynamic_port(scheme) do
-          {:ok, {_ip, port}} = server_info(scheme)
-          port
-        end
-      else
-        # Supports only cowboy adapter for phoenix
-        def get_dynamic_port(scheme) do
-          ref = Module.safe_concat(__MODULE__, scheme |> Atom.to_string() |> String.upcase())
-          :ranch.get_port(ref)
-        end
+      def get_dynamic_port(scheme) do
+        {:ok, {_ip, port}} = server_info(scheme)
+        port
       end
     end
   end

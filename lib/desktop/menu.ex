@@ -28,21 +28,21 @@ defmodule Desktop.Menu do
 
       @impl true
       def render(assigns) do
-        ~E\"""
+        ~H\"""
         <menubar>
-          <menu label="<%= gettext "File" %>">
-              <item onclick="open"><%= gettext "Open" %></item>
+          <menu label={gettext "File"}>
+              <item onclick="open">{gettext "Open"}</item>
               <hr/>
-              <item onclick="quit"><%= gettext "Quit" %></item>
+              <item onclick="quit">{gettext "Quit"}</item>
           </menu>
-          <menu label="<%= gettext "Items" %>">
+          <menu label={gettext "Items"}>
             <%= for item <- @items do %>
-              <item><%= item.name %></item>
+              <item>{item.name}</item>
             <% end %>
           </menu>
-          <menu label="<%= gettext "Help" %>">
-              <item onclick="help"><%= gettext "Show Documentation" %></item>
-              <item onclick="about"><%= gettext "About" %></item>
+          <menu label={gettext "Help"}>
+              <item onclick="help">{gettext "Show Documentation"}</item>
+              <item onclick="about">{gettext "About"}</item>
           </menu>
         </menubar>
         \"""
@@ -143,7 +143,6 @@ defmodule Desktop.Menu do
       quote do
         @behaviour Desktop.Menu
         import Desktop.Menu, only: [assign: 2, assign: 3, assign_new: 3, connected?: 1]
-        import Phoenix.HTML, only: [sigil_e: 2, sigil_E: 2]
         import Phoenix.LiveView.Helpers, only: [sigil_L: 2, sigil_H: 2]
         alias Desktop.Menu
 
@@ -153,7 +152,6 @@ defmodule Desktop.Menu do
       quote do
         @behaviour Desktop.Menu
         import Desktop.Menu, only: [assign: 2, assign: 3, assign_new: 3, connected?: 1]
-        import Phoenix.HTML, only: [sigil_e: 2, sigil_E: 2]
         import Phoenix.LiveView.Helpers, only: [sigil_L: 2]
         import Phoenix.Component, only: [sigil_H: 2]
         alias Desktop.Menu
