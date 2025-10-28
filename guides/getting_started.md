@@ -123,7 +123,7 @@ Best to use Erlang solutions packages: https://www.erlang-solutions.com/download
 
 **Or use ASDF** 
 ```
-asdf plugin-update --all
+asdf plugin update --all
 asdf install erlang 24.0.1
 ```
 
