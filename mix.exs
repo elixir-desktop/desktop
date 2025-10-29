@@ -87,7 +87,9 @@ defmodule Desktop.MixProject do
       {:phoenix_live_view, "> 1.0.0"},
       {:plug, "> 1.0.0"},
       {:gettext, "> 0.10.0"},
-      {:igniter, "~> 0.6", only: [:dev, :test]}
+      # FIXME: dependency should not be needed in production
+      # {:igniter, "~> 0.6", only: [:dev, :test]}
+      {:igniter, "~> 0.6"}
     ]
 
     if Mix.target() in [:android, :ios] do

@@ -41,7 +41,30 @@ defmodule Mix.Tasks.Desktop.Install do
 
   @impl Igniter.Mix.Task
   def igniter(igniter) do
+    app = Igniter.Project.Application.app_name(igniter)
+    endpoint = Igniter.Libs.Phoenix.web_module_name(igniter, "Endpoint")
+
     igniter
     |> Igniter.compose_task("igniter.add", ["desktop"])
+    |> Igniter.Project.Application.add_new_child(
+      {
+        Desktop.Window,
+        [
+          app: app,
+          id: Igniter.Project.Module.module_name(igniter, MainWindow),
+          # FIXME: configurable
+          title: to_string(app),
+          size: {600, 500},
+          icon: "icon.png",
+          menubar: Igniter.Project.Module.module_name(igniter, MenuBar),
+          icon_menu: Igniter.Project.Module.module_name(igniter, Menu),
+          url: {endpoint, :url, []}
+        ]
+      },
+      after: [endpoint]
+    )
+
+    # TODO: detect and warn if the project assumes pgsql
+    # TODO: create MyApp.MenuBar
   end
 end
