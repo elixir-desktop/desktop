@@ -43,28 +43,103 @@ defmodule Mix.Tasks.Desktop.Install do
   def igniter(igniter) do
     app = Igniter.Project.Application.app_name(igniter)
     endpoint = Igniter.Libs.Phoenix.web_module_name(igniter, "Endpoint")
+    menu = Igniter.Project.Module.module_name(igniter, "Menu")
+    menubar = Igniter.Project.Module.module_name(igniter, "MenuBar")
+    gettext = Igniter.Libs.Phoenix.web_module_name(igniter, "Gettext")
+    main_window = Igniter.Project.Module.module_name(igniter, MainWindow)
 
     igniter
     |> Igniter.compose_task("igniter.add", ["desktop"])
+    |> Igniter.Project.Module.create_module(menubar, """
+      @moduledoc """
+        Menu bar that is shown as part of the main window on Windows/Linux. In
+        MacOS this menu bar appears at the very top of the screen.
+      \"""
+      use Gettext, backend: #{gettext}
+      use Desktop.Menu
+      alias Desktop.Window
+
+      def render(assigns) do
+        ~H"""
+        <menubar>
+        <menu label={gettext "File"}>
+            <item onclick="quit">{gettext "Quit"}</item>
+        </menu>
+        <menu label={gettext "Extra"}>
+            <item onclick="observer">{gettext "Show Observer"}</item>
+            <item onclick="browser">{gettext "Open Browser"}</item>
+        </menu>
+        </menubar>
+        \"""
+      end
+
+      def handle_event("quit", menu) do
+        Window.quit()
+        {:noreply, menu}
+      end
+
+      def handle_event("observer", menu) do
+        :observer.start()
+        {:noreply, menu}
+      end
+
+      def handle_event("browser", menu) do
+        Window.prepare_url(#{endpoint}.url())
+        |> :wx_misc.launchDefaultBrowser()
+
+        {:noreply, menu}
+      end
+
+      def mount(menu) do
+        {:ok, menu}
+      end
+    """)
+    |> Igniter.Project.Module.create_module(menu, """
+      @moduledoc """
+      Menu that is shown when a user clicks on the taskbar icon of the #{app}
+      \"""
+      use Gettext, backend: #{gettext}
+      use Desktop.Menu
+
+      def render(assigns) do
+        ~H"""
+        <menu>
+          <item onclick="edit">{gettext "Open"}</item>
+          <hr/>
+          <item onclick="quit">{gettext "Quit"}</item>
+        </menu>
+        \"""
+      end
+
+      def handle_event(command, menu) do
+        case command do
+          <<"quit">> -> Desktop.Window.quit()
+          <<"edit">> -> Desktop.Window.show(#{main_window})
+        end
+
+        {:noreply, menu}
+      end
+
+      def mount(menu) do
+        {:ok, menu}
+      end
+    """)
     |> Igniter.Project.Application.add_new_child(
       {
         Desktop.Window,
         [
           app: app,
           id: Igniter.Project.Module.module_name(igniter, MainWindow),
-          # FIXME: configurable
           title: to_string(app),
           size: {600, 500},
-          icon: "icon.png",
-          menubar: Igniter.Project.Module.module_name(igniter, MenuBar),
-          icon_menu: Igniter.Project.Module.module_name(igniter, Menu),
-          url: {endpoint, :url, []}
+          # icon: "icon.png", # TODO: ship an example taskbar icon here
+          menubar: menubar,
+          icon_menu: menu,
+          url: fn -> apply(endpoint, :url, []) end
         ]
       },
       after: [endpoint]
     )
-
     # TODO: detect and warn if the project assumes pgsql
-    # TODO: create MyApp.MenuBar
   end
 end
