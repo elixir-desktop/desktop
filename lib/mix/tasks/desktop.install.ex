@@ -25,7 +25,9 @@ defmodule Mix.Tasks.Desktop.Install do
   Create a new project with desktop support:
 
   ```bash
-  mix igniter.new --install desktop --with phx.new
+  mix archive.install hex igniter_new
+
+  mix igniter.new my_app --install desktop --with phx.new
   ```
   """
 
