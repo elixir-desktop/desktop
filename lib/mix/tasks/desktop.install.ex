@@ -1,8 +1,32 @@
 defmodule Mix.Tasks.Desktop.Install do
-  @shortdoc "Add Elixir Desktop support to a project"
+  @shortdoc "Add Elixir Desktop support to an existing project"
 
   @moduledoc """
   #{@shortdoc}
+
+  This mix task adds the minimal glue to launch an Elixir Desktop
+  main window for your application.
+
+  To use this task, you'll either need to install Igniter globally, or
+  manually add the desktop dependency to your project's mix.exs:
+
+  ```
+  {:desktop, "~> 1.0"}
+  ```
+
+  ## Examples
+
+  Add desktop support to a project:
+
+  ```bash
+  mix desktop.install
+  ```
+
+  Create a new project with desktop support:
+
+  ```bash
+  mix igniter.new --install desktop --with phx.new
+  ```
   """
 
   use Igniter.Mix.Task
