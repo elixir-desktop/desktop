@@ -1,4 +1,3 @@
-# TODO: less stringy metaprogramming
 defmodule Desktop.Wx do
   @moduledoc """
   Elixir version of the constants found in the wx.hrl file, reduced to what is needed in this sample only.

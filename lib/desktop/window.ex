@@ -601,7 +601,7 @@ defmodule Desktop.Window do
     {:noreply, ui}
   end
 
-  def handle_cast(:rebuild_webview, ui) do
+  def handle_cast(:rebuild_webview, ui = %Window{}) do
     {:noreply, %Window{ui | webview: Fallback.webview_rebuild(ui)}}
   end
 
