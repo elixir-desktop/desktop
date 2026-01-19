@@ -6,16 +6,16 @@ jobs:
     name: "Compile & Lint"
     runs-on: "ubuntu-latest"
     steps:
+    - uses: actions/checkout@v1
     - name: Setup elixir
       uses: erlef/setup-beam@v1
       with:
-        otp-version: 24.3.3
-        elixir-version: 1.16.3
+        version-file: ".tool-versions"
+        version-type: strict
 
-    - uses: actions/checkout@v1
     - run: mix deps.get
 
-    - uses: actions/cache@v2
+    - uses: actions/cache@v3
       id: mix-cache
       with:
         path: |
