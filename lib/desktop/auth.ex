@@ -23,6 +23,10 @@ defmodule Desktop.Auth do
     end
   end
 
+  def set_key(key) do
+    :persistent_term.put({__MODULE__, :key}, Base.decode32!(key))
+  end
+
   def login_key() do
     Base.encode32(key(), padding: false)
   end
