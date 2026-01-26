@@ -105,7 +105,8 @@ defmodule Desktop.MixProject do
         "README.md": [title: "Overview"],
         "CHANGELOG.md": [title: "Changelog"],
         "guides/getting_started.md": [title: "Getting your Environment Ready"],
-        "guides/your_first_desktop_app.md": [title: "Your first Desktop App"]
+        "guides/your_first_desktop_app.md": [title: "Your first Desktop App"],
+        "guides/faq.md": [title: "FAQ"]
       ],
       main: "readme",
       source_ref: "v#{@version}",
