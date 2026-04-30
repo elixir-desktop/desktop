@@ -121,11 +121,36 @@ echo ". ~/maint-24/activate" >> ~/.bashrc
 
 Best to use Erlang solutions packages: https://www.erlang-solutions.com/downloads/
 
-**Or use ASDF** 
+**Or use a version manager (mise or asdf)**
+
+This repository ships a `.tool-versions` file so you can pin Erlang and Elixir with
+[mise](https://mise.jdx.dev/) or [asdf](https://asdf-vm.com/). Either tool reads the same file format.
+
+Install the pinned versions, then run Mix from that environment:
+
+```bash
+# mise (https://mise.jdx.dev/)
+mise install
+mise exec -- mix deps.get
+
+# asdf (https://asdf-vm.com/)
+asdf plugin add erlang || true
+asdf plugin add elixir || true
+asdf install
+asdf exec mix deps.get
 ```
-asdf plugin update --all
-asdf install erlang 24.0.1
+
+To confirm your shell is using the same OTP major and Elixir release as `.tool-versions`
+(before CI or Android scripts run `mix`), use:
+
+```bash
+mix desktop.check_toolchain
 ```
+
+This task only compares the **active** `elixir` / `erlang` in your PATH to `.tool-versions`;
+it does not call mise or asdf, so it stays compatible with any way you activate those runtimes.
+
+For shell wrappers (for example an Android `run_mix` script), avoid hard-coding asdf-specific paths: run `mix` from an environment where Erlang/Elixir are already correct, or prefix the command with `mise exec --` or `asdf exec` so the same `.tool-versions` file drives every tool.
 
 **Install NIF Dependencies:**
 

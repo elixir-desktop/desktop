@@ -3,6 +3,7 @@
 ## Changes in 1.5
 
 - Support for iOS hibernation and wakeup
+- Document mise alongside asdf for `.tool-versions`; add `mix desktop.check_toolchain` to verify the active Erlang/OTP and Elixir match the project file without depending on a specific version manager
 
 ## Changes in 1.4
 
