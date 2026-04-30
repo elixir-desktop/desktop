@@ -2,6 +2,13 @@ defmodule Desktop.Fallback do
   require Logger
   alias Desktop.{Wx, OS}
 
+  @notification_show_failed """
+  wxWidgets failed to show a desktop notification (wxNotificationMessage:show/2 returned false). \
+  On macOS, ensure notifications are enabled for the app in System Settings, use a packaged .app \
+  with matching bundle id / Info.plist for the Erlang VM, and see \
+  https://github.com/elixir-desktop/desktop/issues/38 \
+  """
+
   @moduledoc """
     Fallback handles version differences in the :wx modules needed for showing the
     WebView and Desktop notifications and it uses the highest available
@@ -170,7 +177,7 @@ defmodule Desktop.Fallback do
     webview
   end
 
-  def notification_new(title, type) do
+  def notification_new(title, type, parent \\ nil) do
     if module?(:wxNotificationMessage) do
       flag =
         case type do
@@ -180,8 +187,9 @@ defmodule Desktop.Fallback do
         end
 
       notification = call(:wxNotificationMessage, :new, [title, [flags: flag]])
+      notification_set_parent(notification, parent)
 
-      if notification_events_available?() do
+      if notification != nil and notification_events_available?() do
         for event <- [
               :notification_message_click,
               :notification_message_dismissed,
@@ -190,9 +198,11 @@ defmodule Desktop.Fallback do
           call(:wxNotificationMessage, :connect, [notification, event])
         end
       else
-        Logger.warning(
-          "Missing support for wxNotificationMessage Events - upgrade to wxWidgets 3.1 - messages won't be clickable"
-        )
+        if notification != nil do
+          Logger.warning(
+            "Missing support for wxNotificationMessage Events - upgrade to wxWidgets 3.1 - messages won't be clickable"
+          )
+        end
       end
 
       notification
@@ -204,13 +214,20 @@ defmodule Desktop.Fallback do
   end
 
   def notification_show(notification, message, timeout, title \\ nil) do
-    if module?(:wxNotificationMessage) do
+    if module?(:wxNotificationMessage) and notification != nil do
       if title != nil do
         call(:wxNotificationMessage, :setTitle, [notification, to_charlist(title)])
       end
 
       call(:wxNotificationMessage, :setMessage, [notification, to_charlist(message)])
-      call(:wxNotificationMessage, :show, [notification, [timeout: timeout]])
+
+      case call(:wxNotificationMessage, :show, [notification, [timeout: timeout]]) do
+        false ->
+          Logger.warning(@notification_show_failed)
+
+        _ ->
+          :ok
+      end
     else
       Logger.notice("NOTIFICATION: #{title}: #{message}")
     end
@@ -241,6 +258,14 @@ defmodule Desktop.Fallback do
     |> case do
       {major, minor, _} when major >= 3 and minor >= 1 -> true
       _ -> false
+    end
+  end
+
+  defp notification_set_parent(notification, parent) do
+    if notification != nil and parent != nil and OS.macos?() and
+         module?(:wxNotificationMessage) and
+         Kernel.function_exported?(:wxNotificationMessage, :setParent, 2) do
+      call(:wxNotificationMessage, :setParent, [notification, parent])
     end
   end
 

@@ -196,7 +196,7 @@ defmodule Desktop.Window do
         wx_menubar
       end
 
-    if OS.type() == MacOS do
+    if OS.macos?() do
       update_apple_menu(window_title, frame, wx_menubar || :wxMenuBar.new())
     end
 
@@ -468,6 +468,12 @@ defmodule Desktop.Window do
         * `:callback` - A function to be executed when the user clicks on the
           notification.
 
+    On macOS, notifications are associated with the main `wxFrame` via
+    `wxNotificationMessage:setParent/2` so they follow the same app identity as
+    the visible window. If nothing appears, check System Settings → Notifications
+    and (for distributed apps) bundle id / Info.plist alignment for the VM
+    (see GitHub issue #38).
+
   ## Examples
 
       iex> Desktop.Window.show_notification(pid, "Hello, world!")
@@ -658,7 +664,7 @@ defmodule Desktop.Window do
     {n, _} =
       note =
       case Map.get(noties, id, nil) do
-        nil -> {Fallback.notification_new(title || window_title, type), callback}
+        nil -> {Fallback.notification_new(title || window_title, type, frame), callback}
         {note, _} -> {note, callback}
       end
 

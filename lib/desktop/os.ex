@@ -11,6 +11,10 @@ defmodule Desktop.OS do
     - Windows
     - Linux
 
+    `ELIXIR_DESKTOP_OS` can be set to `android`, `ios`, or `macos` to force the
+    corresponding type (useful in tests). On real devices, omit it and the OS is
+    detected from `:os.type()`.
+
   """
 
   @doc """
@@ -44,6 +48,11 @@ defmodule Desktop.OS do
 
       "ios" ->
         IOS
+
+      # Lets CI and Linux developers run macOS-specific branches (e.g. notification wiring)
+      # without a Darwin host. Not used in production builds.
+      "macos" ->
+        MacOS
 
       _ ->
         case :os.type() do
@@ -92,6 +101,9 @@ defmodule Desktop.OS do
       _other -> false
     end
   end
+
+  @doc false
+  def macos?(), do: type() == MacOS
 
   defp kill_heart() do
     heart = Process.whereis(:heart)
