@@ -1,6 +1,8 @@
 defmodule Desktop.ToolchainTest do
   use ExUnit.Case, async: true
 
+  @moduletag :tmp_dir
+
   setup context do
     root = Path.join(context.tmp_dir, "proj")
     File.mkdir_p!(root)
@@ -23,14 +25,18 @@ defmodule Desktop.ToolchainTest do
   test "error when OTP major mismatches", %{root: root} do
     File.write!(Path.join(root, ".tool-versions"), "erlang 26.0.1\n")
 
-    assert {:error, [msg]} = Desktop.Toolchain.verify(root, otp_release: "25", elixir_version: "1.19.1")
+    assert {:error, [msg]} =
+             Desktop.Toolchain.verify(root, otp_release: "25", elixir_version: "1.19.1")
+
     assert msg =~ "OTP"
   end
 
   test "error when Elixir semver mismatches", %{root: root} do
     File.write!(Path.join(root, ".tool-versions"), "elixir 1.19.1-otp-26\n")
 
-    assert {:error, [msg]} = Desktop.Toolchain.verify(root, otp_release: "26", elixir_version: "1.18.0")
+    assert {:error, [msg]} =
+             Desktop.Toolchain.verify(root, otp_release: "26", elixir_version: "1.18.0")
+
     assert msg =~ "Elixir mismatch"
   end
 end

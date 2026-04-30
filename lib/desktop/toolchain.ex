@@ -22,6 +22,9 @@ defmodule Desktop.Toolchain do
       {:error, :enoent} ->
         {:ok, :no_tool_versions}
 
+      {:error, reason} ->
+        {:error, [read_tool_versions_failed_message(reason)]}
+
       {:ok, tools} ->
         errors =
           []
@@ -73,6 +76,14 @@ defmodule Desktop.Toolchain do
           errors
         end
     end
+  end
+
+  defp read_tool_versions_failed_message(reason) when is_atom(reason) do
+    "Could not read .tool-versions: #{:file.format_error(reason)}"
+  end
+
+  defp read_tool_versions_failed_message(reason) do
+    "Could not read .tool-versions: #{inspect(reason)}"
   end
 
   defp otp_major_from_declared(declared) do

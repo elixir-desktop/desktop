@@ -34,16 +34,15 @@ defmodule Desktop.ToolVersions do
 
   @doc """
   Reads `.tool-versions` from `directory` and parses it. Returns `{:ok, map}` or
-  `{:error, :enoent}` when the file is missing.
+  `{:error, reason}` from `File.read/1` (typically `:enoent` when the file is missing).
   """
-  @spec read_from_dir(String.t()) :: {:ok, map()} | {:error, :enoent}
+  @spec read_from_dir(String.t()) :: {:ok, map()} | {:error, :enoent | File.posix() | :badarg}
   def read_from_dir(directory) do
     path = Path.join(directory, ".tool-versions")
 
     case File.read(path) do
       {:ok, body} -> {:ok, parse(body)}
-      {:error, :enoent} -> {:error, :enoent}
-      {:error, _} -> {:error, :enoent}
+      {:error, reason} -> {:error, reason}
     end
   end
 end
