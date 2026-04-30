@@ -449,7 +449,7 @@ defmodule Desktop.Window do
         * `:type` - One of `:info` `:error` `:warn` these will change
           how the notification will be displayed. The default is `:info`
 
-        * `:title` - An alternative title for the notificaion,
+        * `:title` - An alternative title for the notification,
           when none is provided the current window title is used.
 
         * `:timeout` - A timeout hint specifying how long the notification
@@ -554,8 +554,6 @@ defmodule Desktop.Window do
 
     if OS.type() == Linux do
       notification(ui, obj, :action)
-    else
-      notification(ui, obj, :dismiss)
     end
 
     {:noreply, ui}
@@ -659,13 +657,19 @@ defmodule Desktop.Window do
 
   def handle_cast(
         {:show_notification, message, id, type, title, callback, timeout},
-        ui = %Window{notifications: noties, title: window_title}
+        ui = %Window{notifications: noties, title: window_title, frame: frame}
       ) do
     {n, _} =
       note =
       case Map.get(noties, id, nil) do
-        nil -> {Fallback.notification_new(title || window_title, type, frame), callback}
-        {note, _} -> {note, callback}
+        nil ->
+          {Fallback.notification_new(title || window_title, type, frame), callback}
+
+        {nil, _} ->
+          {Fallback.notification_new(title || window_title, type, frame), callback}
+
+        {note, _} ->
+          {note, callback}
       end
 
     Fallback.notification_show(n, message, timeout, title || window_title)

@@ -233,6 +233,8 @@ defmodule Desktop.Fallback do
     end
   end
 
+  def notification_close(nil), do: :ok
+
   def notification_close(notification) do
     call(:wxNotificationMessage, :close, [notification])
   end
