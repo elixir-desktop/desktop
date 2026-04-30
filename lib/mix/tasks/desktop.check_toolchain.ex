@@ -32,12 +32,14 @@ defmodule Mix.Tasks.Desktop.CheckToolchain do
       {:error, messages} ->
         for msg <- messages, do: Mix.shell().error(msg)
 
-        Mix.shell().error("""
-        Activate the versions in .tool-versions for this project, for example:
-          mise install && mise exec -- mix desktop.check_toolchain
-        or:
-          asdf install && asdf exec mix desktop.check_toolchain
-        """)
+        unless toolchain_hint_irrelevant?(messages) do
+          Mix.shell().error("""
+          Activate the versions in .tool-versions for this project, for example:
+            mise install && mise exec -- mix desktop.check_toolchain
+          or:
+            asdf install && asdf exec mix desktop.check_toolchain
+          """)
+        end
 
         System.halt(1)
     end
@@ -53,5 +55,9 @@ defmodule Mix.Tasks.Desktop.CheckToolchain do
 
   defp mix_project? do
     Mix.Project.get() != nil
+  end
+
+  defp toolchain_hint_irrelevant?(messages) do
+    Enum.any?(messages, &match?("Could not read .tool-versions:" <> _, &1))
   end
 end

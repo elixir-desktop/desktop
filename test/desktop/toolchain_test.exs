@@ -39,4 +39,11 @@ defmodule Desktop.ToolchainTest do
 
     assert msg =~ "Elixir mismatch"
   end
+
+  test "error when .tool-versions cannot be read", %{root: root} do
+    File.mkdir!(Path.join(root, ".tool-versions"))
+
+    assert {:error, [msg]} = Desktop.Toolchain.verify(root)
+    assert msg =~ "Could not read .tool-versions"
+  end
 end

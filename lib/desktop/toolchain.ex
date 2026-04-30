@@ -5,7 +5,8 @@ defmodule Desktop.Toolchain do
   Verifies that the running Erlang/OTP and Elixir versions match `.tool-versions` in
   `project_root` when that file declares `erlang` and/or `elixir` entries.
 
-  Returns `{:ok, :no_tool_versions}` if the file is missing, or `{:ok, :verified}` on success.
+  Returns `{:ok, :no_tool_versions}` if the file is missing, `{:ok, :verified}` on success,
+  or `{:error, [message]}` when `.tool-versions` cannot be read or versions do not match.
 
   `opts` may override runtime versions for testing:
 
