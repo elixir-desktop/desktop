@@ -3,6 +3,7 @@
 ## Changes in 1.5
 
 - Support for iOS hibernation and wakeup
+- `mix desktop.check_toolchain` verifies running Erlang/OTP (major) and Elixir against `.tool-versions`; docs describe mise and asdf equally for Linux contributors
 
 ## Changes in 1.4
 
