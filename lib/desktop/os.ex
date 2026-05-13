@@ -27,7 +27,7 @@ defmodule Desktop.OS do
     if type() == MacOS do
       name = System.get_env("EMU", "beam.smp")
 
-      fn -> System.cmd("open", ["-a", name], stderr_to_stdout: true) end
+      fn -> System.cmd("open", ["-a", name], stderr_to_stdout: true, parallelism: true) end
       |> spawn_link()
     else
       # Calling  this on wxDirDialog segfaults on macos..
@@ -159,12 +159,78 @@ defmodule Desktop.OS do
           System.cmd("open", [file], stderr_to_stdout: true, parallelism: true)
 
         Linux ->
-          System.cmd("xdg-open", [file], stderr_to_stdout: true, parallelism: true)
+          System.cmd("xdg-open", [file],
+            stderr_to_stdout: true,
+            parallelism: true,
+            env: linux_env()
+          )
 
         _other ->
           Desktop.Env.wx_use_env()
           :wx_misc.launchDefaultBrowser(file)
       end
     end)
+  end
+
+  def open_url(url), do: launch_default_browser(url)
+
+  def open_path(path) do
+    fn ->
+      case type() do
+        MacOS ->
+          System.cmd("open", [path], stderr_to_stdout: true, parallelism: true)
+
+        Linux ->
+          System.cmd("xdg-open", [path],
+            stderr_to_stdout: true,
+            env: linux_env(),
+            parallelism: true
+          )
+
+        Windows ->
+          # credo:disable-for-next-line Credo.Check.Warning.UnsafeExec
+          :os.cmd(~c"explorer \"#{String.replace(path, "/", "\\")}\"")
+
+        _other ->
+          Desktop.OS.launch_default_browser("file://#{path}")
+      end
+    end
+    |> spawn_link()
+  end
+
+  def open_file_location(file) do
+    fn ->
+      case type() do
+        MacOS ->
+          System.cmd("open", ["-R", file], stderr_to_stdout: true, parallelism: true)
+
+        Linux ->
+          case System.find_executable("nautilus") do
+            nil ->
+              open_path(Path.dirname(file))
+
+            nautilus ->
+              System.cmd(nautilus, [file],
+                stderr_to_stdout: true,
+                env: linux_env(),
+                parallelism: true
+              )
+          end
+
+        Windows ->
+          # credo:disable-for-next-line Credo.Check.Warning.UnsafeExec
+          :os.cmd(~c"explorer /select,\"#{String.replace(file, "/", "\\")}\"")
+
+        _other ->
+          Desktop.OS.launch_default_browser("file://#{file}")
+      end
+    end
+    |> spawn_link()
+  end
+
+  defp linux_env() do
+    # Unsetting env vars that might interfere with the desktop environment
+    ~w(GDK_BACKEND LD_LIBRARY_PATH LD_PRELOAD GIO_MODULE_DIR GDK_PIXBUF_MODULE_FILE GST_PLUGIN_PATH GST_PLUGIN_SYSTEM_PATH GST_REGISTRY)
+    |> Enum.map(fn key -> {key, nil} end)
   end
 end
