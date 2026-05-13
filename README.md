@@ -16,7 +16,9 @@ Checkout [the example app](https://github.com/elixir-desktop/desktop-example-app
 
 ## Getting Started
 
-Check out the [Getting your Environment Ready Guide](./guides/getting_started.md) and [Your first Desktop App](./guides/your_first_desktop_app.md)
+Check out the [Getting your Environment Ready Guide](./guides/getting_started.md) and [Your first Desktop App](./guides/your_first_desktop_app.md).
+
+This repo’s [`.tool-versions`](./.tool-versions) pins Erlang and Elixir for contributors; [mise](https://mise.jdx.dev/) and [asdf](https://asdf-vm.com/) both understand that file. After activating your toolchain, run `mix desktop.check_toolchain` to confirm the running OTP major and Elixir version match `.tool-versions`.
 
 ## Status / Roadmap
 

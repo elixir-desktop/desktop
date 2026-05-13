@@ -50,7 +50,7 @@ if Code.ensure_loaded?(Igniter.Mix.Task) do
       menu = Igniter.Project.Module.module_name(igniter, "Menu")
       menubar = Igniter.Project.Module.module_name(igniter, "MenuBar")
       gettext = Igniter.Libs.Phoenix.web_module_name(igniter, "Gettext")
-      main_window = Igniter.Project.Module.module_name(igniter, MainWindow)
+      main_window = Igniter.Project.Module.module_name(igniter, "MainWindow")
 
       igniter
       |> Igniter.compose_task("igniter.add", ["desktop"])
@@ -63,7 +63,7 @@ if Code.ensure_loaded?(Igniter.Mix.Task) do
            quote do
              [
                app: unquote(app),
-               id: unquote(Igniter.Project.Module.module_name(igniter, MainWindow)),
+               id: unquote(Igniter.Project.Module.module_name(igniter, "MainWindow")),
                title: unquote(to_string(app)),
                size: {600, 500},
                menubar: unquote(menubar),

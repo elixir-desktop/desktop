@@ -121,10 +121,31 @@ echo ". ~/maint-24/activate" >> ~/.bashrc
 
 Best to use Erlang solutions packages: https://www.erlang-solutions.com/downloads/
 
-**Or use ASDF** 
+### Version managers (optional)
+
+Many projects pin Erlang and Elixir with a **`.tool-versions`** file (same format works with [mise](https://mise.jdx.dev/) and [asdf](https://asdf-vm.com/)). Pick either tool—your shell only needs the correct `erl` / `elixir` on `PATH` when you run `mix`.
+
+**mise** (example):
+
+```bash
+curl https://mise.run | sh
+mise install
 ```
+
+**asdf** (example):
+
+```bash
 asdf plugin update --all
 asdf install erlang 24.0.1
+asdf install elixir 1.14.0-otp-24
+```
+
+Shell wrappers (for example Android `run_mix` scripts in the [example app](https://github.com/elixir-desktop/desktop-example-app)) should not hard-code asdf-specific paths. Prefer invoking Mix through your activated environment, or explicitly via `mise exec -- mix …` / `asdf exec mix …` when you rely on a version manager.
+
+After your toolchain is active, you can verify it against the project’s `.tool-versions` from this library:
+
+```bash
+mix desktop.check_toolchain
 ```
 
 **Install NIF Dependencies:**
