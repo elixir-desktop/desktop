@@ -42,23 +42,9 @@ defmodule Desktop.Backend.Wx do
 
   @impl true
   def locale do
-    ensure_wx_env()
-
-    locale = Null.wx_call(:wxLocale, :new, [:wxLocale.getSystemLanguage()])
+    lang = Null.wx_call(:wxLocale, :getSystemLanguage, [])
+    locale = Null.wx_call(:wxLocale, :new, [lang])
     Null.wx_call(:wxLocale, :getCanonicalName, [locale]) |> List.to_string() |> String.downcase()
-  end
-
-  defp ensure_wx_env do
-    env =
-      case Process.whereis(Desktop.Env) do
-        nil ->
-          Null.wx_call(:wx, :get_env)
-
-        _ ->
-          Desktop.Env.wx_env()
-      end
-
-    if env != nil, do: Null.wx_call(:wx, :set_env, [env])
   end
 
   @impl true
@@ -70,6 +56,33 @@ defmodule Desktop.Backend.Wx do
 
   @impl true
   def wx_available?, do: Null.wx_enabled?() and Null.module?(:wx)
+
+  @impl true
+  def open_external_url(url) do
+    case OS.type() do
+      MacOS ->
+        Desktop.Impl.HostBrowser.open(url)
+
+      Linux ->
+        Desktop.Impl.HostBrowser.open(url)
+
+      Windows ->
+        Desktop.Impl.HostBrowser.open(url)
+
+      _ ->
+        Null.wx_call(:wx_misc, :launchDefaultBrowser, [String.to_charlist(url)])
+        :ok
+    end
+  end
+
+  @impl true
+  def activate_event_active?(event) do
+    if function_exported?(:wxActivateEvent, :getActive, 1) do
+      :wxActivateEvent.getActive(event)
+    else
+      true
+    end
+  end
 
   # Window
 
@@ -178,7 +191,6 @@ defmodule Desktop.Backend.Wx do
 
       _ ->
         # Calling setFocus on wxDirDialog segfaults on macOS — handled above.
-        Desktop.Env.wx_use_env()
         Null.wx_call(:wxTopLevelWindow, :setFocus, [frame])
         Null.wx_call(:wxWindow, :raise, [frame])
     end
@@ -240,7 +252,7 @@ defmodule Desktop.Backend.Wx do
   end
 
   @impl true
-  def load_url(nil, _frame, url), do: OS.launch_default_browser(url)
+  def load_url(nil, _frame, url), do: open_external_url(url)
 
   def load_url(webview, _frame, url) do
     Null.wx_call(:wxWebView, :loadURL, [webview, url])
@@ -258,7 +270,7 @@ defmodule Desktop.Backend.Wx do
   end
 
   @impl true
-  def content_show(nil, _frame, url, _), do: OS.launch_default_browser(url)
+  def content_show(nil, _frame, url, _), do: open_external_url(url)
 
   def content_show(webview, frame, url, _only_open) do
     if url, do: Null.wx_call(:wxWebView, :loadURL, [webview, url])

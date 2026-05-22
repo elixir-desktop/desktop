@@ -35,7 +35,7 @@ defmodule Desktop.Backend.WxTest do
     Wx.destroy_frame(frame)
   end
 
-  test "T-WX: locale after ensure_wx_env" do
+  test "T-WX: locale via Platform.System" do
     result = Wx.locale()
     assert result == nil or is_binary(result)
   end

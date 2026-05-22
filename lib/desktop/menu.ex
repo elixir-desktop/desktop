@@ -19,7 +19,7 @@ defmodule Desktop.Menu do
         case command do
           <<"open">> -> :not_implemented
           <<"quit">> -> Desktop.Window.quit()
-          <<"help">> -> Desktop.OS.launch_default_browser(\'https://google.com\')
+          <<"help">> -> Desktop.OS.open_url("https://google.com")
           <<"about">> -> :not_implemented
         end
 

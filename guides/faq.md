@@ -14,7 +14,7 @@ config :desktop, :backend, :auto
 
 | Condition | Backend |
 |---|---|
-| `Mix.target()` is `:android` or `:ios`, or `Desktop.OS.mobile?/0` | `Desktop.Backend.Json` |
+| `config :desktop, :mobile_target, true` (compile time) or `Desktop.OS.mobile?/0` (runtime `ELIXIR_DESKTOP_OS`) | `Desktop.Backend.Json` |
 | `NO_WX` is set, or OTP `:wx` is not available | `Desktop.Backend.Browser` |
 | Otherwise | `Desktop.Backend.Wx` |
 

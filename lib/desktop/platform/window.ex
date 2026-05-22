@@ -1,6 +1,8 @@
 defmodule Desktop.Platform.Window do
   @moduledoc false
 
+  alias Desktop.Platform.Helpers
+
   @type handle :: term()
   @type content_handle :: term() | nil
 
@@ -22,26 +24,27 @@ defmodule Desktop.Platform.Window do
   @callback on_crash_destroy(handle()) :: :ok
   @callback close_event_veto(term()) :: :ok
 
-  def open(opts), do: impl().open(opts)
-  def destroy(frame), do: impl().destroy_frame(frame)
-  def connect(frame, event, fun), do: impl().connect(frame, event, fun)
-  def show(frame, opts \\ []), do: impl().show(frame, opts)
-  def hide(frame), do: impl().hide(frame)
-  def set_title(frame, title), do: impl().set_title(frame, title)
-  def set_min_size(frame, size), do: impl().set_min_size(frame, size)
-  def set_icon(frame, icon), do: impl().set_icon(frame, icon)
-  def set_menubar(frame, menubar), do: impl().set_menubar(frame, menubar)
-  def iconize(frame, iconize), do: impl().iconize(frame, iconize)
-  def is_shown?(frame), do: impl().is_shown?(frame)
-  def is_active?(frame), do: impl().is_active?(frame)
-  def raise_window(frame), do: impl().raise_window(frame)
+  def open(opts), do: Helpers.with_wx_env(fn -> impl().open(opts) end)
+  def destroy(frame), do: Helpers.with_wx_env(fn -> impl().destroy_frame(frame) end)
+  def connect(frame, event, fun), do: Helpers.with_wx_env(fn -> impl().connect(frame, event, fun) end)
+  def show(frame, opts \\ []), do: Helpers.with_wx_env(fn -> impl().show(frame, opts) end)
+  def hide(frame), do: Helpers.with_wx_env(fn -> impl().hide(frame) end)
+  def set_title(frame, title), do: Helpers.with_wx_env(fn -> impl().set_title(frame, title) end)
+  def set_min_size(frame, size), do: Helpers.with_wx_env(fn -> impl().set_min_size(frame, size) end)
+  def set_icon(frame, icon), do: Helpers.with_wx_env(fn -> impl().set_icon(frame, icon) end)
+  def set_menubar(frame, menubar), do: Helpers.with_wx_env(fn -> impl().set_menubar(frame, menubar) end)
+  def iconize(frame, iconize), do: Helpers.with_wx_env(fn -> impl().iconize(frame, iconize) end)
+  def is_shown?(frame), do: Helpers.with_wx_env(fn -> impl().is_shown?(frame) end)
+  def is_active?(frame), do: Helpers.with_wx_env(fn -> impl().is_active?(frame) end)
+  def raise_window(frame), do: Helpers.with_wx_env(fn -> impl().raise_window(frame) end)
 
-  def update_apple_menu(title, frame, menubar),
-    do: impl().update_apple_menu(title, frame, menubar)
+  def update_apple_menu(title, frame, menubar) do
+    Helpers.with_wx_env(fn -> impl().update_apple_menu(title, frame, menubar) end)
+  end
 
-  def new_menubar, do: impl().new_menubar()
-  def on_crash_destroy(frame), do: impl().on_crash_destroy(frame)
-  def close_event_veto(inev), do: impl().close_event_veto(inev)
+  def new_menubar, do: Helpers.with_wx_env(fn -> impl().new_menubar() end)
+  def on_crash_destroy(frame), do: Helpers.with_wx_env(fn -> impl().on_crash_destroy(frame) end)
+  def close_event_veto(inev), do: Helpers.with_wx_env(fn -> impl().close_event_veto(inev) end)
 
   defp impl, do: Desktop.Platform.backend()
 end

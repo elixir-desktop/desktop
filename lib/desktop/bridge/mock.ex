@@ -13,6 +13,7 @@ defmodule Desktop.Bridge.Mock do
 
   def handle_method([:wx, :getObjectType, [arg]]), do: Keyword.get(arg, :type)
   def handle_method([:wxLocale | _]), do: ~c"en"
+  def handle_method([:wx_misc, :launchDefaultBrowser | _]), do: :ok
 
   def handle_method([type, :new | args]),
     do: [id: System.unique_integer([:positive]), type: type, args: args]

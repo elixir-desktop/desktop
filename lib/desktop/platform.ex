@@ -61,8 +61,10 @@ defmodule Desktop.Platform do
     end
   end
 
+  @mobile_target_compile Application.compile_env(:desktop, :mobile_target, false)
+
   defp mobile_target? do
-    Mix.target() in [:android, :ios] or OS.mobile?()
+    Application.get_env(:desktop, :mobile_target, @mobile_target_compile) or OS.mobile?()
   end
 
   defp browser_mode? do

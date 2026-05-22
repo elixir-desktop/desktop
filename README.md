@@ -32,7 +32,7 @@ This repo’s [`.tool-versions`](./.tool-versions) pins Erlang and Elixir for co
 
 **Automatic selection** (`config :desktop, :backend, :auto` — the default):
 
-1. Mobile target (`Mix.target()` `:android` / `:ios`, or `Desktop.OS.mobile?/0`) → **Json**
+1. Mobile target (`config :desktop, :mobile_target, true` at compile time, or `Desktop.OS.mobile?/0` at runtime) → **Json**
 2. Else `NO_WX` set or `:wx` not available → **Browser**
 3. Else → **Wx**
 

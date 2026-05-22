@@ -83,7 +83,10 @@ defmodule Desktop.MixProject do
     [
       "test.fast": ["test --exclude wx"],
       "test.wx": ["test --only wx"],
-      "test.guard": ["run test/support/guard_boolean_ops.exs"],
+      "test.guard": [
+        "run test/support/guard_boolean_ops.exs",
+        "run test/support/guard_platform_abstraction.exs"
+      ],
       lint: [
         "compile --warnings-as-errors",
         "format --check-formatted",

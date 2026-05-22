@@ -57,4 +57,21 @@ defmodule Desktop.PlatformTest do
              ]
     end)
   end
+
+  test "T-PLAT-07: mobile_target env selects Json without Mix" do
+    previous = Application.get_env(:desktop, :backend, :auto)
+    mobile? = Application.get_env(:desktop, :mobile_target)
+
+    Application.put_env(:desktop, :backend, :auto)
+    Application.put_env(:desktop, :mobile_target, true)
+    System.put_env("ELIXIR_DESKTOP_OS", "android")
+
+    try do
+      assert Platform.backend() == Json
+    after
+      Application.put_env(:desktop, :backend, previous)
+      Application.put_env(:desktop, :mobile_target, mobile?)
+      System.delete_env("ELIXIR_DESKTOP_OS")
+    end
+  end
 end

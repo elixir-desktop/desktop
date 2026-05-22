@@ -1,8 +1,6 @@
 defmodule Desktop.Backend.Browser do
   @moduledoc false
 
-  alias Desktop.OS
-
   @behaviour Desktop.Platform.Backend
   @behaviour Desktop.Platform.Window
   @behaviour Desktop.Platform.Content
@@ -43,6 +41,12 @@ defmodule Desktop.Backend.Browser do
 
   @impl true
   def wx_available?, do: false
+
+  @impl true
+  def open_external_url(url), do: Desktop.Impl.HostBrowser.open(url)
+
+  @impl true
+  def activate_event_active?(_event), do: true
 
   # Window
 
@@ -103,13 +107,13 @@ defmodule Desktop.Backend.Browser do
   def attach(_frame), do: nil
 
   @impl true
-  def load_url(_content, _frame, url), do: OS.launch_default_browser(url)
+  def load_url(_content, _frame, url), do: open_external_url(url)
 
   @impl true
   def current_url(_content, last_url), do: last_url
 
   @impl true
-  def content_show(_content, _frame, url, _), do: OS.launch_default_browser(url)
+  def content_show(_content, _frame, url, _), do: open_external_url(url)
 
   @impl true
   def rebuild(_frame, _url), do: nil

@@ -2,7 +2,7 @@ defmodule Desktop.Backend.Json do
   @moduledoc false
 
   alias Desktop.Bridge.{Protocol, Transport}
-  alias Desktop.{Wx, OS}
+  alias Desktop.Wx
 
   @behaviour Desktop.Platform.Backend
   @behaviour Desktop.Platform.Window
@@ -44,11 +44,20 @@ defmodule Desktop.Backend.Json do
 
   @impl true
   def locale do
-    Protocol.call(:wxLocale, :getCanonicalName, [
-      Protocol.new(:wxLocale, [:wxLocale.getSystemLanguage()])
-    ])
-    |> List.to_string()
-    |> String.downcase()
+    # Pass :getSystemLanguage as a bridge atom — never call :wxLocale.getSystemLanguage/0
+    # on the BEAM (that module is not loaded on Android/iOS releases).
+    locale =
+      Protocol.new(:wxLocale, [:getSystemLanguage])
+
+    case Protocol.call(:wxLocale, :getCanonicalName, [locale]) do
+      name when is_list(name) -> List.to_string(name)
+      name when is_binary(name) -> name
+      _ -> nil
+    end
+    |> case do
+      nil -> nil
+      code -> String.downcase(code)
+    end
   end
 
   @impl true
@@ -60,7 +69,16 @@ defmodule Desktop.Backend.Json do
   end
 
   @impl true
-  def wx_available?, do: true
+  def wx_available?, do: false
+
+  @impl true
+  def open_external_url(url) do
+    Protocol.call(:wx_misc, :launchDefaultBrowser, [String.to_charlist(url)])
+    :ok
+  end
+
+  @impl true
+  def activate_event_active?(_event), do: true
 
   # Window
 
@@ -188,7 +206,7 @@ defmodule Desktop.Backend.Json do
   end
 
   @impl true
-  def load_url(nil, _frame, url), do: OS.launch_default_browser(url)
+  def load_url(nil, _frame, url), do: open_external_url(url)
 
   def load_url(webview, _frame, url) do
     Protocol.call(:wxWebView, :loadURL, [webview, url])
@@ -206,7 +224,7 @@ defmodule Desktop.Backend.Json do
   end
 
   @impl true
-  def content_show(nil, _frame, url, _), do: OS.launch_default_browser(url)
+  def content_show(nil, _frame, url, _), do: open_external_url(url)
 
   def content_show(webview, frame, url, _only_open) do
     if url, do: Protocol.call(:wxWebView, :loadURL, [webview, url])

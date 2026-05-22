@@ -23,6 +23,10 @@ defmodule Desktop.Backend.JsonTest do
     assert caps.menu == :native
   end
 
+  test "T-JSN: locale via bridge RPC only" do
+    assert Json.locale() == "en"
+  end
+
   test "T-JSN: new frame handle shape" do
     wx = Transport.ensure_started()
 

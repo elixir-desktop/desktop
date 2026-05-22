@@ -21,7 +21,7 @@ defmodule Desktop.Backend.BrowserTest do
   end
 
   test "T-BRW: Content callbacks" do
-    assert is_pid(Browser.content_show(nil, nil, "http://example.com", false))
+    assert :ok = Browser.content_show(nil, nil, "http://example.com", false)
     assert Browser.current_url(nil, "http://last") == "http://last"
     assert Browser.rebuild(nil, nil) == nil
   end

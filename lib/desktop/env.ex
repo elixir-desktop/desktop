@@ -227,9 +227,17 @@ defmodule Desktop.Env do
   Shortcut for `:wx.set_env(Desktop.Env.wx_env())`
   """
   def wx_use_env() do
-    with env when env != nil <- wx_env() do
+    env =
+      case Process.whereis(__MODULE__) do
+        nil -> nil
+        _ -> wx_env()
+      end
+
+    if env != nil do
       Desktop.Platform.System.set_env(env)
     end
+
+    :ok
   end
 
   @doc false

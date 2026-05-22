@@ -139,7 +139,6 @@ defmodule Desktop.Window do
     url = options[:url]
     on_close = options[:on_close] || :quit
 
-    Desktop.Env.wx_use_env()
     GenServer.cast(Desktop.Env, {:register_window, self()})
 
     wx = Desktop.Env.wx()
@@ -160,7 +159,6 @@ defmodule Desktop.Window do
       OnCrash.call(fn reason ->
         if reason != :normal do
           Logger.error("Window crashed: #{inspect(reason)}")
-          Desktop.Env.wx_use_env()
           Platform.Window.on_crash_destroy(frame)
         end
       end)
@@ -517,7 +515,7 @@ defmodule Desktop.Window do
 
   @doc false
   def handle_event(wx(event: {:wxWebView, :webview_newwindow, _, _, _target, url}), ui) do
-    OS.launch_default_browser(url)
+    spawn(fn -> Platform.System.open_external_url(url) end)
     {:noreply, ui}
   end
 
@@ -588,13 +586,7 @@ defmodule Desktop.Window do
     :ok
   end
 
-  defp activate_event_active?(event) do
-    if function_exported?(:wxActivateEvent, :getActive, 1) do
-      :wxActivateEvent.getActive(event)
-    else
-      true
-    end
-  end
+  defp activate_event_active?(event), do: Platform.System.activate_event_active?(event)
 
   @doc false
   def handle_cast(:frame_activated, ui = %Window{id: id}) do

@@ -98,10 +98,7 @@ defmodule Desktop do
       # https://stackoverflow.com/questions/661935/how-to-detect-current-locale-in-mac-os-x-from-the-shell
       code
     else
-      _ ->
-        # Wx APIs require the process wx env from Desktop.Env (see :wx.set_env/1).
-        Desktop.Env.wx_use_env()
-        Desktop.Platform.System.locale()
+      _ -> Desktop.Platform.System.locale()
     end
   end
 

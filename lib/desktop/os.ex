@@ -138,36 +138,18 @@ defmodule Desktop.OS do
   end
 
   @doc """
-  Replacement for the :wx_misc.launchDefaultBrowser function
+  Opens a URL or file path in the platform default handler.
+
+  Delegates to `Desktop.Platform.System.open_external_url/1` on the active backend
+  (Json bridge RPC on mobile, host `open`/`xdg-open`/`cmd` or wx on desktop).
   """
   def launch_default_browser(file) when is_list(file) do
     List.to_string(file)
     |> launch_default_browser()
   end
 
-  def launch_default_browser(file) do
-    spawn(fn ->
-      case type() do
-        MacOS ->
-          System.cmd("open", [file], stderr_to_stdout: true, parallelism: true)
-
-        Linux ->
-          System.cmd("xdg-open", [file],
-            stderr_to_stdout: true,
-            parallelism: true,
-            env: linux_env()
-          )
-
-        Windows ->
-          System.cmd("cmd", ["/c", "start", "", file], stderr_to_stdout: true, parallelism: true)
-
-        _other ->
-          if Desktop.Platform.System.wx_available?() do
-            Desktop.Env.wx_use_env()
-            Desktop.Backend.Null.wx_call(:wx_misc, :launchDefaultBrowser, [file])
-          end
-      end
-    end)
+  def launch_default_browser(file) when is_binary(file) do
+    spawn(fn -> Desktop.Platform.System.open_external_url(file) end)
   end
 
   def open_url(url), do: launch_default_browser(url)
