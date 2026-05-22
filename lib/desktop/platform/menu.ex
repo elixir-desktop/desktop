@@ -45,6 +45,6 @@ defmodule Desktop.Platform.Menu do
   end
 
   defp menubar_new do
-    Desktop.Platform.backend().new_menubar()
+    Desktop.Platform.Window.new_menubar()
   end
 end
