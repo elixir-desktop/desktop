@@ -29,11 +29,11 @@ defmodule Desktop.Fallback do
     Platform.Content.current_url(webview, last_url)
   end
 
-  def webview_load(%Desktop.Window{} = window, url) do
+  def webview_load(window = %Desktop.Window{}, url) do
     Platform.Content.load_url(window.webview, window.frame, url)
   end
 
-  def webview_show(%Desktop.Window{} = window, url, only_open) do
+  def webview_show(window = %Desktop.Window{}, url, only_open) do
     Platform.Content.show(window.webview, window.frame, url, only_open)
   end
 

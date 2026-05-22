@@ -38,12 +38,7 @@ defmodule Desktop.Wx.Compile do
   @doc false
   def write_stub_file! do
     root = Path.expand("../../..", __DIR__)
-    stub = Path.join(root, "desktop_wx_stub.exs")
-
-    if File.exists?(stub) do
-      Code.require_file(stub)
-      Desktop.WxStub.write!(root)
-    end
+    Desktop.WxStub.write!(root)
   end
 
   def wx_available? do

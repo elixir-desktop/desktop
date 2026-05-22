@@ -16,8 +16,8 @@ defmodule Desktop.Platform.Window do
   @callback set_icon(handle(), term()) :: :ok
   @callback set_menubar(handle(), term()) :: :ok
   @callback iconize(handle(), boolean()) :: :ok
-  @callback is_shown?(handle()) :: boolean()
-  @callback is_active?(handle()) :: boolean()
+  @callback shown?(handle()) :: boolean()
+  @callback active?(handle()) :: boolean()
   @callback raise_window(handle()) :: :ok
   @callback update_apple_menu(String.t(), handle(), term()) :: :ok
   @callback new_menubar() :: term()
@@ -26,16 +26,25 @@ defmodule Desktop.Platform.Window do
 
   def open(opts), do: Helpers.with_wx_env(fn -> impl().open(opts) end)
   def destroy(frame), do: Helpers.with_wx_env(fn -> impl().destroy_frame(frame) end)
-  def connect(frame, event, fun), do: Helpers.with_wx_env(fn -> impl().connect(frame, event, fun) end)
+
+  def connect(frame, event, fun),
+    do: Helpers.with_wx_env(fn -> impl().connect(frame, event, fun) end)
+
   def show(frame, opts \\ []), do: Helpers.with_wx_env(fn -> impl().show(frame, opts) end)
   def hide(frame), do: Helpers.with_wx_env(fn -> impl().hide(frame) end)
   def set_title(frame, title), do: Helpers.with_wx_env(fn -> impl().set_title(frame, title) end)
-  def set_min_size(frame, size), do: Helpers.with_wx_env(fn -> impl().set_min_size(frame, size) end)
+
+  def set_min_size(frame, size),
+    do: Helpers.with_wx_env(fn -> impl().set_min_size(frame, size) end)
+
   def set_icon(frame, icon), do: Helpers.with_wx_env(fn -> impl().set_icon(frame, icon) end)
-  def set_menubar(frame, menubar), do: Helpers.with_wx_env(fn -> impl().set_menubar(frame, menubar) end)
+
+  def set_menubar(frame, menubar),
+    do: Helpers.with_wx_env(fn -> impl().set_menubar(frame, menubar) end)
+
   def iconize(frame, iconize), do: Helpers.with_wx_env(fn -> impl().iconize(frame, iconize) end)
-  def is_shown?(frame), do: Helpers.with_wx_env(fn -> impl().is_shown?(frame) end)
-  def is_active?(frame), do: Helpers.with_wx_env(fn -> impl().is_active?(frame) end)
+  def shown?(frame), do: Helpers.with_wx_env(fn -> impl().shown?(frame) end)
+  def active?(frame), do: Helpers.with_wx_env(fn -> impl().active?(frame) end)
   def raise_window(frame), do: Helpers.with_wx_env(fn -> impl().raise_window(frame) end)
 
   def update_apple_menu(title, frame, menubar) do

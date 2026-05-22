@@ -603,7 +603,7 @@ defmodule Desktop.Window do
       if frame, do: Platform.Window.hide(frame)
       {:noreply, ui}
     else
-      if frame != nil && !Platform.Window.is_shown?(frame) do
+      if frame != nil && !Platform.Window.shown?(frame) do
         OS.shutdown()
       end
 
@@ -684,7 +684,7 @@ defmodule Desktop.Window do
   def handle_call(:is_hidden?, _from, ui = %Window{frame: frame}) do
     ret =
       if frame do
-        not Platform.Window.is_shown?(frame)
+        not Platform.Window.shown?(frame)
       else
         false
       end
@@ -694,7 +694,7 @@ defmodule Desktop.Window do
 
   @doc false
   def handle_call(:is_active?, _from, ui = %Window{frame: frame}) do
-    {:reply, frame == nil or Platform.Window.is_active?(frame), ui}
+    {:reply, frame == nil or Platform.Window.active?(frame), ui}
   end
 
   def handle_call(:url, _from, ui) do

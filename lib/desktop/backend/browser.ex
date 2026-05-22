@@ -81,10 +81,10 @@ defmodule Desktop.Backend.Browser do
   def iconize(_frame, _iconize), do: :ok
 
   @impl true
-  def is_shown?(_frame), do: false
+  def shown?(_frame), do: false
 
   @impl true
-  def is_active?(_frame), do: false
+  def active?(_frame), do: false
 
   @impl true
   def raise_window(_frame), do: :ok

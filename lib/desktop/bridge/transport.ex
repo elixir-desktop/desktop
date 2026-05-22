@@ -107,7 +107,7 @@ defmodule Desktop.Bridge.Transport do
     end
   end
 
-  def handle_cast({:last_url, uri}, %__MODULE__{} = state) do
+  def handle_cast({:last_url, uri}, state = %__MODULE__{}) do
     {:noreply, %__MODULE__{state | last_url: uri}}
   end
 

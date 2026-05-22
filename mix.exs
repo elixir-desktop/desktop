@@ -1,5 +1,3 @@
-Code.require_file("desktop_wx_stub.exs", __DIR__)
-
 defmodule Desktop.MixProject do
   use Mix.Project
 
@@ -20,7 +18,7 @@ defmodule Desktop.MixProject do
   end
 
   def project do
-    Desktop.WxStub.write!()
+    ensure_desktop_wx_erl!()
 
     [
       app: :desktop,
@@ -42,6 +40,12 @@ defmodule Desktop.MixProject do
         plt_file: {:no_warn, "priv/plts/dialyzer.plt"}
       ]
     ]
+  end
+
+  defp ensure_desktop_wx_erl! do
+    script = Path.join(__DIR__, "desktop_wx_stub.exs")
+    {_, 0} = System.cmd("elixir", [script], env: System.get_env())
+    :ok
   end
 
   # Specifies which paths to compile per environment.

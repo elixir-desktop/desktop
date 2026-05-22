@@ -5,10 +5,8 @@ window_file = Path.expand("../../lib/desktop/window.ex", __DIR__)
 content = File.read!(window_file)
 
 forbidden = [
-  {~r/if\s+frame\s+and\s+/,
-   "use `frame != nil && ...` — wx refs are not boolean (R4)"},
-  {~r/if\s+menubar\s+and\s+/,
-   "use `menubar && frame` — module atoms are not boolean (R3)"},
+  {~r/if\s+frame\s+and\s+/, "use `frame != nil && ...` — wx refs are not boolean (R4)"},
+  {~r/if\s+menubar\s+and\s+/, "use `menubar && frame` — module atoms are not boolean (R3)"},
   {~r/if\s+frame\s+and\s+not\s+/, "use `frame != nil && !...` (R4)"}
 ]
 

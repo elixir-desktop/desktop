@@ -37,6 +37,7 @@ defmodule Desktop.Regression.WxConnectTest do
 
       try do
         wx = Desktop.Env.wx()
+
         {:ok, frame, _webview} =
           Desktop.Platform.Window.open(
             wx: wx,

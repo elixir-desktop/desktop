@@ -171,10 +171,10 @@ defmodule Desktop.Backend.Wx do
   end
 
   @impl true
-  def is_shown?(frame), do: Null.wx_call(:wxWindow, :isShown, [frame]) || false
+  def shown?(frame), do: Null.wx_call(:wxWindow, :isShown, [frame]) || false
 
   @impl true
-  def is_active?(frame), do: Null.wx_call(:wxTopLevelWindow, :isActive, [frame]) || false
+  def active?(frame), do: Null.wx_call(:wxTopLevelWindow, :isActive, [frame]) || false
 
   @impl true
   def raise_window(nil), do: :ok

@@ -16,8 +16,8 @@ defmodule Desktop.Backend.BrowserTest do
     assert :ok = Browser.show(nil, [])
     assert :ok = Browser.set_title(nil, "x")
     assert :ok = Browser.connect(nil, :close_window, fn -> :ok end)
-    assert Browser.is_shown?(nil) == false
-    assert Browser.is_active?(nil) == false
+    assert Browser.shown?(nil) == false
+    assert Browser.active?(nil) == false
   end
 
   test "T-BRW: Content callbacks" do

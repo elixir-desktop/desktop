@@ -122,7 +122,7 @@ defmodule Desktop.Backend.Json do
 
   @impl true
   def connect(frame, event, fun) do
-    Protocol.connect(:wxFrame, frame, event, [callback: fun, userData: self()])
+    Protocol.connect(:wxFrame, frame, event, callback: fun, userData: self())
     :ok
   end
 
@@ -166,10 +166,10 @@ defmodule Desktop.Backend.Json do
   end
 
   @impl true
-  def is_shown?(frame), do: Protocol.call(:wxWindow, :isShown, [frame]) || false
+  def shown?(frame), do: Protocol.call(:wxWindow, :isShown, [frame]) || false
 
   @impl true
-  def is_active?(frame), do: Protocol.call(:wxTopLevelWindow, :isActive, [frame]) || true
+  def active?(frame), do: Protocol.call(:wxTopLevelWindow, :isActive, [frame]) || true
 
   @impl true
   def raise_window(nil), do: :ok

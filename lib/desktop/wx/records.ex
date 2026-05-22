@@ -5,18 +5,16 @@ defmodule Desktop.Wx.Records do
 
   @host_build System.get_env("MIX_TARGET") in [nil, "host"]
 
-  @wx_hrl (
-    if @host_build do
-      case :code.lib_dir(:wx) do
-        path when is_list(path) ->
-          path = Path.join([List.to_string(path), "include", "wx.hrl"])
-          if File.exists?(path), do: path
+  @wx_hrl (if @host_build do
+             case :code.lib_dir(:wx) do
+               path when is_list(path) ->
+                 path = Path.join([List.to_string(path), "include", "wx.hrl"])
+                 if File.exists?(path), do: path
 
-        _ ->
-          nil
-      end
-    end
-  )
+               _ ->
+                 nil
+             end
+           end)
 
   if @wx_hrl do
     require Record

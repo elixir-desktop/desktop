@@ -14,7 +14,8 @@ wx_use_env_allowed =
 forbidden_patterns = [
   {~r/if\s+Desktop\.Platform\.System\.wx_available\?\s*\(\)/,
    "do not gate wx_use_env on wx_available? — call Platform APIs or wx_use_env (safe no-op)"},
-  {~r/ensure_wx_env/, "use Desktop.Platform.Helpers.with_wx_env/1 via Platform facades, not ensure_wx_env"},
+  {~r/ensure_wx_env/,
+   "use Desktop.Platform.Helpers.with_wx_env/1 via Platform facades, not ensure_wx_env"},
   {~r/:wxLocale\.getSystemLanguage\s*\(/,
    "Json/mobile: pass :getSystemLanguage as a bridge atom to Protocol, never :wxLocale.getSystemLanguage/0"}
 ]
