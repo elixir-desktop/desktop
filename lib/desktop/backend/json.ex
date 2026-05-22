@@ -103,13 +103,8 @@ defmodule Desktop.Backend.Json do
   def destroy_frame(frame), do: Protocol.destroy(:wxFrame, frame)
 
   @impl true
-  def connect(frame, :close_window, fun) do
-    Protocol.connect(:wxFrame, frame, :close_window, callback: fun)
-    :ok
-  end
-
-  def connect(frame, :activate, fun) do
-    Protocol.connect(:wxFrame, frame, :activate, callback: fun)
+  def connect(frame, event, fun) do
+    Protocol.connect(:wxFrame, frame, event, [callback: fun, userData: self()])
     :ok
   end
 
@@ -159,7 +154,10 @@ defmodule Desktop.Backend.Json do
   def is_active?(frame), do: Protocol.call(:wxTopLevelWindow, :isActive, [frame]) || true
 
   @impl true
+  def raise_window(nil), do: :ok
+
   def raise_window(frame) do
+    Protocol.call(:wxTopLevelWindow, :setFocus, [frame])
     Protocol.call(:wxWindow, :raise, [frame])
     :ok
   end

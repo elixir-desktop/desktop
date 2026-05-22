@@ -1,3 +1,5 @@
+Code.require_file("desktop_wx_stub.exs", __DIR__)
+
 defmodule Desktop.MixProject do
   use Mix.Project
 
@@ -7,7 +9,19 @@ defmodule Desktop.MixProject do
   @version "1.5.3"
   @url "https://github.com/elixir-desktop/desktop"
 
+  def cli do
+    [
+      preferred_envs: [
+        test: :test,
+        "test.fast": :test,
+        "test.wx": :test
+      ]
+    ]
+  end
+
   def project do
+    Desktop.WxStub.write!()
+
     [
       app: :desktop,
       name: "Desktop",
@@ -16,6 +30,7 @@ defmodule Desktop.MixProject do
       description: @description,
       elixir: "~> 1.11",
       elixirc_paths: elixirc_paths(Mix.env()),
+      erl_src_paths: erl_src_paths(),
       compilers: Mix.compilers(),
       aliases: aliases(),
       start_permanent: Mix.env() == :prod,
@@ -32,6 +47,12 @@ defmodule Desktop.MixProject do
   # Specifies which paths to compile per environment.
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
+
+  # Compile src/desktop_wx.erl on host only (uses wx.hrl when available, else stub).
+  # Android/iOS set MIX_TARGET — skip Erlang (erlc has no :wx on the code path).
+  defp erl_src_paths do
+    if System.get_env("MIX_TARGET") in [nil, "host"], do: ["src"], else: []
+  end
 
   # Run "mix help compile.app" to learn about applications.
   def application do
@@ -60,6 +81,9 @@ defmodule Desktop.MixProject do
 
   defp aliases() do
     [
+      "test.fast": ["test --exclude wx"],
+      "test.wx": ["test --only wx"],
+      "test.guard": ["run test/support/guard_boolean_ops.exs"],
       lint: [
         "compile --warnings-as-errors",
         "format --check-formatted",
@@ -117,7 +141,7 @@ defmodule Desktop.MixProject do
       maintainers: ["Dominic Letz"],
       licenses: ["MIT"],
       links: %{github: @url},
-      files: ~w(src lib LICENSE.md mix.exs README.md)
+      files: ~w(src lib LICENSE.md mix.exs README.md desktop_wx_stub.exs)
     ]
   end
 end

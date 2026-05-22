@@ -19,7 +19,10 @@ wxWidgets GUI support requires `libwxgtk-webview3.2-dev` and `xvfb` on headless 
 | Install deps | `mix deps.get` |
 | Compile | `mix compile` |
 | Lint (all) | `mix lint` (runs compile --warnings-as-errors, format --check-formatted, credo --ignore refactor, dialyzer) |
-| Tests | `xvfb-run mix test` |
+| Tests (fast, no wx) | `mix test.fast` |
+| Tests (wx only) | `xvfb-run -a mix test.wx` (or `DISPLAY=:99 mix test.wx` if xvfb is already running) |
+| Tests (all) | `xvfb-run -a mix test` |
+| Regression guard | `mix test.guard` |
 | Run code | `xvfb-run mix run -e '<elixir code>'` |
 | IEx shell | `xvfb-run iex -S mix` |
 

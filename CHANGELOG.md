@@ -8,6 +8,8 @@
 - Optional `config :desktop, :backend, :auto | :wx | :json | :browser` override
 - Menu adapters: `Desktop.Menu.Adapter.Json` and `Desktop.Menu.Adapter.Browser`
 - Public `Desktop.*` APIs unchanged (`Desktop.Window`, `Desktop.Env`, `Desktop.Menu`, etc.)
+- Test suite: `mix test.fast`, `xvfb-run mix test.wx`, `mix test.guard` — see `docs/TEST_PLAN.md`
+- Compile without OTP `:wx`: conditional `erl_src_paths` and `Desktop.Wx` fallbacks (no `wx.hrl` required)
 
 ## Changes in 1.5
 

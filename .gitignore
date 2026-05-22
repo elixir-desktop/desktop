@@ -36,3 +36,6 @@ npm-debug.log
 
 # This is a library
 /mix.lock
+
+# Generated on every mix load (desktop_wx_stub.exs)
+/src/desktop_wx.erl

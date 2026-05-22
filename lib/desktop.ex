@@ -99,18 +99,9 @@ defmodule Desktop do
       code
     else
       _ ->
-        case Desktop.Platform.System.locale() do
-          nil ->
-            with env when env != nil <- Desktop.Env.wx_env() do
-              Desktop.Platform.System.set_env(env)
-            end
-
-            locale = :wxLocale.new(:wxLocale.getSystemLanguage())
-            :wxLocale.getCanonicalName(locale) |> List.to_string() |> String.downcase()
-
-          locale ->
-            locale
-        end
+        # Wx APIs require the process wx env from Desktop.Env (see :wx.set_env/1).
+        Desktop.Env.wx_use_env()
+        Desktop.Platform.System.locale()
     end
   end
 

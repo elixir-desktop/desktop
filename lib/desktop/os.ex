@@ -23,17 +23,10 @@ defmodule Desktop.OS do
   end
 
   @doc false
-  def raise_frame(frame) do
-    if type() == MacOS do
-      name = System.get_env("EMU", "beam.smp")
+  def raise_frame(frame) when frame in [nil, :undefined], do: :ok
 
-      fn -> System.cmd("open", ["-a", name], stderr_to_stdout: true, parallelism: true) end
-      |> spawn_link()
-    else
-      # Calling  this on wxDirDialog segfaults on macos..
-      :wxTopLevelWindow.setFocus(frame)
-      :wxWindow.raise(frame)
-    end
+  def raise_frame(frame) do
+    Desktop.Platform.Window.raise_window(frame)
   end
 
   @spec type :: Linux | MacOS | Windows | Android | IOS
@@ -165,9 +158,14 @@ defmodule Desktop.OS do
             env: linux_env()
           )
 
+        Windows ->
+          System.cmd("cmd", ["/c", "start", "", file], stderr_to_stdout: true, parallelism: true)
+
         _other ->
-          Desktop.Env.wx_use_env()
-          :wx_misc.launchDefaultBrowser(file)
+          if Desktop.Platform.System.wx_available?() do
+            Desktop.Env.wx_use_env()
+            Desktop.Backend.Null.wx_call(:wx_misc, :launchDefaultBrowser, [file])
+          end
       end
     end)
   end

@@ -42,8 +42,23 @@ defmodule Desktop.Backend.Wx do
 
   @impl true
   def locale do
+    ensure_wx_env()
+
     locale = Null.wx_call(:wxLocale, :new, [:wxLocale.getSystemLanguage()])
     Null.wx_call(:wxLocale, :getCanonicalName, [locale]) |> List.to_string() |> String.downcase()
+  end
+
+  defp ensure_wx_env do
+    env =
+      case Process.whereis(Desktop.Env) do
+        nil ->
+          Null.wx_call(:wx, :get_env)
+
+        _ ->
+          Desktop.Env.wx_env()
+      end
+
+    if env != nil, do: Null.wx_call(:wx, :set_env, [env])
   end
 
   @impl true
@@ -96,13 +111,9 @@ defmodule Desktop.Backend.Wx do
   def destroy_frame(frame), do: Null.wx_call(:wxFrame, :destroy, [frame]) || :ok
 
   @impl true
-  def connect(frame, :close_window, fun) do
-    Null.wx_call(:wxFrame, :connect, [frame, :close_window, callback: fun])
-    :ok
-  end
-
-  def connect(frame, :activate, fun) do
-    Null.wx_call(:wxFrame, :connect, [frame, :activate, callback: fun])
+  def connect(frame, event, fun) do
+    opts = [callback: fun, userData: self()]
+    Null.wx_call(:wxFrame, :connect, [frame, event, opts])
     :ok
   end
 
@@ -153,8 +164,25 @@ defmodule Desktop.Backend.Wx do
   def is_active?(frame), do: Null.wx_call(:wxTopLevelWindow, :isActive, [frame]) || false
 
   @impl true
+  def raise_window(nil), do: :ok
+
   def raise_window(frame) do
-    OS.raise_frame(frame)
+    case OS.type() do
+      MacOS ->
+        name = System.get_env("EMU", "beam.smp")
+
+        fn ->
+          System.cmd("open", ["-a", name], stderr_to_stdout: true, parallelism: true)
+        end
+        |> spawn_link()
+
+      _ ->
+        # Calling setFocus on wxDirDialog segfaults on macOS — handled above.
+        Desktop.Env.wx_use_env()
+        Null.wx_call(:wxTopLevelWindow, :setFocus, [frame])
+        Null.wx_call(:wxWindow, :raise, [frame])
+    end
+
     :ok
   end
 
@@ -244,8 +272,7 @@ defmodule Desktop.Backend.Wx do
       Null.wx_call(:wxTopLevelWindow, :centerOnScreen, [frame])
     end
 
-    OS.raise_frame(frame)
-    :ok
+    raise_window(frame)
   end
 
   @impl true

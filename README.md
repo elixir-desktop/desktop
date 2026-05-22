@@ -20,6 +20,46 @@ Check out the [Getting your Environment Ready Guide](./guides/getting_started.md
 
 This repo’s [`.tool-versions`](./.tool-versions) pins Erlang and Elixir for contributors; [mise](https://mise.jdx.dev/) and [asdf](https://asdf-vm.com/) both understand that file. After activating your toolchain, run `mix desktop.check_toolchain` to confirm the running OTP major and Elixir version match `.tool-versions`.
 
+## Platform backends
+
+`desktop` routes window, webview, menu, and notification calls through `Desktop.Platform` to one of three backends. The default is **automatic** selection (`:auto`); you can override it in config or via environment variables.
+
+| Backend | Typical use |
+|---|---|
+| `Desktop.Backend.Wx` | Native windows on Windows, macOS, and Linux (OTP `:wx` / wxWidgets) |
+| `Desktop.Backend.Json` | Android and iOS — JSON/TCP bridge to your native host app (`BRIDGE_PORT`) |
+| `Desktop.Backend.Browser` | Headless CI, servers without wx, or local dev without a GUI (`NO_WX=1`) |
+
+**Automatic selection** (`config :desktop, :backend, :auto` — the default):
+
+1. Mobile target (`Mix.target()` `:android` / `:ios`, or `Desktop.OS.mobile?/0`) → **Json**
+2. Else `NO_WX` set or `:wx` not available → **Browser**
+3. Else → **Wx**
+
+**Explicit override** in `config/config.exs`:
+
+```elixir
+config :desktop, :backend, :wx      # force wxWidgets (desktop)
+config :desktop, :backend, :json   # force JSON bridge (e.g. mobile host)
+config :desktop, :backend, :browser # force OS-browser fallback
+config :desktop, :backend, :auto   # automatic (default)
+```
+
+You can also pass a **custom backend module** that implements the `Desktop.Platform.*` behaviour callbacks:
+
+```elixir
+config :desktop, :backend, MyApp.DesktopBackend
+```
+
+**Environment variables:**
+
+| Variable | Effect |
+|---|---|
+| `NO_WX=1` | With `:auto`, selects the Browser backend (no native window) |
+| `BRIDGE_PORT` | TCP port for the Json backend’s native host (default `0` = in-process mock for tests) |
+
+See the [FAQ](./guides/faq.md) for mobile bridge setup, headless testing, and capability details.
+
 ## Status / Roadmap
 
 1. ✅ Run elixir-desktop on Windows/MacOS/Linux

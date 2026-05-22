@@ -173,14 +173,14 @@ defmodule Desktop.Window do
     end
 
     wx_menubar =
-      if menubar and frame do
+      if menubar && frame do
         {:ok, menu_pid} =
           Menu.start_link(
             module: menubar,
             app: app,
             env: env,
             adapter: Platform.Menu.adapter(),
-            wx: Platform.Menu.menubar_opts(wx: Platform.Window.new_menubar())
+            wx: Platform.Window.new_menubar()
           )
 
         wx_menubar = Menu.menubar(menu_pid)
@@ -188,7 +188,7 @@ defmodule Desktop.Window do
         wx_menubar
       end
 
-    if OS.type() == MacOS and frame do
+    if OS.type() == MacOS && frame do
       Platform.Window.update_apple_menu(
         window_title,
         frame,
@@ -512,11 +512,8 @@ defmodule Desktop.Window do
     OS.shutdown()
   end
 
-  require Record
-
-  for tag <- [:wx, :wxCommand, :wxClose] do
-    Record.defrecordp(tag, Record.extract(tag, from_lib: "wx/include/wx.hrl"))
-  end
+  require Desktop.Wx.Records
+  import Desktop.Wx.Records
 
   @doc false
   def handle_event(wx(event: {:wxWebView, :webview_newwindow, _, _, _target, url}), ui) do
@@ -614,7 +611,7 @@ defmodule Desktop.Window do
       if frame, do: Platform.Window.hide(frame)
       {:noreply, ui}
     else
-      if frame and not Platform.Window.is_shown?(frame) do
+      if frame != nil && !Platform.Window.is_shown?(frame) do
         OS.shutdown()
       end
 
