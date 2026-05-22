@@ -87,14 +87,11 @@ defmodule Desktop.MixProject do
       {:phoenix_live_view, "> 1.0.0"},
       {:plug, "> 1.0.0"},
       {:gettext, "> 0.10.0"},
-      {:igniter, "~> 0.6", optional: true}
+      {:igniter, "~> 0.6", optional: true},
+      {:jason, "~> 1.2"}
     ]
 
-    if Mix.target() in [:android, :ios] do
-      desktop ++ [{:wx, "~> 1.1", hex: :bridge, targets: [:android, :ios]}]
-    else
-      desktop
-    end
+    desktop
   end
 
   defp docs do

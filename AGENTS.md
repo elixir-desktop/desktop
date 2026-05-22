@@ -31,4 +31,14 @@ wxWidgets GUI support requires `libwxgtk-webview3.2-dev` and `xvfb` on headless 
 
 ### Running without a display
 
-All commands that load the `:wx` application (compile, test, iex) need a display. Use `xvfb-run` prefix on headless servers. The `NO_WX` environment variable can skip wx initialization but will limit functionality.
+All commands that load the `:wx` application (compile, test, iex) need a display. Use `xvfb-run` prefix on headless servers. The `NO_WX` environment variable selects the `Desktop.Backend.Browser` platform backend (OS browser fallback, no native window).
+
+### Platform backends
+
+| Backend | When |
+|---|---|
+| `Desktop.Backend.Wx` | Desktop host targets with OTP `:wx` (default) |
+| `Desktop.Backend.Json` | `Mix.target()` is `:android` or `:ios` — JSON bridge via `BRIDGE_PORT` |
+| `Desktop.Backend.Browser` | `NO_WX=1` or `:wx` unavailable |
+
+Override with `config :desktop, :backend, :wx | :json | :browser | :auto`.

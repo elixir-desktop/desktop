@@ -1,5 +1,15 @@
 # Frequently Asked Questions (FAQ)
 
+## How does the mobile (Android/iOS) bridge work?
+
+On mobile targets, `desktop` uses `Desktop.Backend.Json` instead of OTP `:wx`. The Elixir side speaks the legacy JSON protocol over TCP to your native host app (set `BRIDGE_PORT` to the listening port). The separate `bridge` hex package is no longer required — transport lives in `Desktop.Bridge.Transport`.
+
+Override the backend with `config :desktop, :backend, :json` in `config/config.exs` if needed.
+
+## How do I run without wxWidgets?
+
+Set `NO_WX=1` to use `Desktop.Backend.Browser`: URLs open in the OS default browser and window/menu APIs degrade gracefully. Use `xvfb-run` on headless Linux when testing the Wx backend instead.
+
 ## How do I release and distribute my Desktop application?
 
 ### Creating an Installer

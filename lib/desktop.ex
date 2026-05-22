@@ -99,11 +99,18 @@ defmodule Desktop do
       code
     else
       _ ->
-        :wx.set_env(Desktop.Env.wx_env())
-        locale = :wxLocale.new(:wxLocale.getSystemLanguage())
-        # This is in the form "xx_XX"
-        # we have seen windows returns an empty string though...
-        :wxLocale.getCanonicalName(locale) |> List.to_string() |> String.downcase()
+        case Desktop.Platform.System.locale() do
+          nil ->
+            with env when env != nil <- Desktop.Env.wx_env() do
+              Desktop.Platform.System.set_env(env)
+            end
+
+            locale = :wxLocale.new(:wxLocale.getSystemLanguage())
+            :wxLocale.getCanonicalName(locale) |> List.to_string() |> String.downcase()
+
+          locale ->
+            locale
+        end
     end
   end
 

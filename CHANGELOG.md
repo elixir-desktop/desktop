@@ -1,5 +1,14 @@
 # Changelog
 
+## Changes in 1.6 (unreleased)
+
+- Internal `Desktop.Platform` layer with domain behaviours (Window, Content, Notification, Media, System) and backends (`Desktop.Backend.Wx`, `Desktop.Backend.Json`, `Desktop.Backend.Browser`)
+- Bridge JSON/TCP transport embedded as `Desktop.Bridge.Transport` (legacy `[module, method, args]` wire format preserved for native hosts)
+- Removed separate `{:wx, hex: :bridge}` dependency on Android/iOS; mobile builds use `Desktop.Backend.Json` directly
+- Optional `config :desktop, :backend, :auto | :wx | :json | :browser` override
+- Menu adapters: `Desktop.Menu.Adapter.Json` and `Desktop.Menu.Adapter.Browser`
+- Public `Desktop.*` APIs unchanged (`Desktop.Window`, `Desktop.Env`, `Desktop.Menu`, etc.)
+
 ## Changes in 1.5
 
 - Support for iOS hibernation and wakeup
