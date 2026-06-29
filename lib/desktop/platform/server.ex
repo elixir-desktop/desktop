@@ -24,10 +24,8 @@ defmodule Desktop.Platform.Server do
   @impl true
   def handle_info(message, s = %__MODULE__{state: state, module: module}) do
     if function_exported?(module, :handle_event, 2) and is_tuple(message) do
-      case module.handle_event(message, state) do
-        {:noreply, new_state} -> {:noreply, %{s | state: new_state}}
-        other -> other
-      end
+      module.handle_event(message, state)
+      |> wrap_result(s)
     else
       dispatch_info(message, s)
     end
@@ -35,10 +33,8 @@ defmodule Desktop.Platform.Server do
 
   defp dispatch_info(message, s = %__MODULE__{state: state, module: module}) do
     if function_exported?(module, :handle_info, 2) do
-      case module.handle_info(message, state) do
-        {:noreply, new_state} -> {:noreply, %{s | state: new_state}}
-        other -> other
-      end
+      module.handle_info(message, state)
+      |> wrap_result(s)
     else
       {:noreply, s}
     end
@@ -46,18 +42,38 @@ defmodule Desktop.Platform.Server do
 
   @impl true
   def handle_cast(message, s = %__MODULE__{state: state, module: module}) do
-    case module.handle_cast(message, state) do
-      {:noreply, new_state} -> {:noreply, %{s | state: new_state}}
-      other -> other
-    end
+    module.handle_cast(message, state)
+    |> wrap_result(s)
   end
 
   @impl true
   def handle_call(message, from, s = %__MODULE__{state: state, module: module}) do
-    case module.handle_call(message, from, state) do
-      {:noreply, new_state} -> {:noreply, %{s | state: new_state}}
-      {:reply, reply, new_state} -> {:reply, reply, %{s | state: new_state}}
-      other -> other
+    module.handle_call(message, from, state)
+    |> wrap_result(s)
+  end
+
+  defp wrap_result(result, s) do
+    case result do
+      {:reply, reply, new_state} ->
+        {:reply, reply, %{s | state: new_state}}
+
+      {:reply, reply, new_state, extra} ->
+        {:reply, reply, %{s | state: new_state}, extra}
+
+      {:noreply, new_state} ->
+        {:noreply, %{s | state: new_state}}
+
+      {:noreply, new_state, extra} ->
+        {:noreply, %{s | state: new_state}, extra}
+
+      {:stop, reason, new_state} ->
+        {:stop, reason, %{s | state: new_state}}
+
+      {:stop, reason, reply, new_state} ->
+        {:stop, reason, reply, %{s | state: new_state}}
+
+      other ->
+        other
     end
   end
 end

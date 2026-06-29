@@ -184,10 +184,13 @@ defmodule Desktop.Backend.Wx do
       MacOS ->
         name = System.get_env("EMU", "beam.smp")
 
-        fn ->
-          System.cmd("open", ["-a", name], stderr_to_stdout: true, parallelism: true)
-        end
-        |> spawn_link()
+        spawn(fn ->
+          try do
+            System.cmd("open", ["-a", name], stderr_to_stdout: true, parallelism: true)
+          rescue
+            _ -> :ok
+          end
+        end)
 
       _ ->
         # Calling setFocus on wxDirDialog segfaults on macOS — handled above.

@@ -81,22 +81,34 @@ defmodule Desktop.Bridge.Transport do
   def init(_opts) do
     port = String.to_integer(System.get_env("BRIDGE_PORT", "0"))
 
-    {socket, send} =
-      if port == 0 do
-        {Desktop.Bridge.Mock, &Desktop.Bridge.Mock.send/2}
-      else
-        {:ok, socket} =
-          :gen_tcp.connect(~c"127.0.0.1", port, packet: 4, active: true, mode: :binary)
+    if port == 0 do
+      {:ok,
+       %__MODULE__{
+         port: port,
+         socket: Desktop.Bridge.Mock,
+         send: &Desktop.Bridge.Mock.send/2
+       }}
+    else
+      {:ok,
+       %__MODULE__{
+         port: port,
+         socket: nil,
+         send: &:gen_tcp.send/2
+       }, {:continue, :connect}}
+    end
+  end
 
-        {socket, &:gen_tcp.send/2}
-      end
+  @impl true
+  def handle_continue(:connect, state = %__MODULE__{port: port}) do
+    case connect(port) do
+      {:ok, socket} ->
+        {:noreply, %__MODULE__{state | socket: socket}}
 
-    {:ok,
-     %__MODULE__{
-       port: port,
-       socket: socket,
-       send: send
-     }}
+      {:error, reason} ->
+        Logger.error("Bridge connection failed on startup: #{inspect(reason)}, retrying...")
+        Process.send_after(self(), :reconnect, 1_000)
+        {:noreply, state}
+    end
   end
 
   @impl true
@@ -199,25 +211,31 @@ defmodule Desktop.Bridge.Transport do
 
   def handle_info({:tcp_error, socket, reason}, state = %__MODULE__{socket: socket}) do
     Logger.error("Bridge connection failed: #{inspect(reason)}")
-    {:noreply, try_reconnect(state)}
+    Process.send_after(self(), :reconnect, 1_000)
+    {:noreply, %__MODULE__{state | socket: nil}}
   end
 
   def handle_info({:tcp_closed, socket}, state = %__MODULE__{socket: socket}) do
     Logger.error("Bridge connection closed")
-    {:noreply, try_reconnect(state)}
+    Process.send_after(self(), :reconnect, 1_000)
+    {:noreply, %__MODULE__{state | socket: nil}}
+  end
+
+  def handle_info(:reconnect, state = %__MODULE__{port: port, last_url: last_url}) do
+    case connect(port) do
+      {:ok, socket} ->
+        if last_url, do: spawn(fn -> bridge_call(:wxWebView, :loadURL, [nil, last_url]) end)
+        {:noreply, %__MODULE__{state | socket: socket}}
+
+      {:error, _} ->
+        Process.send_after(self(), :reconnect, 1_000)
+        {:noreply, state}
+    end
   end
 
   def handle_info(_other, state), do: {:noreply, state}
 
-  defp try_reconnect(state = %__MODULE__{port: port, last_url: last_url}) do
-    case :gen_tcp.connect(~c"127.0.0.1", port, [packet: 4, active: true, mode: :binary], 1_000) do
-      {:ok, socket} ->
-        if last_url, do: spawn(fn -> bridge_call(:wxWebView, :loadURL, [nil, last_url]) end)
-        %__MODULE__{state | socket: socket}
-
-      {:error, _} ->
-        Process.sleep(1_000)
-        try_reconnect(state)
-    end
+  defp connect(port) do
+    :gen_tcp.connect(~c"127.0.0.1", port, [packet: 4, active: true, mode: :binary], 1_000)
   end
 end
