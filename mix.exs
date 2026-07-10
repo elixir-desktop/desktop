@@ -7,7 +7,19 @@ defmodule Desktop.MixProject do
   @version "1.5.3"
   @url "https://github.com/elixir-desktop/desktop"
 
+  def cli do
+    [
+      preferred_envs: [
+        test: :test,
+        "test.fast": :test,
+        "test.wx": :test
+      ]
+    ]
+  end
+
   def project do
+    ensure_desktop_wx_erl!()
+
     [
       app: :desktop,
       name: "Desktop",
@@ -16,6 +28,7 @@ defmodule Desktop.MixProject do
       description: @description,
       elixir: "~> 1.11",
       elixirc_paths: elixirc_paths(Mix.env()),
+      erl_src_paths: erl_src_paths(),
       compilers: Mix.compilers(),
       aliases: aliases(),
       start_permanent: Mix.env() == :prod,
@@ -29,9 +42,21 @@ defmodule Desktop.MixProject do
     ]
   end
 
+  defp ensure_desktop_wx_erl! do
+    script = Path.join(__DIR__, "desktop_wx_stub.exs")
+    {_, 0} = System.cmd("elixir", [script], env: System.get_env())
+    :ok
+  end
+
   # Specifies which paths to compile per environment.
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
+
+  # Compile src/desktop_wx.erl on host only (uses wx.hrl when available, else stub).
+  # Android/iOS set MIX_TARGET — skip Erlang (erlc has no :wx on the code path).
+  defp erl_src_paths do
+    if System.get_env("MIX_TARGET") in [nil, "host"], do: ["src"], else: []
+  end
 
   # Run "mix help compile.app" to learn about applications.
   def application do
@@ -60,6 +85,12 @@ defmodule Desktop.MixProject do
 
   defp aliases() do
     [
+      "test.fast": ["test --exclude wx"],
+      "test.wx": ["test --only wx"],
+      "test.guard": [
+        "run test/support/guard_boolean_ops.exs",
+        "run test/support/guard_platform_abstraction.exs"
+      ],
       lint: [
         "compile --warnings-as-errors",
         "format --check-formatted",
@@ -87,14 +118,11 @@ defmodule Desktop.MixProject do
       {:phoenix_live_view, "> 1.0.0"},
       {:plug, "> 1.0.0"},
       {:gettext, "> 0.10.0"},
-      {:igniter, "~> 0.6", optional: true}
+      {:igniter, "~> 0.6", optional: true},
+      {:jason, "~> 1.2"}
     ]
 
-    if Mix.target() in [:android, :ios] do
-      desktop ++ [{:wx, "~> 1.1", hex: :bridge, targets: [:android, :ios]}]
-    else
-      desktop
-    end
+    desktop
   end
 
   defp docs do
@@ -120,7 +148,7 @@ defmodule Desktop.MixProject do
       maintainers: ["Dominic Letz"],
       licenses: ["MIT"],
       links: %{github: @url},
-      files: ~w(src lib LICENSE.md mix.exs README.md)
+      files: ~w(src lib LICENSE.md mix.exs README.md desktop_wx_stub.exs)
     ]
   end
 end

@@ -87,10 +87,9 @@ defmodule Desktop.Window do
 
   """
 
-  alias Desktop.{OS, Window, Wx, Menu, Fallback}
+  alias Desktop.{OS, Window, Wx, Menu, Fallback, Platform}
   require Logger
 
-  @enforce_keys [:frame]
   defstruct [
     :module,
     :taskbar,
@@ -118,94 +117,88 @@ defmodule Desktop.Window do
   @doc false
   def start_link(opts) do
     id = Keyword.fetch!(opts, :id)
-    {_ref, _num, _type, pid} = :wx_object.start_link({:local, id}, __MODULE__, opts, [])
+
+    {_ref, _num, _type, pid} =
+      Platform.window_server().start_link({:local, id}, __MODULE__, opts, [])
+
     {:ok, pid}
   end
 
   @doc false
   def init(options) do
+    caps = Platform.capabilities()
     window_title = options[:title] || Atom.to_string(options[:id])
     size = options[:size] || {600, 500}
     min_size = options[:min_size]
     app = options[:app]
     icon = options[:icon]
     taskbar_icon = options[:taskbar_icon]
-    # not supported on mobile atm
-    menubar = unless OS.mobile?(), do: options[:menubar]
-    icon_menu = unless OS.mobile?(), do: options[:icon_menu]
-    hidden = unless OS.mobile?(), do: options[:hidden]
+    menubar = if caps.menu != :none, do: options[:menubar]
+    icon_menu = if caps.taskbar, do: options[:icon_menu]
+    hidden = if caps.window, do: options[:hidden]
     url = options[:url]
     on_close = options[:on_close] || :quit
 
-    Desktop.Env.wx_use_env()
     GenServer.cast(Desktop.Env, {:register_window, self()})
 
-    frame =
-      :wxFrame.new(Desktop.Env.wx(), Wx.wxID_ANY(), window_title, [
-        {:size, size},
-        {:style, Wx.wxDEFAULT_FRAME_STYLE()}
-      ])
-
-    OnCrash.call(fn reason ->
-      if reason != :normal do
-        Logger.error("Window crashed: #{inspect(reason)}")
-        Desktop.Env.wx_use_env()
-        :wxFrame.destroy(frame)
-      end
-    end)
-
-    :wxFrame.connect(frame, :close_window,
-      callback: &close_window/2,
-      userData: self()
-    )
-
-    unless OS.mobile?() do
-      :wxFrame.connect(frame, :activate,
-        callback: &frame_activate/2,
-        userData: self()
-      )
-    end
-
-    if min_size do
-      :wxFrame.setMinSize(frame, min_size)
-    end
-
-    :wxFrame.setSizer(frame, :wxBoxSizer.new(Wx.wxHORIZONTAL()))
-
-    {:ok, icon} =
-      case icon do
-        nil -> {:ok, :wxArtProvider.getIcon("wxART_EXECUTABLE_FILE")}
-        filename -> Desktop.Image.new_icon(app, filename)
-      end
-
-    :wxTopLevelWindow.setIcon(frame, icon)
+    wx = Desktop.Env.wx()
     env = Desktop.Env.wx_env()
 
+    {:ok, icon} = load_window_icon(app, icon)
+
+    {:ok, frame, webview} =
+      Platform.Window.open(
+        wx: wx,
+        title: window_title,
+        size: size,
+        min_size: min_size,
+        icon: icon
+      )
+
+    if frame do
+      OnCrash.call(fn reason ->
+        if reason != :normal do
+          Logger.error("Window crashed: #{inspect(reason)}")
+          Platform.Window.on_crash_destroy(frame)
+        end
+      end)
+
+      Platform.Window.connect(frame, :close_window, &close_window/2)
+
+      if caps.window and not OS.mobile?() do
+        Platform.Window.connect(frame, :activate, &frame_activate/2)
+      end
+    end
+
     wx_menubar =
-      if menubar do
+      if menubar && frame do
         {:ok, menu_pid} =
           Menu.start_link(
             module: menubar,
             app: app,
             env: env,
-            wx: :wxMenuBar.new()
+            adapter: Platform.Menu.adapter(),
+            wx: Platform.Window.new_menubar()
           )
 
         wx_menubar = Menu.menubar(menu_pid)
-        :wxFrame.setMenuBar(frame, wx_menubar)
+        Platform.Window.set_menubar(frame, wx_menubar)
         wx_menubar
       end
 
-    if OS.type() == MacOS do
-      update_apple_menu(window_title, frame, wx_menubar || :wxMenuBar.new())
+    if OS.type() == MacOS && frame do
+      Platform.Window.update_apple_menu(
+        window_title,
+        frame,
+        wx_menubar || Platform.Window.new_menubar()
+      )
     end
 
     taskbar =
       if icon_menu do
         sni_link = Desktop.Env.sni()
-        adapter = if sni_link != nil, do: Menu.Adapter.DBus
 
-        {:ok, taskbar_icon} =
+        {:ok, tray_icon} =
           case taskbar_icon do
             nil -> {:ok, icon}
             filename -> Desktop.Image.new_icon(app, filename)
@@ -215,11 +208,11 @@ defmodule Desktop.Window do
           Menu.start_link(
             module: icon_menu,
             app: app,
-            adapter: adapter,
+            adapter: Platform.Menu.adapter(sni: sni_link),
             env: env,
             sni: sni_link,
-            icon: taskbar_icon,
-            wx: {:taskbar, taskbar_icon}
+            icon: tray_icon,
+            wx: {:taskbar, tray_icon}
           )
 
         menu_pid
@@ -228,7 +221,7 @@ defmodule Desktop.Window do
     ui = %Window{
       frame: frame,
       id: options[:id],
-      webview: Fallback.webview_new(frame),
+      webview: webview,
       notifications: %{},
       home_url: url,
       title: window_title,
@@ -242,6 +235,10 @@ defmodule Desktop.Window do
 
     {frame, ui}
   end
+
+  defp load_window_icon(_app, nil), do: Platform.Media.default_icon()
+
+  defp load_window_icon(app, filename), do: Desktop.Image.new_icon(app, filename)
 
   @doc """
   Returns the url currently shown of the Window.
@@ -513,15 +510,12 @@ defmodule Desktop.Window do
     OS.shutdown()
   end
 
-  require Record
-
-  for tag <- [:wx, :wxCommand, :wxClose] do
-    Record.defrecordp(tag, Record.extract(tag, from_lib: "wx/include/wx.hrl"))
-  end
+  require Desktop.Wx.Records
+  import Desktop.Wx.Records
 
   @doc false
   def handle_event(wx(event: {:wxWebView, :webview_newwindow, _, _, _target, url}), ui) do
-    OS.launch_default_browser(url)
+    spawn(fn -> Platform.System.open_external_url(url) end)
     {:noreply, ui}
   end
 
@@ -579,22 +573,20 @@ defmodule Desktop.Window do
   end
 
   def close_window(wx(userData: pid), inev) do
-    # if we don't veto vetoable events on MacOS the app freezes.
-    if :wxCloseEvent.canVeto(inev) do
-      :wxCloseEvent.veto(inev)
-    end
-
+    Platform.Window.close_event_veto(inev)
     GenServer.cast(pid, :close_window)
     :ok
   end
 
   def frame_activate(wx(userData: pid), event) do
-    if :wxActivateEvent.getActive(event) do
+    if activate_event_active?(event) do
       GenServer.cast(pid, :frame_activated)
     end
 
     :ok
   end
+
+  defp activate_event_active?(event), do: Platform.System.activate_event_active?(event)
 
   @doc false
   def handle_cast(:frame_activated, ui = %Window{id: id}) do
@@ -608,19 +600,10 @@ defmodule Desktop.Window do
   @doc false
   def handle_cast(:close_window, ui = %Window{frame: frame, taskbar: taskbar, on_close: on_close}) do
     if on_close == :hide do
-      :wxFrame.hide(frame)
+      if frame, do: Platform.Window.hide(frame)
       {:noreply, ui}
     else
-      # On macOS, there's no way to differentiate between following two events:
-      #
-      # * the window close event
-      # * the application close event
-      #
-      # So, this code assumes that if there's a close_window event coming in while
-      # the window is not actually shown, then it must be an application close event.
-      #
-      # On other platforms, this code should not have any relevance.
-      if not :wxFrame.isShown(frame) do
+      if frame != nil && !Platform.Window.shown?(frame) do
         OS.shutdown()
       end
 
@@ -628,7 +611,7 @@ defmodule Desktop.Window do
         OS.shutdown()
         {:noreply, ui}
       else
-        :wxFrame.hide(frame)
+        if frame, do: Platform.Window.hide(frame)
         {:noreply, ui}
       end
     end
@@ -636,14 +619,14 @@ defmodule Desktop.Window do
 
   def handle_cast({:set_title, title}, ui = %Window{title: old, frame: frame}) do
     if title != old and frame != nil do
-      :wxFrame.setTitle(frame, String.to_charlist(title))
+      Platform.Window.set_title(frame, title)
     end
 
     {:noreply, %Window{ui | title: title}}
   end
 
   def handle_cast({:iconize, iconize}, ui = %Window{frame: frame}) do
-    :wxTopLevelWindow.iconize(frame, iconize: iconize)
+    if frame, do: Platform.Window.iconize(frame, iconize)
     {:noreply, ui}
   end
 
@@ -693,10 +676,7 @@ defmodule Desktop.Window do
   end
 
   def handle_cast(:hide, ui = %Window{frame: frame}) do
-    if frame do
-      :wxWindow.hide(frame)
-    end
-
+    if frame, do: Platform.Window.hide(frame)
     {:noreply, ui}
   end
 
@@ -704,7 +684,7 @@ defmodule Desktop.Window do
   def handle_call(:is_hidden?, _from, ui = %Window{frame: frame}) do
     ret =
       if frame do
-        not :wxWindow.isShown(frame)
+        not Platform.Window.shown?(frame)
       else
         false
       end
@@ -714,7 +694,7 @@ defmodule Desktop.Window do
 
   @doc false
   def handle_call(:is_active?, _from, ui = %Window{frame: frame}) do
-    {:reply, :wxTopLevelWindow.isActive(frame), ui}
+    {:reply, frame == nil or Platform.Window.active?(frame), ui}
   end
 
   def handle_call(:url, _from, ui) do
@@ -750,22 +730,5 @@ defmodule Desktop.Window do
         %URI{uri | query: URI.encode_query(Map.merge(URI.decode_query(other), query))}
     end
     |> URI.to_string()
-  end
-
-  defp update_apple_menu(title, frame, menubar) do
-    menu = :wxMenuBar.oSXGetAppleMenu(menubar)
-    :wxMenu.setTitle(menu, title)
-
-    # Remove all items except for Quit since we don't yet handle the standard items
-    # like "Hide <app>", "Hide Others", "Show All", etc
-    for item <- :wxMenu.getMenuItems(menu) do
-      if :wxMenuItem.getId(item) == Wx.wxID_EXIT() do
-        :wxMenuItem.setText(item, "Quit #{title}\tCtrl+Q")
-      else
-        :wxMenu.delete(menu, item)
-      end
-    end
-
-    :wxFrame.connect(frame, :command_menu_selected)
   end
 end

@@ -98,12 +98,7 @@ defmodule Desktop do
       # https://stackoverflow.com/questions/661935/how-to-detect-current-locale-in-mac-os-x-from-the-shell
       code
     else
-      _ ->
-        :wx.set_env(Desktop.Env.wx_env())
-        locale = :wxLocale.new(:wxLocale.getSystemLanguage())
-        # This is in the form "xx_XX"
-        # we have seen windows returns an empty string though...
-        :wxLocale.getCanonicalName(locale) |> List.to_string() |> String.downcase()
+      _ -> Desktop.Platform.System.locale()
     end
   end
 

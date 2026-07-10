@@ -19,7 +19,7 @@ defmodule Desktop.Menu do
         case command do
           <<"open">> -> :not_implemented
           <<"quit">> -> Desktop.Window.quit()
-          <<"help">> -> Desktop.OS.launch_default_browser(\'https://google.com\')
+          <<"help">> -> Desktop.OS.open_url("https://google.com")
           <<"about">> -> :not_implemented
         end
 
@@ -290,9 +290,15 @@ defmodule Desktop.Menu do
     app = Keyword.get(init_opts, :app, nil)
 
     adapter_module =
-      case Keyword.get(init_opts, :adapter, Adapter.Wx) do
-        mod when mod in [Adapter.Wx, Adapter.DBus] -> mod
-        _ -> Adapter.Wx
+      case Keyword.get(init_opts, :adapter) do
+        mod when mod in [Adapter.Wx, Adapter.DBus, Adapter.Json, Adapter.Browser] ->
+          mod
+
+        nil ->
+          Desktop.Platform.Menu.adapter(init_opts)
+
+        _ ->
+          Desktop.Platform.Menu.adapter(init_opts)
       end
 
     adapter_opts =

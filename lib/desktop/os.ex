@@ -23,17 +23,10 @@ defmodule Desktop.OS do
   end
 
   @doc false
-  def raise_frame(frame) do
-    if type() == MacOS do
-      name = System.get_env("EMU", "beam.smp")
+  def raise_frame(frame) when frame in [nil, :undefined], do: :ok
 
-      fn -> System.cmd("open", ["-a", name], stderr_to_stdout: true, parallelism: true) end
-      |> spawn_link()
-    else
-      # Calling  this on wxDirDialog segfaults on macos..
-      :wxTopLevelWindow.setFocus(frame)
-      :wxWindow.raise(frame)
-    end
+  def raise_frame(frame) do
+    Desktop.Platform.Window.raise_window(frame)
   end
 
   @spec type :: Linux | MacOS | Windows | Android | IOS
@@ -145,31 +138,18 @@ defmodule Desktop.OS do
   end
 
   @doc """
-  Replacement for the :wx_misc.launchDefaultBrowser function
+  Opens a URL or file path in the platform default handler.
+
+  Delegates to `Desktop.Platform.System.open_external_url/1` on the active backend
+  (Json bridge RPC on mobile, host `open`/`xdg-open`/`cmd` or wx on desktop).
   """
   def launch_default_browser(file) when is_list(file) do
     List.to_string(file)
     |> launch_default_browser()
   end
 
-  def launch_default_browser(file) do
-    spawn(fn ->
-      case type() do
-        MacOS ->
-          System.cmd("open", [file], stderr_to_stdout: true, parallelism: true)
-
-        Linux ->
-          System.cmd("xdg-open", [file],
-            stderr_to_stdout: true,
-            parallelism: true,
-            env: linux_env()
-          )
-
-        _other ->
-          Desktop.Env.wx_use_env()
-          :wx_misc.launchDefaultBrowser(file)
-      end
-    end)
+  def launch_default_browser(file) when is_binary(file) do
+    spawn(fn -> Desktop.Platform.System.open_external_url(file) end)
   end
 
   def open_url(url), do: launch_default_browser(url)

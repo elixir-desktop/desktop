@@ -30,12 +30,12 @@ defmodule Desktop.Env do
   @doc false
   @impl true
   def init(_arg) do
-    wx = Desktop.Fallback.wx_new([])
-    Desktop.Fallback.wx_subscribe()
+    {wx, wx_env} = Desktop.Platform.System.init_env()
+    Desktop.Platform.System.subscribe_events()
 
     {:ok,
      %Env{
-       wx_env: Desktop.Fallback.wx_get_env(),
+       wx_env: wx_env,
        wx: wx,
        map: %{},
        waiters: %{},
@@ -112,9 +112,7 @@ defmodule Desktop.Env do
   end
 
   def handle_call({:connect, object, command, callback, id}, _from, d) do
-    opts = [{:callback, fn _, _ -> callback.() end}]
-    opts = if id == nil, do: opts, else: [{:id, id} | opts]
-    ret = :wxMenu.connect(object, command, opts)
+    ret = Desktop.Platform.System.connect_menu(object, command, callback, id)
     {:reply, ret, d}
   end
 
@@ -134,10 +132,8 @@ defmodule Desktop.Env do
 
   @impl true
   def handle_info({:reopen_app, []}, state = %Env{windows: windows}) do
-    # Handling MacOS event when the app icon is clicked again
     case windows do
       [window | _] ->
-        # Avoiding constant reopen loops
         Debouncer.immediate2({Desktop, :reopen}, fn -> Desktop.Window.show(window) end, 500)
 
       [] ->
@@ -147,18 +143,9 @@ defmodule Desktop.Env do
     {:noreply, state}
   end
 
-  # Reconnect is a mobile Bridge specific event issued
-  # when the Server Sockets need to be re-restablished
   def handle_info(:reconnect, state = %Env{}) do
-    # There seems to be an iOS bug where listening ports
-    # are "zombied" after hibernation and not restarted
-    # correctly. To rectify this situation we're re-creating them
-    # all here
-
     if Desktop.OS.type() == IOS do
       for endpoint <- endpoints() do
-        IO.puts("reconnect: #{inspect(endpoint)}")
-
         if Kernel.function_exported?(:ranch, :suspend_listener, 1) do
           apply(:ranch, :suspend_listener, [endpoint])
           apply(:ranch, :resume_listener, [endpoint])
@@ -240,9 +227,17 @@ defmodule Desktop.Env do
   Shortcut for `:wx.set_env(Desktop.Env.wx_env())`
   """
   def wx_use_env() do
-    with env when env != nil <- wx_env() do
-      :wx.set_env(env)
+    env =
+      case Process.whereis(__MODULE__) do
+        nil -> nil
+        _ -> wx_env()
+      end
+
+    if env != nil do
+      Desktop.Platform.System.set_env(env)
     end
+
+    :ok
   end
 
   @doc false
@@ -296,8 +291,6 @@ defmodule Desktop.Env do
   end
 
   defp init_sni() do
-    # We're protecting the main application from any possible
-    # side effects of the SNI startup using a monitored (not linked) process:
     {task, ref} = spawn_monitor(fn -> exit(do_init_sni()) end)
 
     receive do
