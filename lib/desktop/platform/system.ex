@@ -49,15 +49,11 @@ defmodule Desktop.Platform.System do
         end
       end)
 
-    case raw do
-      nil ->
-        nil
-
-      str ->
-        case String.trim(str) do
-          "" -> nil
-          trimmed -> trimmed
-        end
+    if raw do
+      case String.trim(raw) do
+        "" -> nil
+        trimmed -> trimmed
+      end
     end
   end
 
