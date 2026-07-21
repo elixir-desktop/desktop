@@ -16,7 +16,6 @@ defmodule Desktop.Platform.SystemTest do
 
     on_exit(fn ->
       Application.put_env(:desktop, :backend, previous)
-      Process.delete(:stub_os_description)
     end)
 
     :ok
