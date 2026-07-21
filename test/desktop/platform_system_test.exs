@@ -4,6 +4,9 @@ defmodule Desktop.Platform.SystemTest do
   alias Desktop.Platform.System, as: PlatformSystem
 
   defmodule StubBackend do
+    # Minimal stand-in: Platform.System.os_description/0 uses with_wx_env/1, which may
+    # call set_env/1 when Desktop.Env is up.
+    def set_env(_env), do: :ok
     def os_description, do: Process.get(:stub_os_description)
   end
 
