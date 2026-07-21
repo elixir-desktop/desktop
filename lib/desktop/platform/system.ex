@@ -40,22 +40,23 @@ defmodule Desktop.Platform.System do
   backends (Wx, Json/mobile bridge, Browser). Returns `nil` when unavailable.
   """
   def os_description do
-    Helpers.with_wx_env(fn ->
-      case impl().os_description() do
-        nil -> nil
-        desc when is_list(desc) -> List.to_string(desc)
-        desc when is_binary(desc) -> desc
-        _ -> nil
-      end
-    end)
-    |> case do
+    raw =
+      Helpers.with_wx_env(fn ->
+        case impl().os_description() do
+          desc when is_binary(desc) -> desc
+          desc when is_list(desc) -> List.to_string(desc)
+          _ -> nil
+        end
+      end)
+
+    case raw do
       nil ->
         nil
 
       str ->
         case String.trim(str) do
           "" -> nil
-          other -> other
+          trimmed -> trimmed
         end
     end
   end
