@@ -17,6 +17,7 @@ defmodule Desktop.Platform.System do
               term()
   @callback wx_available?() :: boolean()
   @callback open_external_url(String.t()) :: :ok
+  @callback os_description() :: String.t() | charlist() | nil
   @callback activate_event_active?(event :: term()) :: boolean()
 
   def init_env, do: impl().init_env()
@@ -31,6 +32,34 @@ defmodule Desktop.Platform.System do
 
   def wx_available?, do: impl().wx_available?()
   def open_external_url(url), do: Helpers.with_wx_env(fn -> impl().open_external_url(url) end)
+
+  @doc """
+  Returns a human-readable OS / device description string.
+
+  Replaces direct `:wx_misc.getOsDescription/0` calls so apps work on all
+  backends (Wx, Json/mobile bridge, Browser). Returns `nil` when unavailable.
+  """
+  def os_description do
+    raw =
+      Helpers.with_wx_env(fn ->
+        case impl().os_description() do
+          desc when is_binary(desc) -> desc
+          desc when is_list(desc) -> List.to_string(desc)
+          _ -> nil
+        end
+      end)
+
+    case raw do
+      nil ->
+        nil
+
+      str ->
+        case String.trim(str) do
+          "" -> nil
+          trimmed -> trimmed
+        end
+    end
+  end
 
   def activate_event_active?(event),
     do: Helpers.with_wx_env(fn -> impl().activate_event_active?(event) end)

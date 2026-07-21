@@ -39,4 +39,9 @@ defmodule Desktop.Backend.WxTest do
     result = Wx.locale()
     assert result == nil or is_binary(result)
   end
+
+  test "T-WX: os_description via Platform.System" do
+    result = Desktop.Platform.System.os_description()
+    assert result == nil or is_binary(result)
+  end
 end

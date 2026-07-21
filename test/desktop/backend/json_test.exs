@@ -27,6 +27,11 @@ defmodule Desktop.Backend.JsonTest do
     assert Json.locale() == "en"
   end
 
+  test "T-JSN: os_description via bridge RPC" do
+    assert Json.os_description() == ~c"Mock OS"
+    assert Desktop.Platform.System.os_description() == "Mock OS"
+  end
+
   test "T-JSN: new frame handle shape" do
     wx = Transport.ensure_started()
 

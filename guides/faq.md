@@ -48,6 +48,8 @@ Inspect what the active backend supports:
 ```elixir
 Desktop.Platform.backend()       # e.g. Desktop.Backend.Wx
 Desktop.Platform.capabilities()  # %{window: true, content: :webview, ...}
+Desktop.Platform.System.locale()
+Desktop.Platform.System.os_description()  # replaces :wx_misc.getOsDescription/0
 ```
 
 | Backend | `window` | `content` | `menu` |

@@ -46,6 +46,9 @@ defmodule Desktop.Backend.Browser do
   def open_external_url(url), do: Desktop.Impl.HostBrowser.open(url)
 
   @impl true
+  def os_description, do: nil
+
+  @impl true
   def activate_event_active?(_event), do: true
 
   # Window

@@ -37,6 +37,7 @@ defmodule Desktop.Backend.BrowserTest do
     assert :ok = Browser.set_env(nil)
     assert Browser.get_env() == nil
     assert Browser.locale() == nil
+    assert Browser.os_description() == nil
     refute Browser.wx_available?()
   end
 end
