@@ -76,6 +76,11 @@ defmodule Desktop.Backend.Wx do
   end
 
   @impl true
+  def os_description do
+    Null.wx_call(:wx_misc, :getOsDescription, [])
+  end
+
+  @impl true
   def activate_event_active?(event) do
     if function_exported?(:wxActivateEvent, :getActive, 1) do
       :wxActivateEvent.getActive(event)

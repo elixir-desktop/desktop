@@ -78,6 +78,11 @@ defmodule Desktop.Backend.Json do
   end
 
   @impl true
+  def os_description do
+    Protocol.call(:wx_misc, :getOsDescription, [])
+  end
+
+  @impl true
   def activate_event_active?(_event), do: true
 
   # Window

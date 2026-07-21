@@ -17,7 +17,9 @@ forbidden_patterns = [
   {~r/ensure_wx_env/,
    "use Desktop.Platform.Helpers.with_wx_env/1 via Platform facades, not ensure_wx_env"},
   {~r/:wxLocale\.getSystemLanguage\s*\(/,
-   "Json/mobile: pass :getSystemLanguage as a bridge atom to Protocol, never :wxLocale.getSystemLanguage/0"}
+   "Json/mobile: pass :getSystemLanguage as a bridge atom to Protocol, never :wxLocale.getSystemLanguage/0"},
+  {~r/:wx_misc\.getOsDescription\s*\(/,
+   "use Desktop.Platform.System.os_description/0 instead of :wx_misc.getOsDescription/0"}
 ]
 
 violations =

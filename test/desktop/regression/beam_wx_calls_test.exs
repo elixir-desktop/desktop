@@ -31,6 +31,11 @@ defmodule Desktop.Regression.BeamWxCallsTest do
     assert Json.locale() == "en"
   end
 
+  test "os_description uses bridge RPC not OTP :wx_misc" do
+    assert Json.os_description() == ~c"Mock OS"
+    assert PlatformSystem.os_description() == "Mock OS"
+  end
+
   test "open_external_url on Json uses bridge RPC" do
     assert :ok = Json.open_external_url("https://example.com")
     assert :ok = PlatformSystem.open_external_url("https://example.com")
