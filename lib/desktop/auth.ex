@@ -7,6 +7,7 @@ defmodule Desktop.Auth do
 
   import Plug.Conn
   alias Desktop.OS
+  require Logger
   @behaviour Plug
 
   @table __MODULE__
@@ -79,10 +80,17 @@ defmodule Desktop.Auth do
 
   defp require_auth(conn) do
     conn = fetch_query_params(conn)
+    k = conn.query_params["k"] || ""
 
-    if OS.mobile?() or Plug.Crypto.secure_compare(login_key(), conn.query_params["k"] || "") do
+    if OS.mobile?() or Plug.Crypto.secure_compare(login_key(), k) do
       put_session(conn, :user, true)
     else
+      has_k? = k != ""
+
+      Logger.warning(
+        "Desktop.Auth Unauthorized path=#{conn.request_path} has_k=#{has_k?} peer=#{inspect(conn.remote_ip)}"
+      )
+
       conn
       |> resp(401, "Unauthorized")
       |> halt()

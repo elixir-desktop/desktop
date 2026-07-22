@@ -54,18 +54,47 @@ defmodule Desktop.AuthTest do
     refute conn.halted
   end
 
-  test "Auth plug rejects missing key" do
+  test "Auth plug rejects missing key and logs a warning" do
+    import ExUnit.CaptureLog
+
     _ = Desktop.Auth.login_key()
     opts = Desktop.Auth.init([])
 
-    conn =
-      Plug.Test.conn(:get, "/")
-      |> Plug.Test.init_test_session(%{})
-      |> Desktop.Auth.call(opts)
+    log =
+      capture_log(fn ->
+        conn =
+          Plug.Test.conn(:get, "/")
+          |> Plug.Test.init_test_session(%{})
+          |> Desktop.Auth.call(opts)
 
-    assert conn.halted
-    assert conn.status == 401
-    assert conn.resp_body == "Unauthorized"
+        assert conn.halted
+        assert conn.status == 401
+        assert conn.resp_body == "Unauthorized"
+      end)
+
+    assert log =~ "Desktop.Auth Unauthorized"
+    assert log =~ "has_k=false"
+  end
+
+  test "Auth plug rejects wrong key and logs has_k=true" do
+    import ExUnit.CaptureLog
+
+    _ = Desktop.Auth.login_key()
+    opts = Desktop.Auth.init([])
+
+    log =
+      capture_log(fn ->
+        conn =
+          Plug.Test.conn(:get, "/dashboard?k=WRONG")
+          |> Plug.Test.init_test_session(%{})
+          |> Desktop.Auth.call(opts)
+
+        assert conn.halted
+        assert conn.status == 401
+      end)
+
+    assert log =~ "Desktop.Auth Unauthorized path=/dashboard"
+    assert log =~ "has_k=true"
   end
 
   defp reset_auth_key!() do
