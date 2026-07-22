@@ -44,4 +44,18 @@ defmodule Desktop.Backend.WxTest do
     result = Desktop.Platform.System.os_description()
     assert result == nil or is_binary(result)
   end
+
+  test "T-WX: custom_event is no-op" do
+    assert :ok = Desktop.Platform.System.custom_event(:share, [])
+  end
+
+  @tag timeout: 10_000
+  test "T-WX: content reload" do
+    wx = Desktop.Env.wx()
+    {:ok, frame, webview} = Wx.open(wx: wx, title: ~c"reload", size: {200, 200}, icon: nil)
+
+    assert :ok = Desktop.Platform.Content.reload(webview)
+    assert :ok = Desktop.Platform.Content.reload(nil)
+    Wx.destroy_frame(frame)
+  end
 end

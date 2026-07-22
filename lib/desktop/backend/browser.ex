@@ -49,6 +49,9 @@ defmodule Desktop.Backend.Browser do
   def os_description, do: nil
 
   @impl true
+  def custom_event(_event, _args), do: :ok
+
+  @impl true
   def activate_event_active?(_event), do: true
 
   # Window
@@ -120,6 +123,9 @@ defmodule Desktop.Backend.Browser do
 
   @impl true
   def rebuild(_frame, _url), do: nil
+
+  @impl true
+  def reload(_content), do: :ok
 
   @impl true
   def put_webview_backend(name) do

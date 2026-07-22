@@ -18,6 +18,7 @@ defmodule Desktop.Platform.System do
   @callback wx_available?() :: boolean()
   @callback open_external_url(String.t()) :: :ok
   @callback os_description() :: String.t() | charlist() | nil
+  @callback custom_event(event :: atom(), args :: list()) :: :ok
   @callback activate_event_active?(event :: term()) :: boolean()
 
   def init_env, do: impl().init_env()
@@ -55,6 +56,17 @@ defmodule Desktop.Platform.System do
         trimmed -> trimmed
       end
     end
+  end
+
+  @doc """
+  Sends a native-host custom event over the mobile bridge.
+
+  Replaces direct `GenServer.call(Bridge, {:bridge_call, …})` with
+  `[:custom_event, event, args]` JSON. No-op (`:ok`) on Wx/Browser backends
+  or when the bridge transport is not running.
+  """
+  def custom_event(event, args \\ []) when is_atom(event) and is_list(args) do
+    Helpers.with_wx_env(fn -> impl().custom_event(event, args) end)
   end
 
   def activate_event_active?(event),

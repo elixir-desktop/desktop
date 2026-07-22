@@ -50,6 +50,8 @@ Desktop.Platform.backend()       # e.g. Desktop.Backend.Wx
 Desktop.Platform.capabilities()  # %{window: true, content: :webview, ...}
 Desktop.Platform.System.locale()
 Desktop.Platform.System.os_description()  # replaces :wx_misc.getOsDescription/0
+Desktop.Platform.System.custom_event(:share, [path])  # mobile bridge custom events
+Desktop.Window.reload(pid)  # replaces :wxWebView.reload/1
 ```
 
 | Backend | `window` | `content` | `menu` |
@@ -63,6 +65,14 @@ On Linux with DBus SNI available, Wx may use `:dbus` for the taskbar menu instea
 ## How does the mobile (Android/iOS) bridge work?
 
 On mobile targets, `desktop` uses `Desktop.Backend.Json` instead of OTP `:wx`. The Elixir side speaks the legacy JSON protocol over TCP to your native host app. Set `BRIDGE_PORT` to the port your host app listens on. Transport is built in as `Desktop.Bridge.Transport` — the separate `bridge` hex package is no longer required.
+
+App-level native events (share, save, restart, etc.) use:
+
+```elixir
+Desktop.Platform.System.custom_event(:share, [path, label])
+```
+
+This sends `[:custom_event, event, args]` over the same wire format the Hex `Bridge` GenServer used previously.
 
 Override explicitly if needed:
 

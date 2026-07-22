@@ -38,6 +38,11 @@ defmodule Desktop.Backend.BrowserTest do
     assert Browser.get_env() == nil
     assert Browser.locale() == nil
     assert Browser.os_description() == nil
+    assert :ok = Browser.custom_event(:share, [])
     refute Browser.wx_available?()
+  end
+
+  test "T-BRW: content reload is no-op" do
+    assert :ok = Browser.reload(nil)
   end
 end

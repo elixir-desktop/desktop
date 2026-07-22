@@ -81,6 +81,9 @@ defmodule Desktop.Backend.Wx do
   end
 
   @impl true
+  def custom_event(_event, _args), do: :ok
+
+  @impl true
   def activate_event_active?(event) do
     if function_exported?(:wxActivateEvent, :getActive, 1) do
       :wxActivateEvent.getActive(event)
@@ -264,6 +267,14 @@ defmodule Desktop.Backend.Wx do
 
   def load_url(webview, _frame, url) do
     Null.wx_call(:wxWebView, :loadURL, [webview, url])
+    :ok
+  end
+
+  @impl true
+  def reload(nil), do: :ok
+
+  def reload(webview) do
+    Null.wx_call(:wxWebView, :reload, [webview])
     :ok
   end
 

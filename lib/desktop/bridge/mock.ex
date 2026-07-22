@@ -15,6 +15,8 @@ defmodule Desktop.Bridge.Mock do
   def handle_method([:wxLocale | _]), do: ~c"en"
   def handle_method([:wx_misc, :launchDefaultBrowser | _]), do: :ok
   def handle_method([:wx_misc, :getOsDescription | _]), do: ~c"Mock OS"
+  def handle_method([:custom_event | _]), do: :ok
+  def handle_method([:wxWebView, :reload | _]), do: :ok
 
   def handle_method([type, :new | args]),
     do: [id: System.unique_integer([:positive]), type: type, args: args]
