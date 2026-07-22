@@ -19,7 +19,9 @@ forbidden_patterns = [
   {~r/:wxLocale\.getSystemLanguage\s*\(/,
    "Json/mobile: pass :getSystemLanguage as a bridge atom to Protocol, never :wxLocale.getSystemLanguage/0"},
   {~r/:wx_misc\.getOsDescription\s*\(/,
-   "use Desktop.Platform.System.os_description/0 instead of :wx_misc.getOsDescription/0"}
+   "use Desktop.Platform.System.os_description/0 instead of :wx_misc.getOsDescription/0"},
+  {~r/:wxWebView\.reload\s*\(/,
+   "use Desktop.Window.reload/1 or Desktop.Platform.Content.reload/1 instead of :wxWebView.reload/1"}
 ]
 
 violations =

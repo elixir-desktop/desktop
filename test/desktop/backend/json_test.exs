@@ -32,6 +32,20 @@ defmodule Desktop.Backend.JsonTest do
     assert Desktop.Platform.System.os_description() == "Mock OS"
   end
 
+  test "T-JSN: custom_event via bridge RPC" do
+    assert :ok = Json.custom_event(:share, ["/tmp/file"])
+    assert :ok = Desktop.Platform.System.custom_event(:restart, [])
+  end
+
+  test "T-JSN: content reload via bridge RPC" do
+    wx = Transport.ensure_started()
+    {:ok, _frame, webview} = Json.open(wx: wx, title: "t", size: {200, 200}, icon: nil)
+
+    assert :ok = Json.reload(webview)
+    assert :ok = Desktop.Platform.Content.reload(webview)
+    assert :ok = Desktop.Platform.Content.reload(nil)
+  end
+
   test "T-JSN: new frame handle shape" do
     wx = Transport.ensure_started()
 

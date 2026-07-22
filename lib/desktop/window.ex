@@ -272,6 +272,21 @@ defmodule Desktop.Window do
   end
 
   @doc """
+  Reload the Window webview / native content.
+
+  Replaces direct `:wxWebView.reload/1` on the handle from `webview/1`.
+
+  ## Examples
+
+      iex> Desktop.Window.reload(pid)
+      :ok
+
+  """
+  def reload(pid) do
+    GenServer.cast(pid, :reload)
+  end
+
+  @doc """
   Show the Window if not visible with the given url.
 
     * `pid` - The pid or atom of the Window
@@ -632,6 +647,11 @@ defmodule Desktop.Window do
 
   def handle_cast(:rebuild_webview, ui = %Window{}) do
     {:noreply, %Window{ui | webview: Fallback.webview_rebuild(ui)}}
+  end
+
+  def handle_cast(:reload, ui = %Window{webview: webview}) do
+    Platform.Content.reload(webview)
+    {:noreply, ui}
   end
 
   def handle_cast(

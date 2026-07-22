@@ -9,6 +9,8 @@
 - Menu adapters: `Desktop.Menu.Adapter.Json` and `Desktop.Menu.Adapter.Browser`
 - Public `Desktop.*` APIs unchanged (`Desktop.Window`, `Desktop.Env`, `Desktop.Menu`, etc.)
 - `Desktop.Platform.System.os_description/0` — backend-safe replacement for `:wx_misc.getOsDescription/0` (Wx, Json bridge, Browser)
+- `Desktop.Platform.System.custom_event/2` — mobile bridge custom events (replaces Hex `Bridge` `[:custom_event, …]` calls)
+- `Desktop.Platform.Content.reload/1` and `Desktop.Window.reload/1` — backend-safe webview reload (replaces `:wxWebView.reload/1`)
 - Test suite: `mix test.fast`, `xvfb-run mix test.wx`, `mix test.guard` — see `docs/TEST_PLAN.md`
 - Compile without OTP `:wx`: conditional `erl_src_paths` and `Desktop.Wx` fallbacks (no `wx.hrl` required)
 

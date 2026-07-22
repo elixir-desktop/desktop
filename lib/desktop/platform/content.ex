@@ -14,6 +14,7 @@ defmodule Desktop.Platform.Content do
               only_open :: boolean()
             ) :: :ok
   @callback rebuild(frame :: term() | nil, last_url :: String.t() | nil) :: term() | nil
+  @callback reload(content :: term() | nil) :: :ok
   @callback put_webview_backend(name :: String.t()) :: :ok
 
   def attach(frame), do: Helpers.with_wx_env(fn -> impl().attach(frame) end)
@@ -29,6 +30,15 @@ defmodule Desktop.Platform.Content do
 
   def rebuild(frame, last_url),
     do: Helpers.with_wx_env(fn -> impl().rebuild(frame, last_url) end)
+
+  @doc """
+  Reloads the webview / native content handle.
+
+  Replaces direct `:wxWebView.reload/1` so the call works on Wx and Json
+  (mobile bridge) backends. No-op when content is `nil` or on Browser.
+  """
+  def reload(content),
+    do: Helpers.with_wx_env(fn -> impl().reload(content) end)
 
   def put_webview_backend(name),
     do: Helpers.with_wx_env(fn -> impl().put_webview_backend(name) end)

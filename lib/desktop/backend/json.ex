@@ -83,6 +83,15 @@ defmodule Desktop.Backend.Json do
   end
 
   @impl true
+  def custom_event(event, args) do
+    if Process.whereis(Transport) do
+      Protocol.call(:custom_event, event, args)
+    end
+
+    :ok
+  end
+
+  @impl true
   def activate_event_active?(_event), do: true
 
   # Window
@@ -215,6 +224,14 @@ defmodule Desktop.Backend.Json do
 
   def load_url(webview, _frame, url) do
     Protocol.call(:wxWebView, :loadURL, [webview, url])
+    :ok
+  end
+
+  @impl true
+  def reload(nil), do: :ok
+
+  def reload(webview) do
+    Protocol.call(:wxWebView, :reload, [webview])
     :ok
   end
 

@@ -36,6 +36,17 @@ defmodule Desktop.Regression.BeamWxCallsTest do
     assert PlatformSystem.os_description() == "Mock OS"
   end
 
+  test "custom_event uses bridge RPC not Hex Bridge GenServer" do
+    assert :ok = Json.custom_event(:open_with, ["/tmp/x"])
+    assert :ok = PlatformSystem.custom_event(:message_read_up_to, ["0x01", 1])
+  end
+
+  test "content reload uses bridge RPC not OTP :wxWebView" do
+    wx = Transport.ensure_started()
+    {:ok, _frame, webview} = Json.open(wx: wx, title: "t", size: {100, 100}, icon: nil)
+    assert :ok = Desktop.Platform.Content.reload(webview)
+  end
+
   test "open_external_url on Json uses bridge RPC" do
     assert :ok = Json.open_external_url("https://example.com")
     assert :ok = PlatformSystem.open_external_url("https://example.com")
