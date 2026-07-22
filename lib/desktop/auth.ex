@@ -21,26 +21,19 @@ defmodule Desktop.Auth do
     end
   end
 
-  # `persistent_term` put is not atomic with get: under concurrent first access
-  # (e.g. Window.prepare_url/1 and this plug) two processes can mint different
-  # keys, leave the webview with a stale `?k=`, and serve a blank "Unauthorized".
-  # ETS insert_new elects a single winner; persistent_term remains the fast path.
+  # `persistent_term` get/put is not atomic: concurrent first access from
+  # Window.prepare_url/1 and this plug can mint different keys and leave the
+  # webview on a blank "Unauthorized" page. ETS insert_new elects one winner;
+  # persistent_term remains the fast read path.
   defp init_key() do
     table = table!()
+    key = :crypto.strong_rand_bytes(32)
 
-    case :ets.lookup(table, :key) do
-      [{:key, key}] ->
-        store_key(key)
-
-      [] ->
-        key = :crypto.strong_rand_bytes(32)
-
-        if :ets.insert_new(table, {:key, key}) do
-          store_key(key)
-        else
-          [{:key, key}] = :ets.lookup(table, :key)
-          store_key(key)
-        end
+    if :ets.insert_new(table, {:key, key}) do
+      store_key(key)
+    else
+      [{:key, key}] = :ets.lookup(table, :key)
+      store_key(key)
     end
   end
 
@@ -55,9 +48,7 @@ defmodule Desktop.Auth do
         try do
           :ets.new(@table, [:named_table, :public, :set, read_concurrency: true])
         rescue
-          ArgumentError ->
-            # Concurrent create — the other process owns the table now.
-            table!()
+          ArgumentError -> table!()
         end
 
       tid ->

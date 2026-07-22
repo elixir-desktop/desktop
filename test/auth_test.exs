@@ -15,24 +15,22 @@ defmodule Desktop.AuthTest do
   end
 
   test "login_key/0 returns one key under concurrent first access" do
-    reset_auth_key!()
     parent = self()
 
-    pids =
-      for _ <- 1..40 do
-        spawn(fn ->
-          send(parent, {:key, Desktop.Auth.login_key()})
-        end)
-      end
+    for _ <- 1..40 do
+      spawn(fn ->
+        send(parent, {:key, Desktop.Auth.login_key()})
+      end)
+    end
 
     keys =
-      Enum.map(pids, fn _ ->
+      for _ <- 1..40 do
         receive do
           {:key, key} -> key
         after
           5_000 -> flunk("timeout waiting for auth key")
         end
-      end)
+      end
 
     assert length(Enum.uniq(keys)) == 1
     assert hd(keys) == Desktop.Auth.login_key()
@@ -71,11 +69,7 @@ defmodule Desktop.AuthTest do
   end
 
   defp reset_auth_key!() do
-    try do
-      :persistent_term.erase({Desktop.Auth, :key})
-    rescue
-      ArgumentError -> :ok
-    end
+    :persistent_term.erase({Desktop.Auth, :key})
 
     case :ets.whereis(Desktop.Auth) do
       :undefined -> :ok
