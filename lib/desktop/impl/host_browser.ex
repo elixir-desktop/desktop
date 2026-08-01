@@ -4,7 +4,9 @@ defmodule Desktop.Impl.HostBrowser do
 
   alias Desktop.OS
 
-  @spec open(String.t()) :: :ok
+  @spec open(String.t() | charlist()) :: :ok
+  def open(url) when is_list(url), do: open(List.to_string(url))
+
   def open(url) when is_binary(url) do
     spawn(fn -> run_open(url) end)
     :ok
