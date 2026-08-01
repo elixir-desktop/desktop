@@ -52,6 +52,12 @@ defmodule Desktop.Regression.BeamWxCallsTest do
     assert :ok = PlatformSystem.open_external_url("https://example.com")
   end
 
+  test "open_external_url accepts wx-style charlist URLs" do
+    assert :ok = PlatformSystem.open_external_url(~c"https://example.com")
+    assert is_pid(Desktop.OS.launch_default_browser(~c"https://example.com"))
+    Process.sleep(50)
+  end
+
   test "activate_event_active? on Json backend returns true without wx" do
     assert Json.activate_event_active?(%{})
     assert PlatformSystem.activate_event_active?(%{})

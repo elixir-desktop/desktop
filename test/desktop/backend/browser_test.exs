@@ -42,6 +42,12 @@ defmodule Desktop.Backend.BrowserTest do
     refute Browser.wx_available?()
   end
 
+  test "T-BRW: open_external_url accepts binary and charlist" do
+    assert :ok = Browser.open_external_url("https://example.com")
+    assert :ok = Browser.open_external_url(~c"https://example.com")
+    assert :ok = Desktop.Impl.HostBrowser.open(~c"https://example.com")
+  end
+
   test "T-BRW: content reload is no-op" do
     assert :ok = Browser.reload(nil)
   end

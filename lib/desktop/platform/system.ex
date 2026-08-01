@@ -32,7 +32,13 @@ defmodule Desktop.Platform.System do
   end
 
   def wx_available?, do: impl().wx_available?()
-  def open_external_url(url), do: Helpers.with_wx_env(fn -> impl().open_external_url(url) end)
+
+  # wxWebView and other OTP APIs pass URLs as charlists; backends expect binaries.
+  def open_external_url(url) when is_list(url), do: open_external_url(List.to_string(url))
+
+  def open_external_url(url) when is_binary(url) do
+    Helpers.with_wx_env(fn -> impl().open_external_url(url) end)
+  end
 
   @doc """
   Returns a human-readable OS / device description string.
