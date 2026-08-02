@@ -44,7 +44,8 @@ All commands that load the `:wx` application (compile, test, iex) need a display
 | `Desktop.Backend.Json` | `:mobile_target` compile config or `OS.mobile?/0` — JSON bridge via `BRIDGE_PORT` |
 | `Desktop.Backend.Browser` | `NO_WX=1` or `:wx` unavailable |
 
-Override with `config :desktop, :backend, :wx | :json | :browser | :auto`.
+Override with `config :desktop, :backend, :wx | :json | :browser | :auto` or a custom module.
+Custom backends may set `config :desktop, :menu_adapter, Some.Menu.Adapter` (used by `desktop_webview`).
 
 ### Platform abstraction (do not regress)
 

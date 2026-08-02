@@ -11,7 +11,10 @@ defmodule Desktop.Platform.Menu do
     caps = Desktop.Platform.capabilities()
 
     cond do
-      Keyword.get(opts, :adapter) in [Adapter.Wx, Adapter.DBus, Adapter.Json, Adapter.Browser] ->
+      mod = Application.get_env(:desktop, :menu_adapter) ->
+        mod
+
+      Keyword.get(opts, :adapter) ->
         Keyword.get(opts, :adapter)
 
       Keyword.get(opts, :sni) != nil and Desktop.Platform.backend() == Desktop.Backend.Wx ->
