@@ -291,13 +291,10 @@ defmodule Desktop.Menu do
 
     adapter_module =
       case Keyword.get(init_opts, :adapter) do
-        mod when mod in [Adapter.Wx, Adapter.DBus, Adapter.Json, Adapter.Browser] ->
+        mod when is_atom(mod) and not is_nil(mod) ->
           mod
 
         nil ->
-          Desktop.Platform.Menu.adapter(init_opts)
-
-        _ ->
           Desktop.Platform.Menu.adapter(init_opts)
       end
 

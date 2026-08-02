@@ -34,6 +34,14 @@ For a custom implementation, set the backend to a module that implements the `De
 config :desktop, :backend, MyApp.DesktopBackend
 ```
 
+Third-party backends that ship their own menu adapter (for example [`desktop_webview`](https://github.com/elixir-desktop/webview)) should also set:
+
+```elixir
+config :desktop, :menu_adapter, DesktopWebview.Menu.Adapter
+```
+
+`Desktop.Platform.Menu.adapter/1` prefers `config :desktop, :menu_adapter` when present, then falls back to Wx / Json / DBus / Browser selection.
+
 Restart the app after changing backend config — the router reads `Application.get_env(:desktop, :backend, :auto)` at runtime.
 
 ### Environment variables
