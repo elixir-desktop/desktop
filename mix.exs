@@ -76,7 +76,19 @@ defmodule Desktop.MixProject do
   end
 
   def extra_applications(:host) do
-    [:wx]
+    # Only include `:wx` when the OTP it would be loaded on actually has the
+    # `:wx` OTP application available. Without this guard, `mix release`
+    # aborts with "Could not find application :wx" when the build host's
+    # Erlang/OTP was configured `--without-wx` (e.g. on the macOS installer
+    # CI now that the workflow drops the custom wxWidgets build). The Erlang
+    # source file `src/desktop_wx.erl` already adapts to missing wx headers
+    # via `desktop_wx_stub.exs`, so a host build without `:wx` simply
+    # compiles the stub backend.
+    if :code.lib_dir(:wx) |> is_list() do
+      [:wx]
+    else
+      []
+    end
   end
 
   def extra_applications(_mobile) do
