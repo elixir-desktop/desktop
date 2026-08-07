@@ -42,25 +42,15 @@ defmodule Desktop.Wx.Compile do
   end
 
   def wx_available? do
-    host_target?() and wx_headers_exist?()
+    host_target?() and Desktop.WxStub.wx_headers_resolvable?()
   end
 
   defp host_target? do
     System.get_env("MIX_TARGET") in [nil, "host"]
   end
 
-  defp wx_headers_exist? do
-    case :code.lib_dir(:wx) do
-      path when is_list(path) ->
-        File.exists?(Path.join([List.to_string(path), "include", "wx.hrl"]))
-
-      _ ->
-        false
-    end
-  end
-
   defp constant_defs do
-    if host_target?() and wx_headers_exist?() do
+    if wx_available?() do
       constant_defs_from_erlang()
     else
       constant_defs_from_fallback()

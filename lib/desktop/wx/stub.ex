@@ -2,8 +2,8 @@ defmodule Desktop.WxStub do
   @moduledoc false
 
   # Generates src/desktop_wx.erl before any compiler runs.
-  # - MIX_TARGET host (or unset) + wx.hrl present → include_lib + ?wx macros
-  # - android / ios / no wx headers → header-free integer fallbacks
+  # - MIX_TARGET host (or unset) + wx.hrl resolvable by erlc → include_lib + ?wx macros
+  # - android / ios / wx.hrl missing / wx.hrl not resolvable → header-free integer fallbacks
 
   @constant_names ~w(
     ID_ANY ID_EXIT DEFAULT_FRAME_STYLE NO_BORDER EXPAND HORIZONTAL VERTICAL
@@ -41,7 +41,7 @@ defmodule Desktop.WxStub do
     File.mkdir_p!(Path.dirname(path))
 
     body =
-      if host_target?() and wx_headers_exist?() do
+      if host_target?() and wx_headers_resolvable?() do
         hrl_body(target)
       else
         stub_body(target)
@@ -55,13 +55,39 @@ defmodule Desktop.WxStub do
     System.get_env("MIX_TARGET") in [nil, "host"]
   end
 
-  defp wx_headers_exist? do
-    case :code.lib_dir(:wx) do
-      path when is_list(path) ->
-        File.exists?(Path.join([List.to_string(path), "include", "wx.hrl"]))
+  # True only when both `wx.hrl` exists on disk AND the host's `erlc` can
+  # resolve it through the OTP include path. Some hosts (e.g. the
+  # `erlef/setup-beam` GHA Linux CI used by `diode-drive`) report a path
+  # via `:code.lib_dir(:wx)` and have `wx.hrl` on disk, but the `erlc`
+  # that `mix` invokes fails with `can't find include lib "wx/include/wx.hrl"`.
+  # Probing with a throwaway include is the only reliable way to tell.
+  def wx_headers_resolvable? do
+    with lib when is_list(lib) <- :code.lib_dir(:wx),
+         true <- File.exists?(Path.join([List.to_string(lib), "include", "wx.hrl"])),
+         {:ok, _} <- probe_include_lib() do
+      true
+    else
+      _ -> false
+    end
+  end
 
-      _ ->
-        false
+  defp probe_include_lib do
+    src = Path.join(System.tmp_dir!(), "desktop_wx_probe.erl")
+    out = Path.join(System.tmp_dir!(), "desktop_wx_probe.beam")
+
+    try do
+      File.write!(
+        src,
+        "-module(desktop_wx_probe).\n-include_lib(\"wx/include/wx.hrl\").\n-export([ok/0]).\nok() -> 1.\n"
+      )
+
+      case System.cmd("erlc", ["-o", System.tmp_dir!(), src], stderr_to_stdout: true) do
+        {_out, 0} -> {:ok, :ok}
+        other -> other
+      end
+    after
+      File.rm(src)
+      File.rm(out)
     end
   end
 
