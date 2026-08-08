@@ -84,7 +84,14 @@ defmodule Desktop.MixProject do
     # source file `src/desktop_wx.erl` already adapts to missing wx headers
     # via `desktop_wx_stub.exs`, so a host build without `:wx` simply
     # compiles the stub backend.
-    if :code.lib_dir(:wx) |> is_list() do
+    #
+    # NOTE: `:code.lib_dir/1` is unreliable here because it consults Erlang's
+    # `NameDb` ETS table which can be empty by the time `extra_applications/1`
+    # is evaluated under `mix deps.compile` — the previous deps' `compile.all`
+    # prunes the code path and forgets the apps it never listed. Check the
+    # filesystem directly instead, mirroring what `desktop_wx_stub.exs`
+    # already does via `wx_headers_resolvable?/0`.
+    if wx_app_on_disk?() do
       [:wx]
     else
       []
@@ -93,6 +100,17 @@ defmodule Desktop.MixProject do
 
   def extra_applications(_mobile) do
     []
+  end
+
+  defp wx_app_on_disk? do
+    root = List.to_string(:code.root_dir())
+
+    with {:ok, entries} <- File.ls(Path.join(root, "lib")),
+         wx_dir <- Enum.find(entries, &String.starts_with?(&1, "wx-")) do
+      File.exists?(Path.join([root, "lib", wx_dir, "include", "wx.hrl"]))
+    else
+      _ -> false
+    end
   end
 
   defp aliases() do
