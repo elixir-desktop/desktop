@@ -90,7 +90,11 @@ defmodule Desktop.MixProject do
     # is evaluated under `mix deps.compile` — the previous deps' `compile.all`
     # prunes the code path and forgets the apps it never listed. Check the
     # filesystem directly instead, mirroring what `desktop_wx_stub.exs`
-    # already does via `wx_headers_resolvable?/0`.
+    # already does via `wx_headers_resolvable?/0`. The `with` clause guards
+    # `wx_dir` against `nil` because `Enum.find/2` returns `nil` when no
+    # `wx-*` directory exists under the OTP root (the case on `--without-wx`
+    # builds), and an unbound pattern would otherwise let the body run with
+    # `wx_dir = nil` and crash `Path.join/1`.
     if wx_app_on_disk?() do
       [:wx]
     else
@@ -106,7 +110,8 @@ defmodule Desktop.MixProject do
     root = List.to_string(:code.root_dir())
 
     with {:ok, entries} <- File.ls(Path.join(root, "lib")),
-         wx_dir <- Enum.find(entries, &String.starts_with?(&1, "wx-")) do
+         wx_dir when is_binary(wx_dir) <-
+           Enum.find(entries, &String.starts_with?(&1, "wx-")) do
       File.exists?(Path.join([root, "lib", wx_dir, "include", "wx.hrl"]))
     else
       _ -> false
