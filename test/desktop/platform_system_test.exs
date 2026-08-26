@@ -72,3 +72,33 @@ defmodule Desktop.Platform.SystemCustomEventTest do
     assert_receive {:custom_event, :share, ["/tmp/a"]}
   end
 end
+
+defmodule Desktop.Platform.SystemPrepareShutdownTest do
+  use ExUnit.Case, async: false
+
+  alias Desktop.Platform.System, as: PlatformSystem
+
+  defmodule StubBackend do
+    def prepare_shutdown do
+      send(Process.get(:stub_test_pid), :prepare_shutdown)
+      :ok
+    end
+  end
+
+  setup do
+    previous = Application.get_env(:desktop, :backend, :auto)
+    Application.put_env(:desktop, :backend, StubBackend)
+    Process.put(:stub_test_pid, self())
+
+    on_exit(fn ->
+      Application.put_env(:desktop, :backend, previous)
+    end)
+
+    :ok
+  end
+
+  test "prepare_shutdown delegates to backend" do
+    assert :ok = PlatformSystem.prepare_shutdown()
+    assert_receive :prepare_shutdown
+  end
+end

@@ -54,6 +54,9 @@ defmodule Desktop.Backend.Browser do
   @impl true
   def activate_event_active?(_event), do: true
 
+  @impl true
+  def prepare_shutdown, do: :ok
+
   # Window
 
   @impl true

@@ -92,6 +92,9 @@ defmodule Desktop.Backend.Wx do
     end
   end
 
+  @impl true
+  def prepare_shutdown, do: :ok
+
   # Window
 
   @impl true

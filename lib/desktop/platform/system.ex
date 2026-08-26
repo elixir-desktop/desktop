@@ -20,6 +20,7 @@ defmodule Desktop.Platform.System do
   @callback os_description() :: String.t() | charlist() | nil
   @callback custom_event(event :: atom(), args :: list()) :: :ok
   @callback activate_event_active?(event :: term()) :: boolean()
+  @callback prepare_shutdown() :: :ok
 
   def init_env, do: impl().init_env()
   def subscribe_events, do: impl().subscribe_events()
@@ -77,6 +78,12 @@ defmodule Desktop.Platform.System do
 
   def activate_event_active?(event),
     do: Helpers.with_wx_env(fn -> impl().activate_event_active?(event) end)
+
+  @doc """
+  Notifies the native host before BEAM halts so host-first runtimes (e.g.
+  DesktopWebView) can suppress BEAM respawn during a user-initiated quit.
+  """
+  def prepare_shutdown, do: impl().prepare_shutdown()
 
   defp impl, do: Desktop.Platform.backend()
 end

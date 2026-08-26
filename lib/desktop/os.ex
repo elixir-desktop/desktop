@@ -53,6 +53,7 @@ defmodule Desktop.OS do
 
   @spec halt() :: no_return()
   defp halt() do
+    Desktop.Platform.System.prepare_shutdown()
     Process.sleep(300)
 
     # With System.stop(0) shutdown of the WebView takes
