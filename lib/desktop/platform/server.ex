@@ -23,13 +23,21 @@ defmodule Desktop.Platform.Server do
 
   @impl true
   def handle_info(message, s = %__MODULE__{state: state, module: module}) do
-    if function_exported?(module, :handle_event, 2) and is_tuple(message) do
+    # Only wx event records go to handle_event/2. Other tuples (e.g.
+    # {:edw_notification, id, action}) must reach handle_info/2.
+    if function_exported?(module, :handle_event, 2) and wx_event?(message) do
       module.handle_event(message, state)
       |> wrap_result(s)
     else
       dispatch_info(message, s)
     end
   end
+
+  defp wx_event?(message) when is_tuple(message) and tuple_size(message) > 0 do
+    elem(message, 0) == :wx
+  end
+
+  defp wx_event?(_), do: false
 
   defp dispatch_info(message, s = %__MODULE__{state: state, module: module}) do
     if function_exported?(module, :handle_info, 2) do
