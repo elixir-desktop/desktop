@@ -587,6 +587,27 @@ defmodule Desktop.Window do
     end
   end
 
+  @doc false
+  def handle_info({:edw_notification, id, action}, ui) do
+    notification_by_id(ui, to_string(id), action)
+    {:noreply, ui}
+  end
+
+  defp notification_by_id(%Window{notifications: noties}, id, action) do
+    case Map.get(noties, id) do
+      nil ->
+        Logger.error(
+          "Received unhandled notification event #{inspect(id)}: #{inspect(action)} (#{inspect(noties)})"
+        )
+
+      {_ref, nil} ->
+        :ok
+
+      {_ref, callback} ->
+        spawn(fn -> callback.(action) end)
+    end
+  end
+
   def close_window(wx(userData: pid), inev) do
     Platform.Window.close_event_veto(inev)
     GenServer.cast(pid, :close_window)
@@ -658,20 +679,29 @@ defmodule Desktop.Window do
         {:show_notification, message, id, type, title, callback, timeout},
         ui = %Window{notifications: noties, title: window_title}
       ) do
+    id_key = to_string(id)
+
     {n, _} =
-      note =
-      case Map.get(noties, id, nil) do
+      case Map.get(noties, id_key, nil) do
         nil -> {Fallback.notification_new(title || window_title, type), callback}
         {note, _} -> {note, callback}
       end
 
-    Fallback.notification_show(n, message, timeout, title || window_title)
-    noties = Map.put(noties, id, note)
+    # Native backends (`{:notification, _, _}`) correlate OS clicks by string id.
+    # Pass that id into show/close so EventBridge `edw_notification` matches map keys.
+    {show_handle, store_handle} =
+      case n do
+        {:notification, _, _} -> {id_key, id_key}
+        other -> {other, other}
+      end
+
+    Fallback.notification_show(show_handle, message, timeout, title || window_title)
+    noties = Map.put(noties, id_key, {store_handle, callback})
     {:noreply, %Window{ui | notifications: noties}}
   end
 
   def handle_cast({:dismiss_notification, id}, ui = %Window{notifications: noties}) do
-    case Map.pop(noties, id) do
+    case Map.pop(noties, to_string(id)) do
       {nil, _noties} ->
         {:noreply, ui}
 
