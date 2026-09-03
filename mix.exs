@@ -44,7 +44,28 @@ defmodule Desktop.MixProject do
 
   defp ensure_desktop_wx_erl! do
     script = Path.join(__DIR__, "desktop_wx_stub.exs")
-    {_, 0} = System.cmd("elixir", [script], env: System.get_env())
+
+    # On Windows, `System.find_executable("elixir")` can resolve the extensionless
+    # Unix shell script under elixir/bin, which CreateProcess cannot run (exit 255).
+    # Prefer elixir.bat there; keep plain `elixir` on Unix.
+    elixir =
+      case :os.type() do
+        {:win32, _} ->
+          System.find_executable("elixir.bat") || System.find_executable("elixir")
+
+        _ ->
+          System.find_executable("elixir")
+      end
+
+    elixir || raise "elixir executable not found on PATH (needed to generate src/desktop_wx.erl)"
+
+    {output, status} =
+      System.cmd(elixir, [script], env: System.get_env(), stderr_to_stdout: true)
+
+    if status != 0 do
+      raise "desktop_wx_stub.exs failed (exit #{status}): #{output}"
+    end
+
     :ok
   end
 
