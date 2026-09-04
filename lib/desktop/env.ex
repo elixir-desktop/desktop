@@ -10,14 +10,42 @@ defmodule Desktop.Env do
   Also it has a global connect() method to allow binding of :wx event callbacks using
   this long lived process as reference.
 
-  Subscribers (see `subscribe/0`) also receive:
+  ## Subscriber events
 
+  Processes that call `subscribe/0` receive `t:subscriber_event/0` messages.
+
+  Path and URL payloads are **canonical UTF-8 binaries** (`String.t()`). Wx and
+  other sources may pass charlists; `Desktop.Env` normalizes them at the boundary
+  (both on `notify_subscribers/1` and on OS `handle_info` ingest) before buffering
+  or delivering to subscribers.
+
+  * `{:print_file, [path]}` / `{:open_file, [path]}` / `{:open_url, [url]}` —
+    zero or more path/URL binaries
+  * `{:new_file, []}`
   * `{:desktop, :window_activated, window_id}` — a `Desktop.Window` with registered
-    `id` has become the active frame (user brought the app window to the foreground).
+    `id` atom has become the active frame
   """
   alias Desktop.Env
   use GenServer
   require Logger
+
+  @typedoc "UTF-8 path or URL string delivered to Env subscribers."
+  @type path_or_url :: String.t()
+
+  @typedoc "OS application open/print events (paths and URLs are binaries)."
+  @type os_app_event ::
+          {:print_file, [path_or_url()]}
+          | {:open_file, [path_or_url()]}
+          | {:open_url, [path_or_url()]}
+          | {:new_file, []}
+
+  @typedoc "Desktop lifecycle events."
+  @type desktop_event :: {:desktop, :window_activated, atom()}
+
+  @typedoc "Messages delivered to processes that called `subscribe/0`."
+  @type subscriber_event :: os_app_event() | desktop_event()
+
+  @path_tags [:open_url, :open_file, :print_file]
 
   defstruct [:wx_env, :wx, :map, :waiters, :windows, :sni, :events, :subs]
 
@@ -123,6 +151,8 @@ defmodule Desktop.Env do
   end
 
   def handle_cast({:notify_subscribers, message}, state = %Env{subs: subs}) do
+    message = normalize_subscriber_event(message)
+
     for sub <- subs do
       send(sub, message)
     end
@@ -158,6 +188,8 @@ defmodule Desktop.Env do
 
   def handle_info({_mac_event, list} = e, state = %Env{subs: subs, events: events})
       when is_list(list) do
+    e = normalize_subscriber_event(e)
+
     if subs == [] do
       {:noreply, %Env{state | events: events ++ [e]}}
     else
@@ -266,29 +298,51 @@ defmodule Desktop.Env do
   end
 
   @doc """
-    Wrapper around wx.subscribe()
+  Subscribe the calling process to OS and desktop lifecycle events.
 
-    Will send to the calling process events in the form:
+  Delivers `t:subscriber_event/0` messages. Path and URL lists are always
+  UTF-8 binaries (never charlists), including when the OS or bridge originally
+  supplied charlists.
 
-    * `{:print_file, [filename]}`
-    * `{:open_file, [filename]}`
-    * `{:open_url, [filename]}`
-    * `{:new_file, []}`
-    * `{:desktop, :window_activated, window_id}` — from `Desktop.Window` when the
-      frame becomes active (see `Desktop.Env` module doc).
+  * `{:print_file, [path_or_url]}`
+  * `{:open_file, [path_or_url]}`
+  * `{:open_url, [path_or_url]}`
+  * `{:new_file, []}`
+  * `{:desktop, :window_activated, window_id}` — `window_id` is the window `id` atom
   """
   def subscribe() do
     GenServer.call(__MODULE__, {:subscribe, self()})
   end
 
   @doc """
-  Delivers a message to all processes that called `subscribe/0`.
+  Delivers a `t:subscriber_event/0` to all processes that called `subscribe/0`.
 
-  Used internally by `Desktop.Window` for lifecycle events (e.g. frame activation).
+  Used by `Desktop.Window` for lifecycle events and by native bridges (e.g.
+  EventBridge) for OS open-URL/file notifications. Callers may pass charlist
+  paths/URLs; they are normalized to binaries before delivery.
   """
   def notify_subscribers(message) when is_tuple(message) do
     GenServer.cast(__MODULE__, {:notify_subscribers, message})
   end
+
+  defp normalize_subscriber_event({tag, paths})
+       when tag in @path_tags and is_list(paths) do
+    {tag, normalize_paths(paths)}
+  end
+
+  defp normalize_subscriber_event(other), do: other
+
+  # Bare wx charlist as the entire second element: {:open_url, ~c"https://..."}.
+  defp normalize_paths([c | _] = charlist) when is_integer(c) do
+    [List.to_string(charlist)]
+  end
+
+  defp normalize_paths(paths) when is_list(paths) do
+    Enum.map(paths, &normalize_path/1)
+  end
+
+  defp normalize_path(bin) when is_binary(bin), do: bin
+  defp normalize_path(list) when is_list(list), do: List.to_string(list)
 
   defp init_sni() do
     {task, ref} = spawn_monitor(fn -> exit(do_init_sni()) end)

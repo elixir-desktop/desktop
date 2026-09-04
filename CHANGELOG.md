@@ -13,6 +13,7 @@
 - `Desktop.Platform.Content.reload/1` and `Desktop.Window.reload/1` — backend-safe webview reload (replaces `:wxWebView.reload/1`)
 - Test suite: `mix test.fast`, `xvfb-run mix test.wx`, `mix test.guard` — see `docs/TEST_PLAN.md`
 - Compile without OTP `:wx`: conditional `erl_src_paths` and `Desktop.Wx` fallbacks (no `wx.hrl` required)
+- `Desktop.Env` subscriber path/URL payloads (`:open_url`, `:open_file`, `:print_file`) are canonical UTF-8 binaries; wx charlists are normalized at the Env boundary before buffer or delivery
 
 ## Changes in 1.5
 
@@ -28,7 +29,7 @@
 
 ## Changes in 1.3
 
-- Added `Env.subscribe/1` to listen to MacOS application events such as `{:open_url, url}` when a url associated with the application is clicked.
+- Added `Env.subscribe/0` to listen to MacOS application events such as `{:open_url, [url]}` when a url associated with the application is clicked.
 - Using (experimental) dbus support to render the systray icon on linux
 - Added `Menu.escape_attribute/1`
 - Added `Window.url/1`
