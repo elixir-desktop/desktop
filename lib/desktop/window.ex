@@ -218,6 +218,14 @@ defmodule Desktop.Window do
         menu_pid
       end
 
+    if is_pid(taskbar) do
+      OnCrash.call(fn reason ->
+        if reason != :normal do
+          stop_taskbar(taskbar)
+        end
+      end)
+    end
+
     ui = %Window{
       frame: frame,
       id: options[:id],
@@ -780,5 +788,13 @@ defmodule Desktop.Window do
         %URI{uri | query: URI.encode_query(Map.merge(URI.decode_query(other), query))}
     end
     |> URI.to_string()
+  end
+
+  defp stop_taskbar(pid) when is_pid(pid) do
+    if Process.alive?(pid) do
+      GenServer.stop(pid, :shutdown, 2000)
+    end
+  catch
+    :exit, _ -> :ok
   end
 end
