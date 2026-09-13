@@ -12,7 +12,8 @@
 - `Desktop.Platform.System.custom_event/2` — mobile bridge custom events (replaces Hex `Bridge` `[:custom_event, …]` calls)
 - `Desktop.Platform.Content.reload/1` and `Desktop.Window.reload/1` — backend-safe webview reload (replaces `:wxWebView.reload/1`)
 - Test suite: `mix test.fast`, `xvfb-run mix test.wx`, `mix test.guard` — see `docs/TEST_PLAN.md`
-- Compile without OTP `:wx`: conditional `erl_src_paths` and `Desktop.Wx` fallbacks (no `wx.hrl` required)
+- `Desktop.Menu` traps parent exits and destroys the taskbar icon on terminate so a window crash cannot leave a duplicate tray icon
+
 - `Desktop.Env` subscriber path/URL payloads (`:open_url`, `:open_file`, `:print_file`) are canonical UTF-8 binaries; wx charlists are normalized at the Env boundary before buffer or delivery
 
 ## Changes in 1.5

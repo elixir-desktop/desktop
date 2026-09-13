@@ -141,6 +141,9 @@ L4 App smoke         → desktop-example-app (optional, manual/CI nightly)
 |----|------|
 | T-MENU-01 | Browser adapter menubar nil, set_icon ok |
 | T-MENU-02 | Json adapter minimal menubar DOM |
+| T-MENU-03 | `GenServer.stop` on Menu calls adapter `set_icon(nil)` (tray destroy) |
+| T-MENU-04 | Linked parent crash destroys the taskbar icon via trapped EXIT |
+| T-MENU-05 | EXIT from a non-parent process does not destroy the taskbar icon |
 | T-FALL-01 | `webview_load` with nil webview does not raise |
 
 ### L0 guard — `test/support/guard_boolean_ops.exs` (new)

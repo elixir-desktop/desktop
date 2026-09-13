@@ -284,6 +284,7 @@ defmodule Desktop.Menu do
 
   @impl true
   def init(init_opts) do
+    Process.flag(:trap_exit, true)
     menu_pid = self()
     module = Keyword.get(init_opts, :module)
     dom = Keyword.get(init_opts, :dom, [])
@@ -397,6 +398,13 @@ defmodule Desktop.Menu do
   end
 
   @impl true
+  def handle_info({:EXIT, from, reason}, menu) do
+    case Process.info(self(), :parent) do
+      {:parent, ^from} -> {:stop, reason, menu}
+      _ -> {:noreply, menu}
+    end
+  end
+
   def handle_info(event, menu = %{__adapter__: adapter = %{__struct__: adapter_module}})
       when is_tuple(event) and elem(event, 0) == :wx do
     {:noreply, adapter} = adapter_module.handle_info(event, adapter)
@@ -406,6 +414,12 @@ defmodule Desktop.Menu do
 
   def handle_info(msg, menu) do
     {:noreply, proxy_handle_info(msg, menu)}
+  end
+
+  @impl true
+  def terminate(_reason, %{__adapter__: adapter}) do
+    _ = Adapter.set_icon(adapter, nil)
+    :ok
   end
 
   # Private functions
