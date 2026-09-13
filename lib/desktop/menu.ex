@@ -398,8 +398,11 @@ defmodule Desktop.Menu do
   end
 
   @impl true
-  def handle_info({:EXIT, _from, reason}, menu) do
-    {:stop, reason, menu}
+  def handle_info({:EXIT, from, reason}, menu) do
+    case Process.info(self(), :parent) do
+      {:parent, ^from} -> {:stop, reason, menu}
+      _ -> {:noreply, menu}
+    end
   end
 
   def handle_info(event, menu = %{__adapter__: adapter = %{__struct__: adapter_module}})

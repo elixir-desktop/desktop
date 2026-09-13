@@ -53,6 +53,21 @@ defmodule Desktop.MenuCrashTest do
     end)
   end
 
+  test "T-MENU-05: non-parent EXIT does not destroy the taskbar icon" do
+    Process.flag(:trap_exit, true)
+    {:ok, pid} = start_menu()
+    stranger = spawn(fn -> :ok end)
+
+    send(pid, {:EXIT, stranger, :normal})
+    send(pid, {:EXIT, stranger, :crash})
+
+    refute_receive {:tray_destroyed, :tray}, 200
+    assert Process.alive?(pid)
+
+    GenServer.stop(pid, :shutdown)
+    assert_receive {:tray_destroyed, :tray}, 1000
+  end
+
   defp start_menu(opts \\ []) do
     notify = Keyword.get(opts, :notify, self())
 
